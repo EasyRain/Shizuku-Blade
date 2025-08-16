@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Specification-Title: shizuku
+Specification-Vendor: buwan
+Specification-Version: 1
+Implementation-Title: shizuku
+Implementation-Version: 1.0.0
+Implementation-Vendor: buwan
+Implementation-Timestamp: 2025-08-16T16:32:07+0800
+MixinConfigs: shizuku.mixins.json
+

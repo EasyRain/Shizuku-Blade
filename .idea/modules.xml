@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/shizuku.main.iml" filepath="$PROJECT_DIR$/.idea/modules/shizuku.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/shizuku.test.iml" filepath="$PROJECT_DIR$/.idea/modules/shizuku.test.iml" />
+    </modules>
+  </component>
+</project>

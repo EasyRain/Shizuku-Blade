@@ -1,0 +1,41 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:el",
+  "category": "equipment",
+  "key": {
+    "E": {
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "kill": 800,
+        "proud_soul": 3000,
+        "name": "slashblade:koseki",
+        "refine": 50
+      }
+    },
+    "A": {
+      "item": "minecraft:nether_star"
+    },
+    "B": {
+      "item": "minecraft:echo_shard"
+    },
+    "C": {
+      "item": "minecraft:hay_block"
+    },
+    "D": {
+      "item": "minecraft:ghast_tear"
+    },
+    "F": {
+      "item": "minecraft:heart_of_the_sea"
+    }
+  },
+  "pattern": [
+    "AFA",
+    "BEB",
+    "CDC"
+  ],
+  "result": {
+    "item": "slashblade:slashblade"
+  },
+  "show_notification": true
+}

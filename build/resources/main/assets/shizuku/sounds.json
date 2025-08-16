@@ -1,0 +1,14 @@
+{
+  "leisa_sound1": {
+    "subtitle": "subtitles.shizuku.leisa",
+    "sounds": ["shizuku:leisa_sound1"]
+  },
+  "leisa_sound2": {
+    "subtitle": "subtitles.shizuku.leisa",
+    "sounds": ["shizuku:leisa_sound2"]
+  },
+  "leisa_sound3": {
+    "subtitle": "subtitles.shizuku.leisa",
+    "sounds": ["shizuku:leisa_sound3"]
+  }
+}
