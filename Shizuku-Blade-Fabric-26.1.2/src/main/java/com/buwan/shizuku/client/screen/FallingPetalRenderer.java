@@ -1,21 +1,20 @@
 package com.buwan.shizuku.client.screen;
 
 import com.buwan.shizuku.shizuku;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
+import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 /**
- * 雫工作台 GUI 背景的飘落花瓣动画（1.21.1 移植）。
+ * 雫工作台 GUI 背景的飘落花瓣动画。
+ * 26.1.2：RenderSystem 的混合/深度/着色器状态调用已移除（并入 RenderPipeline），
+ * 这里只用 GuiGraphicsExtractor 的 fill + Matrix3x2fStack 绘制彩色花瓣。
  */
 public class FallingPetalRenderer {
 
@@ -24,7 +23,6 @@ public class FallingPetalRenderer {
     private static final List<Identifier> TEXTURES = new ArrayList<>();
     private static final int MAX_VARIANTS = 8;
     private static final int PARTICLE_COUNT = 50;
-    private static boolean useFallback = true;
 
     private FallingPetalRenderer() {
     }
@@ -40,7 +38,6 @@ public class FallingPetalRenderer {
             }
         }
 
-        useFallback = TEXTURES.isEmpty();
         restart(screenWidth, screenHeight);
     }
 
@@ -65,69 +62,38 @@ public class FallingPetalRenderer {
     }
 
     public static void render(GuiGraphicsExtractor guiGraphics, int screenWidth, int screenHeight, float partialTick) {
-        if (!PARTICLES.isEmpty()) {
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            RenderSystem.disableDepthTest();
-            RenderSystem.depthMask(false);
-            if (!useFallback) {
-                RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        if (PARTICLES.isEmpty()) {
+            return;
+        }
+        for (Particle p : PARTICLES) {
+            double renderX = p.x + p.vx * (double) partialTick;
+            double renderY = p.y + p.vy * (double) partialTick;
+            float alpha = 1.0F;
+            int fadeIn = 30;
+            int fadeOut = 60;
+            if (p.age < fadeIn) {
+                alpha = (float) p.age / (float) fadeIn;
+            } else if (p.age > p.maxLife - fadeOut) {
+                alpha = Math.max(0.0F, (float) (p.maxLife - p.age) / (float) fadeOut);
             }
-
-            for (Particle p : PARTICLES) {
-                double renderX = p.x + p.vx * (double) partialTick;
-                double renderY = p.y + p.vy * (double) partialTick;
-                float alpha = 1.0F;
-                int fadeIn = 30;
-                int fadeOut = 60;
-                if (p.age < fadeIn) {
-                    alpha = (float) p.age / (float) fadeIn;
-                } else if (p.age > p.maxLife - fadeOut) {
-                    alpha = Math.max(0.0F, (float) (p.maxLife - p.age) / (float) fadeOut);
-                }
-
-                alpha *= p.alpha;
-                if (!(alpha < 0.01F)) {
-                    int size = (int) p.size;
-                    if (useFallback) {
-                        renderFallback(guiGraphics, renderX, renderY, size, p.rot, p.color, alpha);
-                    } else {
-                        renderTexture(guiGraphics, renderX, renderY, size, p.rot, p.getTexture(), alpha);
-                    }
-                }
+            alpha *= p.alpha;
+            if (alpha >= 0.01F) {
+                renderPetal(guiGraphics, renderX, renderY, (int) p.size, p.rot, p.color, alpha);
             }
-
-            RenderSystem.depthMask(true);
-            RenderSystem.enableDepthTest();
-            RenderSystem.disableBlend();
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         }
     }
 
-    private static void renderTexture(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
-                                      Identifier tex, float alpha) {
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        PoseStack pose = guiGraphics.pose();
-        pose.pushPose();
-        pose.translate(x, y, 0.0);
-        pose.mulPose(Axis.ZP.rotation(rot));
-        int half = size / 2;
-        guiGraphics.blit(tex, -half, -half, size, size, 0.0F, 0.0F, 16, 16, 16, 16);
-        pose.popPose();
-    }
-
-    private static void renderFallback(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
-                                       int color, float alpha) {
+    private static void renderPetal(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
+                                    int color, float alpha) {
         int a = (int) (alpha * 255.0F) & 0xFF;
         int argb = a << 24 | color & 16777215;
-        PoseStack pose = guiGraphics.pose();
-        pose.pushPose();
-        pose.translate(x, y, 0.0);
-        pose.mulPose(Axis.ZP.rotation(rot));
+        Matrix3x2fStack pose = guiGraphics.pose();
+        pose.pushMatrix();
+        pose.translate((float) x, (float) y);
+        pose.rotate(rot);
         int half = size / 2;
         guiGraphics.fill(-half, -half, half, half, argb);
-        pose.popPose();
+        pose.popMatrix();
     }
 
     private static Particle spawnParticle(int screenWidth, int screenHeight, boolean atAnyHeight) {
