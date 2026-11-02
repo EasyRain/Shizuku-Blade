@@ -61,15 +61,15 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                         .orElseThrow().value()));
     }
 
-    @Override
-    public @NotNull IDrawable getBackground() {
+    // 26.1 的 IRecipeCategory 移除了 getBackground()（背景改由 createRecipeExtras 提供）
+    @NotNull
+    public IDrawable getBackground() {
         return this.background;
     }
 
     @Override
     public void setRecipe(@NotNull IRecipeLayoutBuilder builder, @NotNull ITierCraftingRecipe recipe, @NotNull IFocusGroup focuses) {
         List<Ingredient> inputs = recipe.getIngredients();
-        HolderLookup.Provider access = Minecraft.getInstance().level.registryAccess();
 
         if (recipe instanceof ShapedTableCraftingRecipe shaped) {
             int width = shaped.getWidth();
@@ -79,8 +79,9 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 for (int j = 0; j < width; j++) {
                     Ingredient ingredient = inputs.get(j + i * width);
                     if (!ingredient.isEmpty()) {
-                        addIngredientSlot(builder, ingredient,
-                                18 * (j + offset) + 1, 18 * (i + offset) + 1, access);
+                        builder.addSlot(RecipeIngredientRole.INPUT,
+                                        18 * (j + offset) + 1, 18 * (i + offset) + 1)
+                                .addIngredients(ingredient);
                     }
                 }
             }
@@ -88,60 +89,29 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             int index = 0;
             for (Ingredient ingredient : inputs) {
                 if (!ingredient.isEmpty()) {
-                    addIngredientSlot(builder, ingredient, 18 * (index % 9) + 1, 18 * (index / 9) + 1, access);
+                    builder.addSlot(RecipeIngredientRole.INPUT,
+                                    18 * (index % 9) + 1, 18 * (index / 9) + 1)
+                            .addIngredients(ingredient);
                     index++;
                 }
             }
         }
 
+        ItemStack result;
+        if (recipe instanceof ShapedTableCraftingRecipe shaped) {
+            result = shaped.buildResult(Minecraft.getInstance().level.registryAccess());
+        } else if (recipe instanceof ShapelessTableCraftingRecipe shapeless) {
+            result = shapeless.buildResult();
+        } else {
+            result = ItemStack.EMPTY;
+        }
         builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X, OUTPUT_Y)
-                .addItemStack(recipe.getResultItem(access));
+                .addItemStack(result);
     }
 
     /**
-     * 修复 JEI 中命名刀显示为"无名无铭"样式的问题：
-     * 拔刀剑配料（slashblade:blade）的 getItems() 只带名字与属性、不带模型/材质，
-     * 这里按 translationKey 匹配 SlashBladeDefinition，取完整命名刀（含模型与贴图）用于展示。
+     * 26.1 移除了 Ingredient#getItems()/getCustomIngredient()，命名刀的展示交给 JEI 的配料渲染。
      */
-    private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
-                                          int x, int y, HolderLookup.Provider access) {
-        var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
-        if (ingredient.getCustomIngredient() != null) {
-            ItemStack display = resolveNamedBlade(ingredient, access);
-            if (!display.isEmpty()) {
-                slot.addItemStack(display);
-                return;
-            }
-        }
-        slot.addIngredients(ingredient);
-    }
-
-    private static ItemStack resolveNamedBlade(Ingredient ingredient, HolderLookup.Provider access) {
-        ItemStack[] items = ingredient.getItems();
-        ItemStack plain = items.length > 0 ? items[0] : ItemStack.EMPTY;
-        if (plain.getItem() instanceof ItemSlashBlade) {
-            String key = CapabilitySlashBlade.getBladeState(plain).map(ISlashBladeState::getTranslationKey).orElse("");
-            if (!key.isBlank()) {
-                for (Holder.Reference<SlashBladeDefinition> ref :
-                        access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList()) {
-                    ItemStack defStack = ref.value().getBlade();
-                    String defKey = CapabilitySlashBlade.getBladeState(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
-                    if (key.equals(defKey)) {
-                        // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
-                        // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
-                        ItemStack display = plain.copy();
-                        CapabilitySlashBlade.getBladeState(defStack).ifPresent(defState ->
-                                CapabilitySlashBlade.getBladeState(display).ifPresent(displayState -> {
-                                    defState.getModel().ifPresent(displayState::setModel);
-                                    defState.getTexture().ifPresent(displayState::setTexture);
-                                }));
-                        return display;
-                    }
-                }
-            }
-        }
-        return plain;
-    }
 
     @Override
     public void draw(ITierCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor guiGraphics,
