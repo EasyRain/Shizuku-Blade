@@ -1,5 +1,6 @@
 package com.buwan.shizuku.mixin.jei;
 
+import com.buwan.shizuku.client.tooltip.ShizukuTooltipRenderer;
 import com.buwan.shizuku.client.tooltip.TooltipEventHandler;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
@@ -40,7 +41,7 @@ public abstract class JeiRenderHelperMixin {
     )
     private void shizuku$customTooltip(GuiGraphics graphics, List<?> lines, int x, int y,
                                        Font font, ItemStack stack, CallbackInfo ci) {
-        if (TooltipEventHandler.tryRender(graphics, stack, font, x, y)) {
+        if (shizuku$tryRender(graphics, stack, font, x, y)) {
             ci.cancel();
         }
     }
@@ -55,8 +56,20 @@ public abstract class JeiRenderHelperMixin {
     private void shizuku$customTooltipPositioned(GuiGraphics graphics, List<?> lines, int x, int y,
                                                  Font font, ItemStack stack, ClientTooltipPositioner positioner,
                                                  CallbackInfo ci) {
-        if (TooltipEventHandler.tryRender(graphics, stack, font, x, y)) {
+        if (shizuku$tryRender(graphics, stack, font, x, y)) {
             ci.cancel();
         }
+    }
+
+    /**
+     * 与物品栏里的 mixin 走同一套判定，两条入口缺一不可：
+     * <ul>
+     *   <li>{@code tryRender} —— 星河刀（mosmicblade）等实现 {@code ICustomTooltip} 的物品；</li>
+     *   <li>{@code renderYmbladeTooltip} —— 无铭「有名」（ymblade）。</li>
+     * </ul>
+     */
+    private static boolean shizuku$tryRender(GuiGraphics graphics, ItemStack stack, Font font, int x, int y) {
+        return TooltipEventHandler.tryRender(graphics, stack, font, x, y)
+                || ShizukuTooltipRenderer.renderYmbladeTooltip(graphics, stack, font, x, y);
     }
 }
