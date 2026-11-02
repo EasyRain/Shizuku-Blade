@@ -173,84 +173,42 @@ public class ShizukuTooltipRenderer {
         poseStack.pushMatrix();
         poseStack.translate(offset1X, offset1Y);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
-                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H, TEX_W, TEX_H);
         poseStack.popMatrix();
         poseStack.pushMatrix();
         poseStack.translate(offset2X, offset2Y);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
-                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H, TEX_W, TEX_H);
         poseStack.popMatrix();
         poseStack.pushMatrix();
         poseStack.translate(offset3X, offset3Y);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
-                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H, TEX_W, TEX_H);
         poseStack.popMatrix();
         
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
-                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H, TEX_W, TEX_H);
         
         
     }
 
     private static void renderTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        org.joml.Matrix3x2fStack poseStack = graphics.pose();
-        poseStack.pushMatrix();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        GradientConfig borderGradient = new GradientConfig(borderColors, 2.0F, GradientConfig.GradientType.BORDER_CIRCULAR, true);
-        RoundedRectRenderer.renderRoundedRect(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                new Vector4i(135, 206, 250, 220),
-                segments
-        );
-        RoundedRectRenderer.renderRoundedRectBorderGradient(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                borderGradient,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popMatrix();
+        // 用运行时生成的抗锯齿贴图（4x4 超采样）代替扫描线填充 —— GUI fill 只有整像素，
+        // 扫描线在圆角处必然出现台阶。
+        Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
+                0xFF87CEFA, borderColors);
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
+                x, y, 0.0F, 0.0F, width, height, width, height, width, height);
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
     private static void renderCosmicTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        org.joml.Matrix3x2fStack poseStack = graphics.pose();
-        poseStack.pushMatrix();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        RoundedRectRenderer.renderRoundedRectBorder(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popMatrix();
+        Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
+                0x0087CEFA, List.of(0xFFFFFFFF));
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
+                x, y, 0.0F, 0.0F, width, height, width, height, width, height);
     }
+
 
     private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
         int centerX = x + width / 2;
