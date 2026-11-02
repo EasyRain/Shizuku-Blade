@@ -38,5 +38,9 @@
   "se.shizuku.leise": "§fThunderclap~",
   "block.shizuku.shizuku_crafting_table": "Shizuku Crafting Table",
   "jei.category.shizuku.shizuku_crafting_table": "Shizuku Craft",
+  "jei.shizuku.requirement.kill": "§7Requires kill count §f≥ %s",
+  "jei.shizuku.requirement.proud_soul": "§7Requires proud soul §f≥ %s",
+  "jei.shizuku.requirement.refine": "§7Requires refine §f≥ %s",
+  "jei.shizuku.requirement.enchant": "§7Requires §f%s",
   "death.attack.ymsa_kill": "%1$s was erased by judgment",
   "death.attack.ymsa_kill.player": "%1$s was erased by %2$s's judgment"}
