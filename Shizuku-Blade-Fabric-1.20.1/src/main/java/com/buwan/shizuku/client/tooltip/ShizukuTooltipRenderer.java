@@ -3,6 +3,7 @@ package com.buwan.shizuku.client.tooltip;
 import com.buwan.shizuku.util.tooltip.ColorHelper;
 import com.buwan.shizuku.util.tooltip.GradientConfig;
 import com.buwan.shizuku.util.tooltip.ICustomTooltip;
+import com.buwan.shizuku.util.tooltip.TooltipFrameRenderer;
 import com.buwan.shizuku.util.tooltip.RainbowTextUtil;
 import com.buwan.shizuku.util.tooltip.RoundedRectRenderer;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -126,9 +127,9 @@ public class ShizukuTooltipRenderer {
             }
 
             if (!cosmic) {
-                // 图层顺序：边框/底色 → 立绘（缩放进框内）→ 文字
+                // 图层顺序（与原版一致）：立绘（最底，可溢出）→ 背景+边框（几乎不透明，盖住立绘）→ 文字
+                renderShizukuBackground(graphics, x - 80, y - 140, 300, 320);
                 renderTooltipBackground(graphics, x, y, maxWidth, tooltipHeight, palette);
-                renderShizukuBackground(graphics, x + 2, y + 2, maxWidth - 4, tooltipHeight - 4);
             } else {
                 renderCosmicTooltipBackground(graphics, x, y, maxWidth, tooltipHeight, palette);
             }
@@ -187,63 +188,13 @@ public class ShizukuTooltipRenderer {
     }
 
     private static void renderTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        GradientConfig borderGradient = new GradientConfig(borderColors, 2.0F, GradientConfig.GradientType.BORDER_CIRCULAR, true);
-        RoundedRectRenderer.renderRoundedRect(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                new Vector4i(135, 206, 250, 220),
-                segments
-        );
-        RoundedRectRenderer.renderRoundedRectBorderGradient(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                borderGradient,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popPose();
+        // SDF 着色器画圆角面板：圆角在任何 GUI 缩放下都是平滑的（不受 GUI 像素网格限制）
+        TooltipFrameRenderer.draw(graphics, x, y, width, height, 12.0F, 2.0F, 0xDC87CEFA, 0xFFFFFFFF);
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
     private static void renderCosmicTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        RoundedRectRenderer.renderRoundedRectBorder(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popPose();
+        TooltipFrameRenderer.draw(graphics, x, y, width, height, 12.0F, 2.0F, 0x0087CEFA, 0xFFFFFFFF);
     }
 
     private static void renderSeparatorLine(GuiGraphics graphics, int x, int y, int width) {
@@ -276,7 +227,7 @@ public class ShizukuTooltipRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        buffer.vertex(matrix, x, y, 0.0F).color(r, g, b, a);
+        buffer.vertex(matrix, x, y, 0.0F).color(r, g, b, a).endVertex();
     }
 
     private static List<TooltipLine> parseTooltipLines(List<Component> components, Font font, List<Integer> palette, List<Integer> lastLineColors) {

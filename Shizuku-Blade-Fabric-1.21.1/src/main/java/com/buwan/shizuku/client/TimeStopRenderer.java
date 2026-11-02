@@ -97,12 +97,12 @@ public class TimeStopRenderer {
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
                 float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F);
-                buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x11, (float) y1, (float) z11).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
+                buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha);
+                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha);
+                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha);
+                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha);
+                buffer.addVertex(matrix, (float) x11, (float) y1, (float) z11).setColor(r, g, b, currentAlpha);
+                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha);
             }
         }
 
@@ -122,7 +122,7 @@ public class TimeStopRenderer {
                 double angle = (Math.PI * 2) * (double) i / (double) segments;
                 double x = Math.cos(angle) * ringRadius;
                 double z = Math.sin(angle) * ringRadius;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha).setUv(0, 0);
+                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha);
             }
         }
 
@@ -138,7 +138,7 @@ public class TimeStopRenderer {
                 double rRing = Math.cos(lat) * radius;
                 double x = Math.cos(lng) * rRing;
                 double z = Math.sin(lng) * rRing;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha * 0.5F).setUv(0, 0);
+                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha * 0.5F);
             }
         }
 

@@ -8,8 +8,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 
@@ -21,18 +19,10 @@ import java.util.List;
 
 public class TooltipEventHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("shizuku-tooltip");
-
     /** 由 mixin 在 GuiGraphics.renderTooltip(Font, ItemStack, int, int) HEAD 调用；返回 true 表示已自行绘制。 */
     public static boolean tryRender(GuiGraphics graphics, ItemStack stack, Font font, int x, int y) {
         if (stack.isEmpty()) {
             return false;
-        }
-        // 临时调试：确认 mixin 命中 + 刀状态 translationKey
-        if (stack.getItem().toString().contains("slashblade")) {
-            String k = CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
-                    .map(s -> s.getTranslationKey()).orElse("<none>");
-            LOGGER.info("[shizuku-tooltip] item={} key={} bladeName={}", stack.getItem(), k, getBladeName(stack));
         }
         if (stack.getItem() instanceof ICustomTooltip customTooltipItem) {
             renderCustomTooltip(graphics, stack, font, x, y, customTooltipItem.getTooltipType());

@@ -5,6 +5,7 @@ import com.buwan.shizuku.util.tooltip.GradientConfig;
 import com.buwan.shizuku.util.tooltip.ICustomTooltip;
 import com.buwan.shizuku.util.tooltip.RainbowTextUtil;
 import com.buwan.shizuku.util.tooltip.RoundedRectRenderer;
+import com.buwan.shizuku.util.tooltip.TooltipFrameRenderer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -186,63 +187,13 @@ public class ShizukuTooltipRenderer {
     }
 
     private static void renderTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        GradientConfig borderGradient = new GradientConfig(borderColors, 2.0F, GradientConfig.GradientType.BORDER_CIRCULAR, true);
-        RoundedRectRenderer.renderRoundedRect(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                new Vector4i(135, 206, 250, 220),
-                segments
-        );
-        RoundedRectRenderer.renderRoundedRectBorderGradient(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                borderGradient,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popPose();
+        // SDF 着色器画圆角面板：圆角在任何 GUI 缩放下都平滑（不受 GUI 像素网格限制）
+        TooltipFrameRenderer.draw(graphics, x, y, width, height, 12.0F, 2.0F, 0xDC87CEFA, 0xFFFFFFFF);
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
     private static void renderCosmicTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
-        float cornerRadius = 12.0F;
-        int segments = 16;
-        RoundedRectRenderer.renderRoundedRectBorder(
-                graphics,
-                (float) x,
-                (float) y,
-                (float) width,
-                (float) height,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                cornerRadius,
-                1.0F,
-                new Vector4i(255, 255, 255, 255),
-                segments
-        );
-        poseStack.popPose();
+        TooltipFrameRenderer.draw(graphics, x, y, width, height, 12.0F, 2.0F, 0x0087CEFA, 0xFFFFFFFF);
     }
 
     private static void renderSeparatorLine(GuiGraphics graphics, int x, int y, int width) {

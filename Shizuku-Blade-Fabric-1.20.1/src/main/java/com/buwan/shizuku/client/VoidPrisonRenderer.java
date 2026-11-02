@@ -53,6 +53,7 @@ public class VoidPrisonRenderer {
     }
 
     private void renderPrisonSphere(PoseStack poseStack, Vec3 cameraPos, PrisonZoneData zone) {
+        DiagLog.once("prison-draw", "r=%s alpha=%s", zone.radius, zone.getAlpha());
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
         RenderSystem.enableBlend();
@@ -103,12 +104,12 @@ public class VoidPrisonRenderer {
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
                 float currentAlpha = alpha * (0.6F + edgeFactor * 0.4F);
-                buffer.vertex(matrix, (float) x00, (float) y0, (float) z00).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x11, (float) y1, (float) z11).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x00, (float) y0, (float) z00).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x11, (float) y1, (float) z11).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).endVertex();
             }
         }
 
@@ -128,7 +129,7 @@ public class VoidPrisonRenderer {
                 double angle = (Math.PI * 2) * (double) i / (double) segments;
                 double x = Math.cos(angle) * ringRadius;
                 double z = Math.sin(angle) * ringRadius;
-                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha).uv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha).endVertex();
             }
         }
 
@@ -144,7 +145,7 @@ public class VoidPrisonRenderer {
                 double rRing = Math.cos(lat) * radius;
                 double x = Math.cos(lng) * rRing;
                 double z = Math.sin(lng) * rRing;
-                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha * 0.6F).uv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha * 0.6F).endVertex();
             }
         }
 
@@ -153,10 +154,15 @@ public class VoidPrisonRenderer {
 
     public static void addPrisonZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new PrisonZoneData(center, radius, duration));
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] addPrisonZone {} at {} r={} dur={} total={}",
+                playerId, center, radius, duration, activeZones.size());
     }
 
     public static void removePrisonZone(UUID playerId) {
         activeZones.remove(playerId);
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] removePrisonZone {} total={}", playerId, activeZones.size());
     }
 
     public static void clearAll() {

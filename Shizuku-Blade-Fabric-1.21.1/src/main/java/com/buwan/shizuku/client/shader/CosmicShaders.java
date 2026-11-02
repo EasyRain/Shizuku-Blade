@@ -52,7 +52,7 @@ public final class CosmicShaders {
 
     public static final RenderType COSMIC_RENDER_TYPE = RenderType.create(
             "shizuku_cosmic",
-            DefaultVertexFormat.POSITION_TEX,
+            DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
             4096,
             false,
@@ -69,7 +69,7 @@ public final class CosmicShaders {
 
     public static final RenderType COSMIC_RENDER_TYPE_NO_DEPTH = RenderType.create(
             "shizuku_cosmic_no_depth",
-            DefaultVertexFormat.POSITION_TEX,
+            DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
             4096,
             false,
@@ -96,7 +96,7 @@ public final class CosmicShaders {
                     return null;
                 }
                 COSMIC_SHADER = new ShaderInstance(mc.getResourceManager(),
-                        shizuku.prefix("cosmic").toString(), DefaultVertexFormat.POSITION_TEX);
+                        shizuku.prefix("cosmic").toString(), DefaultVertexFormat.NEW_ENTITY);
                 cosmicTime = COSMIC_SHADER.safeGetUniform("time");
                 cosmicYaw = COSMIC_SHADER.safeGetUniform("yaw");
                 cosmicPitch = COSMIC_SHADER.safeGetUniform("pitch");

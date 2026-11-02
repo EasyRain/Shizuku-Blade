@@ -18,6 +18,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 宇宙刀着色器（Fabric 版）。
@@ -42,6 +44,7 @@ public final class CosmicShaders {
     public static final String COSMIC_BLADE_KEY = "item.shizuku.mosmicblade";
 
     private static boolean spritesLoaded = false;
+    private static final Logger LOGGER = LoggerFactory.getLogger("shizuku-cosmic");
 
     private static final RenderStateShard.EmptyTextureStateShard COSMIC_TEXTURE_ISOLATED =
             new RenderStateShard.EmptyTextureStateShard(() -> {
@@ -52,7 +55,7 @@ public final class CosmicShaders {
 
     public static final RenderType COSMIC_RENDER_TYPE = RenderType.create(
             "shizuku_cosmic",
-            DefaultVertexFormat.POSITION_TEX,
+            DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
             4096,
             false,
@@ -69,7 +72,7 @@ public final class CosmicShaders {
 
     public static final RenderType COSMIC_RENDER_TYPE_NO_DEPTH = RenderType.create(
             "shizuku_cosmic_no_depth",
-            DefaultVertexFormat.POSITION_TEX,
+            DefaultVertexFormat.NEW_ENTITY,
             VertexFormat.Mode.TRIANGLES,
             4096,
             false,
@@ -96,14 +99,18 @@ public final class CosmicShaders {
                     return null;
                 }
                 COSMIC_SHADER = new ShaderInstance(mc.getResourceManager(),
-                        "cosmic", DefaultVertexFormat.POSITION_TEX);
+                        "cosmic", DefaultVertexFormat.NEW_ENTITY);
                 cosmicTime = COSMIC_SHADER.safeGetUniform("time");
                 cosmicYaw = COSMIC_SHADER.safeGetUniform("yaw");
                 cosmicPitch = COSMIC_SHADER.safeGetUniform("pitch");
                 cosmicExternalScale = COSMIC_SHADER.safeGetUniform("externalScale");
                 cosmicOpacity = COSMIC_SHADER.safeGetUniform("opacity");
                 cosmicUVs = COSMIC_SHADER.safeGetUniform("cosmicuvs");
+                LOGGER.info("[shizuku-cosmic] shader created ok, uniforms={}",
+                        cosmicTime != null && cosmicYaw != null && cosmicPitch != null
+                                && cosmicExternalScale != null && cosmicOpacity != null);
             } catch (Exception e) {
+                LOGGER.error("[shizuku-cosmic] shader creation FAILED", e);
                 return null;
             }
         }

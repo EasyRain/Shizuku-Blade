@@ -53,6 +53,10 @@ public class TimeStopRenderer {
     }
 
     private void renderTimeStopSphere(PoseStack poseStack, Vec3 cameraPos, TimeStopZoneData zone) {
+        DiagLog.once("timestop-draw", "r=%s alpha=%s", zone.radius, zone.getAlpha());
+        DiagLog.once("timestop-mat", "cam=%s pose=%s proj=%s",
+                cameraPos, DiagLog.fmt(poseStack.last().pose()),
+                DiagLog.fmt(RenderSystem.getProjectionMatrix()));
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
         RenderSystem.enableBlend();
@@ -62,7 +66,15 @@ public class TimeStopRenderer {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Matrix4f matrix = poseStack.last().pose();
         float baseAlpha = zone.getAlpha() * 0.3F;
-        this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
+        if (DiagLog.DEBUG_BRIGHT) {
+            // 诊断：不透明品红大球 + 关深度测试。看不见 => 几何根本没进画面（变换/阶段问题）；
+            // 看得见 => 之前只是 alpha 太淡或颜色问题。
+            RenderSystem.disableDepthTest();
+            this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.0F, 1.0F, 1.0F);
+            RenderSystem.enableDepthTest();
+        } else {
+            this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
+        }
         poseStack.scale(0.95F, 0.95F, 0.95F);
         matrix = poseStack.last().pose();
         this.drawSphere(matrix, zone.radius, 20, 15, 1.0F, 0.95F, 0.4F, baseAlpha * 0.5F);
@@ -97,12 +109,12 @@ public class TimeStopRenderer {
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
                 float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F);
-                buffer.vertex(matrix, (float) x00, (float) y0, (float) z00).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x11, (float) y1, (float) z11).color(r, g, b, currentAlpha).uv(0, 0);
-                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x00, (float) y0, (float) z00).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x11, (float) y1, (float) z11).color(r, g, b, currentAlpha).endVertex();
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).endVertex();
             }
         }
 
@@ -122,7 +134,7 @@ public class TimeStopRenderer {
                 double angle = (Math.PI * 2) * (double) i / (double) segments;
                 double x = Math.cos(angle) * ringRadius;
                 double z = Math.sin(angle) * ringRadius;
-                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha).uv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha).endVertex();
             }
         }
 
@@ -138,7 +150,7 @@ public class TimeStopRenderer {
                 double rRing = Math.cos(lat) * radius;
                 double x = Math.cos(lng) * rRing;
                 double z = Math.sin(lng) * rRing;
-                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha * 0.5F).uv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha * 0.5F).endVertex();
             }
         }
 
@@ -147,10 +159,15 @@ public class TimeStopRenderer {
 
     public static void addTimeStopZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new TimeStopZoneData(center, radius, duration));
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] addTimeStopZone {} at {} r={} dur={} total={}",
+                playerId, center, radius, duration, activeZones.size());
     }
 
     public static void removeTimeStopZone(UUID playerId) {
         activeZones.remove(playerId);
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] removeTimeStopZone {} total={}", playerId, activeZones.size());
     }
 
     public static void clearAll() {

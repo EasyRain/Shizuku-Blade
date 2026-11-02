@@ -37,10 +37,14 @@ public final class GalaxyFieldRenderer {
 
     public static void addZone(UUID id, Vec3 center, float radius, int duration) {
         activeZones.put(id, new ZoneData(center, radius));
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] addZone {} at {} r={} total={}", id, center, radius, activeZones.size());
     }
 
     public static void removeZone(UUID id) {
         activeZones.remove(id);
+        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                "[shizuku-field] removeZone {} total={}", id, activeZones.size());
     }
 
     
@@ -61,9 +65,9 @@ public final class GalaxyFieldRenderer {
             worldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
             worldCameraPos = event.getCamera().getPosition();
 
-            if (!ShaderPackCompat.isShaderPackActive()) {
+            if (!ShaderPackCompat.isShaderPackActive() && !DiagLog.DEBUG_GUI) {
                 if (!activeZones.isEmpty()) {
-                    if (CosmicShaders.COSMIC_SHADER != null) {
+                    if (CosmicShaders.ensureShader() != null) {
                         Minecraft mc = Minecraft.getInstance();
                         if (mc.level != null && mc.player != null) {
                             Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
@@ -96,10 +100,10 @@ public final class GalaxyFieldRenderer {
      */
     
     public static void onRenderGuiPost(RenderGuiEvent.Post event) {
-        if (!ShaderPackCompat.isShaderPackActive()) {
+        if (!ShaderPackCompat.isShaderPackActive() && !DiagLog.DEBUG_GUI) {
             return;
         }
-        if (activeZones.isEmpty() || CosmicShaders.COSMIC_SHADER == null) {
+        if (activeZones.isEmpty() || CosmicShaders.ensureShader() == null) {
             return;
         }
         if (worldVertexMatrix == null || worldModelView == null || worldProjection == null || worldCameraPos == null) {
@@ -110,6 +114,8 @@ public final class GalaxyFieldRenderer {
         if (mc.level == null || mc.player == null) {
             return;
         }
+
+        DiagLog.once("galaxy-gui", "zones=%s cam=%s", activeZones.size(), worldCameraPos);
 
         RenderSystem.backupProjectionMatrix();
         com.mojang.blaze3d.vertex.PoseStack modelViewStack = RenderSystem.getModelViewStack();
@@ -143,7 +149,9 @@ public final class GalaxyFieldRenderer {
         float alpha = Math.min(1.0F, (float) zone.ageTicks / 4.0F) * 0.75F;
         if (!(alpha <= 0.01F)) {
             // 光影 GUI 阶段沿用玩家视角（世界特效朝向），不冻结 yaw/pitch
-            if (CosmicShaders.prepareCosmicRender(alpha, false)) {
+            boolean prepared = CosmicShaders.prepareCosmicRender(alpha, false);
+            DiagLog.once("galaxy-draw", "age=%s alpha=%s prepared=%s", zone.ageTicks, alpha, prepared);
+            if (prepared) {
                 VertexConsumer vb = buffers.getBuffer(noDepth
                         ? CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH
                         : CosmicShaders.COSMIC_RENDER_TYPE);
@@ -163,19 +171,19 @@ public final class GalaxyFieldRenderer {
                             .uv(0.0F, 0.0F)
                             .overlayCoords(OverlayTexture.NO_OVERLAY)
                             .uv2(15728880)
-                            .normal(0.0F, 1.0F, 0.0F);
+                            .normal(0.0F, 1.0F, 0.0F).endVertex();
                     vb.vertex(mat, x1, y, z1)
                             .color(1.0F, 1.0F, 1.0F, alpha)
                             .uv(0.0F, 0.0F)
                             .overlayCoords(OverlayTexture.NO_OVERLAY)
                             .uv2(15728880)
-                            .normal(0.0F, 1.0F, 0.0F);
+                            .normal(0.0F, 1.0F, 0.0F).endVertex();
                     vb.vertex(mat, 0.0F, y, 0.0F)
                             .color(1.0F, 1.0F, 1.0F, alpha)
                             .uv(0.0F, 0.0F)
                             .overlayCoords(OverlayTexture.NO_OVERLAY)
                             .uv2(15728880)
-                            .normal(0.0F, 1.0F, 0.0F);
+                            .normal(0.0F, 1.0F, 0.0F).endVertex();
                 }
             }
         }
