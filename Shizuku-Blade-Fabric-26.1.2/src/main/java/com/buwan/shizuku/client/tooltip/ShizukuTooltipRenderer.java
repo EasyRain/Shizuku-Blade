@@ -196,7 +196,7 @@ public class ShizukuTooltipRenderer {
         // 用运行时生成的抗锯齿贴图（4x4 超采样）代替扫描线填充 —— GUI fill 只有整像素，
         // 扫描线在圆角处必然出现台阶。
         Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
-                0xFF87CEFA, borderColors);
+                0xDC87CEFA, borderColors);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
                 x, y, 0.0F, 0.0F, width, height, width, height, width, height);
     }

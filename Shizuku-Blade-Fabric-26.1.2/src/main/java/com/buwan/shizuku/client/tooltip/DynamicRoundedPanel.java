@@ -10,13 +10,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 运行时生成的圆角面板贴图（4x4 超采样抗锯齿）。
+ * 运行时生成的圆角面板贴图（解析式抗锯齿）。
  *
- * <p>26.1 移除了 {@code ShaderInstance}，没法再用 1.20.1 那套 SDF 着色器画平滑圆角；
- * 而 GUI 的 {@code fill} 只有整像素，扫描线法必然出现台阶。这里改为运行时按需要的尺寸
- * 生成一张带抗锯齿的贴图，直接用 {@code blit} 1:1 画出来 —— 圆角平滑、边框还能带渐变。</p>
+ * <p>26.1 移除了 {@code ShaderInstance}，没法复用 1.20.1 的 SDF 着色器；GUI 的 {@code fill}
+ * 又只有整像素，扫描线法在圆角处必然出现台阶。这里用「有向距离场 + 覆盖率」直接算每个像素的
+ * alpha，生成一张贴图后 1:1 绘制 —— 与 SDF 着色器同样的边缘质量，但不需要碰新的 RenderPipeline。</p>
  *
- * <p>贴图按（宽、高、圆角、边框宽度、填充色、边框色列表）缓存，超量时整体清空重建。</p>
+ * <p>关键点：</p>
+ * <ul>
+ *   <li>覆盖率用 {@code clamp(0.5 - sd, 0, 1)}（sd 单位是像素），得到约 1 像素宽的平滑过渡；</li>
+ *   <li>圆角矩形的 SDF 对称，四角一致；</li>
+ *   <li>{@link NativeImage#setPixelABGR} 的打包顺序是 {@code 0xAABBGGRR}，
+ *       传参前必须从 ARGB 换序，否则红蓝互换（会显示成黄色）。</li>
+ * </ul>
  */
 public final class DynamicRoundedPanel {
 
@@ -27,20 +33,17 @@ public final class DynamicRoundedPanel {
     private DynamicRoundedPanel() {
     }
 
-    /**
-     * @param fill        填充色 ARGB（alpha=0 表示只画边框）
-     * @param borderColors 边框颜色列表（按周向渐变；单色也会正常工作）
-     */
     public static Identifier get(int width, int height, float radius, float thickness,
                                  int fill, List<Integer> borderColors) {
-        long key = ((long) width << 40) ^ ((long) height << 24)
-                ^ ((long) (radius * 4) << 16) ^ ((long) (thickness * 4) << 8)
-                ^ (fill & 0xFFFFFFFFL) ^ (borderColors.hashCode() & 0xFFL);
+        int[] colors = borderColors == null ? new int[0] : borderColors.stream().mapToInt(Integer::intValue).toArray();
+        long key = ((long) width << 42) ^ ((long) height << 26)
+                ^ ((long) (radius * 4) << 18) ^ ((long) (thickness * 4) << 10)
+                ^ (fill & 0xFFFFFFFFL) ^ java.util.Arrays.hashCode(colors);
         Identifier cached = CACHE.get(key);
         if (cached != null) {
             return cached;
         }
-        Identifier id = build(width, height, radius, thickness, fill, borderColors, key);
+        Identifier id = build(width, height, radius, thickness, fill, colors);
         if (CACHE.size() >= MAX_CACHE) {
             CACHE.clear();
         }
@@ -49,49 +52,36 @@ public final class DynamicRoundedPanel {
     }
 
     private static Identifier build(int width, int height, float radius, float thickness,
-                                    int fill, List<Integer> borderColors, long key) {
+                                    int fill, int[] borderColors) {
         NativeImage image = new NativeImage(width, height, true);
         float outerRadius = Math.max(0.0F, Math.min(radius, Math.min(width, height) * 0.5F));
         float innerRadius = Math.max(0.0F, outerRadius - thickness);
-        int samples = 4;
-        float step = 1.0F / samples;
+        float innerW = width - thickness * 2.0F;
+        float innerH = height - thickness * 2.0F;
 
         for (int py = 0; py < height; py++) {
             for (int px = 0; px < width; px++) {
-                float inside = 0.0F;
-                float interior = 0.0F;
-                float sumX = 0.0F;
-                float sumY = 0.0F;
-                for (int sy = 0; sy < samples; sy++) {
-                    for (int sx = 0; sx < samples; sx++) {
-                        float fx = px + (sx + 0.5F) * step;
-                        float fy = py + (sy + 0.5F) * step;
-                        if (insideRounded(fx, fy, 0.0F, 0.0F, width, height, outerRadius)) {
-                            inside += 1.0F;
-                            sumX += fx;
-                            sumY += fy;
-                        }
-                        if (insideRounded(fx, fy, thickness, thickness,
-                                width - thickness * 2.0F, height - thickness * 2.0F, innerRadius)) {
-                            interior += 1.0F;
-                        }
-                    }
+                float cx = px + 0.5F;
+                float cy = py + 0.5F;
+
+                float dOuter = sdRoundRect(cx, cy, width, height, outerRadius);
+                float outerCoverage = clamp01(0.5F - dOuter);
+                float innerCoverage = 0.0F;
+                if (innerW > 0.0F && innerH > 0.0F) {
+                    float dInner = sdRoundRect(cx, cy, innerW, innerH, innerRadius) - thickness;
+                    innerCoverage = clamp01(0.5F - dInner);
                 }
-                float total = samples * samples;
-                float outerCoverage = inside / total;
-                float innerCoverage = interior / total;
                 float borderCoverage = Math.max(0.0F, outerCoverage - innerCoverage);
 
                 int argb = 0;
-                if (borderCoverage > 0.0F && borderColors != null && !borderColors.isEmpty()) {
-                    int borderColor = borderColorAt(sumX / Math.max(1.0F, inside),
-                            sumY / Math.max(1.0F, inside), width, height, borderColors);
-                    argb = blend(argb, borderColor, borderCoverage * ((borderColor >>> 24) / 255.0F));
+                if (borderCoverage > 0.0F && borderColors.length > 0) {
+                    int borderColor = borderColorAt(cx, cy, width, height, borderColors);
+                    argb = blend(argb, borderColor, borderCoverage);
                 }
                 if (innerCoverage > 0.0F) {
-                    argb = blend(argb, fill, innerCoverage * ((fill >>> 24) / 255.0F));
+                    argb = blend(argb, fill, innerCoverage);
                 }
-                image.setPixelABGR(px, py, argb);
+                image.setPixelABGR(px, py, toAbgr(argb));
             }
         }
 
@@ -100,43 +90,33 @@ public final class DynamicRoundedPanel {
         return id;
     }
 
-    /** 圆角矩形内部判定（含圆角半径）。 */
-    private static boolean insideRounded(float fx, float fy, float ox, float oy, float w, float h, float r) {
-        if (w <= 0.0F || h <= 0.0F) {
-            return false;
-        }
-        float left = ox + r;
-        float top = oy + r;
-        float right = ox + w - r;
-        float bottom = oy + h - r;
-        float dx = Math.max(Math.max(left - fx, 0.0F), fx - right);
-        float dy = Math.max(Math.max(top - fy, 0.0F), fy - bottom);
-        return dx * dx + dy * dy <= r * r || (fx >= ox && fx <= ox + w && fy >= oy && fy <= oy + h
-                && (fx >= left || fy >= top) && (fx <= right || fy <= bottom));
+    /** 圆角矩形的有向距离（<0 在内部），单位：像素。 */
+    private static float sdRoundRect(float px, float py, float w, float h, float r) {
+        float qx = Math.abs(px - w * 0.5F) - (w * 0.5F - r);
+        float qy = Math.abs(py - h * 0.5F) - (h * 0.5F - r);
+        float ax = Math.max(qx, 0.0F);
+        float ay = Math.max(qy, 0.0F);
+        return (float) Math.sqrt(ax * ax + ay * ay) + Math.min(Math.max(qx, qy), 0.0F) - r;
     }
 
-    /** 边框按周向角度在颜色列表间插值。 */
-    private static int borderColorAt(float px, float py, int width, int height, List<Integer> colors) {
-        float cx = width * 0.5F;
-        float cy = height * 0.5F;
-        double angle = Math.atan2(py - cy, px - cx);
+    private static float clamp01(float v) {
+        return v < 0.0F ? 0.0F : Math.min(v, 1.0F);
+    }
+
+    /** 边框颜色按周向角度在颜色列表间插值。 */
+    private static int borderColorAt(float px, float py, int width, int height, int[] colors) {
+        double angle = Math.atan2(py - height * 0.5F, px - width * 0.5F);
         double normalized = (angle + Math.PI) / (Math.PI * 2.0);
-        float scaled = (float) (normalized * colors.size());
-        int i0 = (int) Math.floor(scaled) % colors.size();
-        int i1 = (i0 + 1) % colors.size();
+        float scaled = (float) (normalized * colors.length);
+        int i0 = (int) Math.floor(scaled) % colors.length;
+        int i1 = (i0 + 1) % colors.length;
         float t = scaled - (float) Math.floor(scaled);
-        return lerpColor(colors.get(i0), colors.get(i1), t);
+        return lerpColor(colors[i0], colors[i1], t);
     }
 
     private static int lerpColor(int a, int b, float t) {
-        int aa = (a >>> 24) & 0xFF;
-        int ar = (a >> 16) & 0xFF;
-        int ag = (a >> 8) & 0xFF;
-        int ab = a & 0xFF;
-        int ba = (b >>> 24) & 0xFF;
-        int br = (b >> 16) & 0xFF;
-        int bg = (b >> 8) & 0xFF;
-        int bb = b & 0xFF;
+        int aa = (a >>> 24) & 0xFF, ar = (a >> 16) & 0xFF, ag = (a >> 8) & 0xFF, ab = a & 0xFF;
+        int ba = (b >>> 24) & 0xFF, br = (b >> 16) & 0xFF, bg = (b >> 8) & 0xFF, bb = b & 0xFF;
         int r = (int) (ar + (br - ar) * t);
         int g = (int) (ag + (bg - ag) * t);
         int bl = (int) (ab + (bb - ab) * t);
@@ -144,7 +124,7 @@ public final class DynamicRoundedPanel {
         return (al << 24) | (r << 16) | (g << 8) | bl;
     }
 
-    /** source over 合成（src/dst 均为 ARGB）。 */
+    /** source over 合成（ARGB in / ARGB out）。 */
     private static int blend(int dst, int src, float coverage) {
         float sa = ((src >>> 24) & 0xFF) / 255.0F * coverage;
         if (sa <= 0.0F) {
@@ -164,7 +144,16 @@ public final class DynamicRoundedPanel {
         float r = (sr * sa + dr * da * (1.0F - sa)) / outA;
         float g = (sg * sa + dg * da * (1.0F - sa)) / outA;
         float b = (sb * sa + db * da * (1.0F - sa)) / outA;
-        return ((int) (outA * 255.0F) << 24) | ((int) (r * 255.0F) << 16) | ((int) (g * 255.0F) << 8)
-                | (int) (b * 255.0F);
+        return ((int) (outA * 255.0F) << 24) | ((int) (r * 255.0F) << 16)
+                | ((int) (g * 255.0F) << 8) | (int) (b * 255.0F);
+    }
+
+    /** ARGB -> 0xAABBGGRR（NativeImage#setPixelABGR 期望的打包顺序）。 */
+    private static int toAbgr(int argb) {
+        int a = (argb >>> 24) & 0xFF;
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8) & 0xFF;
+        int b = argb & 0xFF;
+        return (a << 24) | (b << 16) | (g << 8) | r;
     }
 }
