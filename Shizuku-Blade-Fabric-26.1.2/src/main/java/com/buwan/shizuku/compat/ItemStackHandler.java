@@ -2,9 +2,9 @@ package com.buwan.shizuku.compat;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 /**
  * NeoForge {@code ItemStackHandler} 的最小 Fabric 兼容实现。
@@ -93,21 +93,16 @@ public class ItemStackHandler {
     protected void onChange(int slot) {
     }
 
-    public CompoundTag serializeNBT(HolderLookup.Provider registries) {
-        NonNullList<ItemStack> copy = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
-        for (int i = 0; i < getSlots(); i++) {
-            copy.set(i, stacks.get(i));
-        }
-        CompoundTag tag = new CompoundTag();
-        ContainerHelper.saveAllItems(tag, copy, registries);
-        return tag;
+    /** 26.1：改用 codec 存储（ValueOutput/ValueInput），不再用 ContainerHelper + CompoundTag。 */
+    public void serialize(ValueOutput output) {
+        output.store("Items", ItemStack.CODEC.listOf(), this.stacks);
     }
 
-    public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
-        NonNullList<ItemStack> copy = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, copy, registries);
+    public void deserialize(ValueInput input) {
+        java.util.List<ItemStack> list = new java.util.ArrayList<>();
+        input.listOrEmpty("Items", ItemStack.CODEC).forEach(list::add);
         for (int i = 0; i < getSlots(); i++) {
-            stacks.set(i, copy.get(i));
+            stacks.set(i, i < list.size() ? list.get(i) : ItemStack.EMPTY);
         }
     }
 }
