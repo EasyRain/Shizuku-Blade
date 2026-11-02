@@ -140,29 +140,18 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     /**
+    /**
      * 修复 JEI 中命名刀显示为"无名无铭"样式的问题：
      * 拔刀剑配料（slashblade:blade）的 getItems() 只带名字与属性、不带模型/材质，
-     * 这里按 translationKey 匹配 SlashBladeDefinition，取完整命名刀（含模型与贴图）用于展示。
+     * 这里按「request 的刀 id / translationKey」匹配 SlashBladeDefinition，取完整命名刀用于展示。
      */
-    /** 临时诊断：定位配料刀为何仍显示为"无名"。定位完删掉。 */
-    private static final java.util.concurrent.atomic.AtomicInteger DIAG_COUNT =
-            new java.util.concurrent.atomic.AtomicInteger();
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku-jei");
-
     private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
                                           int x, int y, RegistryAccess access) {
         var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
-        Object custom = ingredient.getCustomIngredient();
         RequestDefinition request = requestedDefinition(ingredient);
         ItemStack display = resolveBladeFor(request, access);
         // 解析不出来就原样交给 JEI —— 绝不能"随便挑一把"，
         // 那样所有输入槽会显示成同一把刀（之前就是这样把全部输入变成了同一把）。
-        if (DIAG_COUNT.getAndIncrement() < 60) {
-            LOGGER.info("[shizuku-jei] custom={} requestName={} display={}",
-                    custom == null ? "null" : custom.getClass().getSimpleName(),
-                    request == null ? "null" : String.valueOf(request.getName()),
-                    display.isEmpty() ? "EMPTY" : display.getItem());
-        }
         if (display.isEmpty()) {
             slot.addIngredients(ingredient);
             return;
