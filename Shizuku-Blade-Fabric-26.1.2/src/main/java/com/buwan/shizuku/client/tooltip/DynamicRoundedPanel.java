@@ -33,17 +33,38 @@ public final class DynamicRoundedPanel {
     private DynamicRoundedPanel() {
     }
 
+    /** 物理像素倍率（GUI 缩放）：贴图按这个倍率生成，否则 1px 抗锯齿会被放大成一片模糊。 */
+    private static int currentScale() {
+        try {
+            return Math.max(1, net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScale());
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
     public static Identifier get(int width, int height, float radius, float thickness,
                                  int fill, List<Integer> borderColors) {
+        int scale = currentScale();
+        return getScaled(width, height, radius, thickness, fill, borderColors, scale);
+    }
+
+    /** 返回贴图的像素尺寸（宽, 高），调用方按 GUI 尺寸绘制即可。 */
+    public static int[] getTexSize(int width, int height) {
+        int scale = currentScale();
+        return new int[]{width * scale, height * scale};
+    }
+
+    private static Identifier getScaled(int width, int height, float radius, float thickness,
+                                        int fill, List<Integer> borderColors, int scale) {
         int[] colors = borderColors == null ? new int[0] : borderColors.stream().mapToInt(Integer::intValue).toArray();
-        long key = ((long) width << 42) ^ ((long) height << 26)
+        long key = ((long) scale << 56) ^ ((long) width << 42) ^ ((long) height << 26)
                 ^ ((long) (radius * 4) << 18) ^ ((long) (thickness * 4) << 10)
                 ^ (fill & 0xFFFFFFFFL) ^ java.util.Arrays.hashCode(colors);
         Identifier cached = CACHE.get(key);
         if (cached != null) {
             return cached;
         }
-        Identifier id = build(width, height, radius, thickness, fill, colors);
+        Identifier id = build(width * scale, height * scale, radius * scale, thickness * scale, fill, colors);
         if (CACHE.size() >= MAX_CACHE) {
             CACHE.clear();
         }
@@ -59,6 +80,14 @@ public final class DynamicRoundedPanel {
         float innerW = width - thickness * 2.0F;
         float innerH = height - thickness * 2.0F;
 
+        // 调色板里的颜色是 0xRRGGBB（无 alpha 字节 = 全透明），
+        // 边框现在由贴图自带 alpha，必须补成不透明，否则整条边框会消失。
+        int[] borderColorsFixed = new int[borderColors.length];
+        for (int i = 0; i < borderColors.length; i++) {
+            borderColorsFixed[i] = opaque(borderColors[i]);
+        }
+        borderColors = borderColorsFixed;
+
         for (int py = 0; py < height; py++) {
             for (int px = 0; px < width; px++) {
                 float cx = px + 0.5F;
@@ -68,7 +97,9 @@ public final class DynamicRoundedPanel {
                 float outerCoverage = clamp01(0.5F - dOuter);
                 float innerCoverage = 0.0F;
                 if (innerW > 0.0F && innerH > 0.0F) {
-                    float dInner = sdRoundRect(cx, cy, innerW, innerH, innerRadius) - thickness;
+                    // 内矩形从 (thickness, thickness) 开始，点必须平移到它的局部坐标；
+                    // 直接按 (cx,cy) 算会把它当成居中，导致边框在右下变厚、左上消失。
+                    float dInner = sdRoundRect(cx - thickness, cy - thickness, innerW, innerH, innerRadius);
                     innerCoverage = clamp01(0.5F - dInner);
                 }
                 float borderCoverage = Math.max(0.0F, outerCoverage - innerCoverage);
@@ -146,6 +177,11 @@ public final class DynamicRoundedPanel {
         float b = (sb * sa + db * da * (1.0F - sa)) / outA;
         return ((int) (outA * 255.0F) << 24) | ((int) (r * 255.0F) << 16)
                 | ((int) (g * 255.0F) << 8) | (int) (b * 255.0F);
+    }
+
+    /** 无色高位（0xRRGGBB）时补成不透明。 */
+    private static int opaque(int color) {
+        return ((color >>> 24) == 0 ? 0xFF000000 : (color & 0xFF000000)) | (color & 0xFFFFFF);
     }
 
     /** ARGB -> 0xAABBGGRR（NativeImage#setPixelABGR 期望的打包顺序）。 */

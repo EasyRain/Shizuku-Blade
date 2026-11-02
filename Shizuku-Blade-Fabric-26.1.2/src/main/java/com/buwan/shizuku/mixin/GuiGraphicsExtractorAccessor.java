@@ -16,4 +16,7 @@ public interface GuiGraphicsExtractorAccessor {
 
     @Accessor("deferredTooltip")
     void shizuku$setDeferredTooltip(Runnable runnable);
+
+    @Accessor("deferredTooltip")
+    Runnable shizuku$getDeferredTooltip();
 }

@@ -92,16 +92,7 @@ public class ShizukuTooltipRenderer {
         renderCustomTooltip(graphics, components, x, y, font, ICustomTooltip.TooltipType.DEFAULT);
     }
 
-    /** 临时诊断：定位 tooltip 绘制尺寸/位置异常（问题解决后删除）。 */
-    private static final java.util.concurrent.atomic.AtomicInteger DIAG = new java.util.concurrent.atomic.AtomicInteger();
-
     public static void renderCustomTooltip(GuiGraphicsExtractor graphics, List<Component> components, int x, int y, Font font, ICustomTooltip.TooltipType tooltipType) {
-        if (DIAG.getAndIncrement() % 40 == 0) {
-            org.slf4j.LoggerFactory.getLogger("shizuku-tooltip").info(
-                    "[diag] type={} xy=({},{}) lines={} gui=({}x{}) pose={}",
-                    tooltipType, x, y, components.size(), graphics.guiWidth(), graphics.guiHeight(),
-                    graphics.pose());
-        }
         if (!components.isEmpty()) {
             // 3.6.0：宇宙刀（COSMIC）特殊信息框与 1.20.1 原版一致：
             // 全透明背景 + 纯白边框 + ShizukuBlade 流动渐变文字（白色带黄边霓虹位移特效）
@@ -149,7 +140,7 @@ public class ShizukuTooltipRenderer {
 
             for (TooltipLine tooltipLine : lines) {
                 if (tooltipLine.isSeparator) {
-                    renderSeparatorLine(graphics, x + 8, currentY, maxWidth - 16);
+                    // 原版没有这条横条，只保留行间距
                     currentY += 6;
                 } else {
                     int textX = tooltipLine.isTitle ? x + (maxWidth - tooltipLine.width) / 2 : x + 12;
@@ -207,24 +198,22 @@ public class ShizukuTooltipRenderer {
         // 扫描线在圆角处必然出现台阶。
         Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
                 0xDC87CEFA, borderColors);
+        int[] texSize = DynamicRoundedPanel.getTexSize(width, height);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
-                x, y, 0.0F, 0.0F, width, height, width, height);
+                x, y, 0.0F, 0.0F, width, height,
+                texSize[0], texSize[1], texSize[0], texSize[1]);
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
     private static void renderCosmicTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
         Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
                 0x0087CEFA, List.of(0xFFFFFFFF));
+        int[] texSize = DynamicRoundedPanel.getTexSize(width, height);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
-                x, y, 0.0F, 0.0F, width, height, width, height);
+                x, y, 0.0F, 0.0F, width, height,
+                texSize[0], texSize[1], texSize[0], texSize[1]);
     }
 
-
-    private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
-        int centerX = x + width / 2;
-        graphics.fillGradient(x, y, centerX, y + 2, 16744512, SEPARATOR_COLOR);
-        graphics.fillGradient(centerX, y, x + width, y + 2, SEPARATOR_COLOR, 16744512);
-    }
 
     private static void renderRainbowText(GuiGraphicsExtractor graphics, Component component, int x, int y, Font font) {
         graphics.text(font, component, x, y, -1642241, false);

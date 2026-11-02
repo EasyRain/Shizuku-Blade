@@ -10,9 +10,9 @@
     "EntityAbstractSummonedSwordMixin"
   ],
   "client": [
-    "AbstractContainerScreenAccessor",
-    "AbstractContainerScreenTooltipMixin",
-    "GuiGraphicsExtractorAccessor"
+    "DeferredTooltipMixin",
+    "GuiGraphicsExtractorAccessor",
+    "AbstractContainerScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
