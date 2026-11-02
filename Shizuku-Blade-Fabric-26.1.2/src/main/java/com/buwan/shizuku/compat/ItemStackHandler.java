@@ -95,12 +95,13 @@ public class ItemStackHandler {
 
     /** 26.1：改用 codec 存储（ValueOutput/ValueInput），不再用 ContainerHelper + CompoundTag。 */
     public void serialize(ValueOutput output) {
-        output.store("Items", ItemStack.CODEC.listOf(), this.stacks);
+        // 26.1：Items 的 codec 不允许空槽（air / count 0），必须用 OPTIONAL_CODEC
+        output.store("Items", ItemStack.OPTIONAL_CODEC.listOf(), this.stacks);
     }
 
     public void deserialize(ValueInput input) {
         java.util.List<ItemStack> list = new java.util.ArrayList<>();
-        input.listOrEmpty("Items", ItemStack.CODEC).forEach(list::add);
+        input.listOrEmpty("Items", ItemStack.OPTIONAL_CODEC).forEach(list::add);
         for (int i = 0; i < getSlots(); i++) {
             stacks.set(i, i < list.size() ? list.get(i) : ItemStack.EMPTY);
         }

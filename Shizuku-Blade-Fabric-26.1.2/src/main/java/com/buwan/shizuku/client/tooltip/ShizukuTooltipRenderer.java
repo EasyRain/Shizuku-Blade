@@ -92,7 +92,16 @@ public class ShizukuTooltipRenderer {
         renderCustomTooltip(graphics, components, x, y, font, ICustomTooltip.TooltipType.DEFAULT);
     }
 
+    /** 临时诊断：定位 tooltip 绘制尺寸/位置异常（问题解决后删除）。 */
+    private static final java.util.concurrent.atomic.AtomicInteger DIAG = new java.util.concurrent.atomic.AtomicInteger();
+
     public static void renderCustomTooltip(GuiGraphicsExtractor graphics, List<Component> components, int x, int y, Font font, ICustomTooltip.TooltipType tooltipType) {
+        if (DIAG.getAndIncrement() % 40 == 0) {
+            org.slf4j.LoggerFactory.getLogger("shizuku-tooltip").info(
+                    "[diag] type={} xy=({},{}) lines={} gui=({}x{}) pose={}",
+                    tooltipType, x, y, components.size(), graphics.guiWidth(), graphics.guiHeight(),
+                    graphics.pose());
+        }
         if (!components.isEmpty()) {
             // 3.6.0：宇宙刀（COSMIC）特殊信息框与 1.20.1 原版一致：
             // 全透明背景 + 纯白边框 + ShizukuBlade 流动渐变文字（白色带黄边霓虹位移特效）
