@@ -198,7 +198,7 @@ public class ShizukuTooltipRenderer {
         Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
                 0xDC87CEFA, borderColors);
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
-                x, y, 0.0F, 0.0F, width, height, width, height, width, height);
+                x, y, 0.0F, 0.0F, width, height, width, height);
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
@@ -206,7 +206,7 @@ public class ShizukuTooltipRenderer {
         Identifier panel = DynamicRoundedPanel.get(width, height, 12.0F, 2.0F,
                 0x0087CEFA, List.of(0xFFFFFFFF));
         graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, panel,
-                x, y, 0.0F, 0.0F, width, height, width, height, width, height);
+                x, y, 0.0F, 0.0F, width, height, width, height);
     }
 
 
