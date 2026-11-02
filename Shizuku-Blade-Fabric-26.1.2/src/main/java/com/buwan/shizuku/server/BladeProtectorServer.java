@@ -40,9 +40,9 @@ public class BladeProtectorServer {
 
                 CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
                 if (tag.contains("display")) {
-                    CompoundTag display = tag.getCompound("display");
+                    CompoundTag display = tag.getCompoundOrEmpty("display");
                     if (display.contains("Name")) {
-                        String nbtName = display.getString("Name");
+                        String nbtName = display.getStringOr("Name", "");
                         if (nbtName.contains("无铭") && nbtName.contains("有名")) {
                             return true;
                         }
@@ -50,7 +50,7 @@ public class BladeProtectorServer {
                 }
 
                 if (tag.contains("SB.SwordName")) {
-                    String bladeName = tag.getString("SB.SwordName");
+                    String bladeName = tag.getStringOr("SB.SwordName", "");
                     if (bladeName.contains("无铭") && bladeName.contains("有名")) {
                         return true;
                     }
@@ -58,7 +58,7 @@ public class BladeProtectorServer {
 
                 if (!tag.contains("shizuku:protected_blade") && !tag.contains("shizuku:keep_on_death")) {
                     return CapabilitySlashBlade.getBladeState(stack).map(state -> {
-                        String bladeNamex = tag.getString("SB.SwordName");
+                        String bladeNamex = tag.getStringOr("SB.SwordName", "");
                         return bladeNamex != null && (bladeNamex.contains("shizuku")
                                 || bladeNamex.contains("el") || bladeNamex.contains("ym"));
                     }).orElse(false);
