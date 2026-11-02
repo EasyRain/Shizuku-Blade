@@ -14,20 +14,103 @@
     "MNMNMNMNM"
   ],
   "key": {
-    "A": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:engulfing_lightning" } },
-    "B": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:yeying" } },
-    "C": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:moonlight_blade" } },
-    "D": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:teleport_blade" } },
-    "E": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:time_blade" } },
-    "F": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:tornado_blade" } },
-    "G": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:tsubame_blade" } },
-    "H": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:unlimited_blade" } },
-    "I": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:void_blade" } },
-    "J": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:ganjo_natsuki_blade" } },
-    "S": { "type": "slashblade:blade", "item": "slashblade:slashblade", "request": { "name": "shizuku:shizuku" } },
-    "M": { "item": "minecraft:diamond_block" },
-    "N": { "item": "minecraft:netherite_block" },
-    "X": { "item": "minecraft:dragon_egg" }
+    "A": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:engulfing_lightning"
+      }
+    },
+    "B": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:yeying"
+      }
+    },
+    "C": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:moonlight_blade"
+      }
+    },
+    "D": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:teleport_blade"
+      }
+    },
+    "E": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:time_blade"
+      }
+    },
+    "F": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:tornado_blade"
+      }
+    },
+    "G": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:tsubame_blade"
+      }
+    },
+    "H": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:unlimited_blade"
+      }
+    },
+    "I": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:void_blade"
+      }
+    },
+    "J": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:ganjo_natsuki_blade"
+      }
+    },
+    "S": {
+      "fabric:type": "slashblade:blade",
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:shizuku"
+      }
+    },
+    "M": {
+      "item": "minecraft:diamond_block"
+    },
+    "N": {
+      "item": "minecraft:netherite_block"
+    },
+    "X": {
+      "item": "minecraft:dragon_egg"
+    }
   },
   "result": {
     "item": "slashblade:slashblade"
