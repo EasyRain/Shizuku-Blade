@@ -132,33 +132,50 @@ public final class GalaxyFieldRenderer {
 
     }
 
+    /** 星空贴图：26.1 没有自定义星空着色器，改用贴图 + 径向 UV 还原星盘观感。 */
+    private static final net.minecraft.resources.Identifier STARRY_TEXTURE =
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("shizuku", "textures/entity/starry_sky.png");
+
     private static void drawDisk(ZoneData zone, Matrix4f mat) {
         float alpha = Math.min(1.0F, (float) zone.ageTicks / 4.0F) * 0.75F;
-        if (!(alpha <= 0.01F)) {
-            // 光影 GUI 阶段沿用玩家视角（世界特效朝向），不冻结 yaw/pitch
-            if (CosmicShaders.prepareCosmicRender(alpha, false)) {
-                // 26.1：自定义 RenderType + BufferSource 组合不再可靠（贴图/格式不匹配会被画成透明），
-                // 改用与 TimeStopRenderer 相同的立即绘制：POSITION_COLOR + debugQuads。
-                BufferBuilder vb = Tesselator.getInstance().begin(
-                        VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
-                float radius = zone.radius;
-                float y = 0.05F;
-                int segments = 48;
-
-                for (int i = 0; i < segments; i++) {
-                    double a0 = (Math.PI * 2) * (double) i / (double) segments;
-                    double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
-                    float x0 = (float) (Math.cos(a0) * (double) radius);
-                    float z0 = (float) (Math.sin(a0) * (double) radius);
-                    float x1 = (float) (Math.cos(a1) * (double) radius);
-                    float z1 = (float) (Math.sin(a1) * (double) radius);
-                    vb.addVertex(mat, x0, y, z0).setColor(1.0F, 1.0F, 1.0F, alpha);
-                    vb.addVertex(mat, x1, y, z1).setColor(1.0F, 1.0F, 1.0F, alpha);
-                    vb.addVertex(mat, 0.0F, y, 0.0F).setColor(1.0F, 1.0F, 1.0F, alpha);
-                }
-                net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(vb.buildOrThrow());
-            }
+        if (alpha <= 0.01F) {
+            return;
         }
+        float radius = zone.radius;
+        float y = 0.05F;
+        int segments = 96;
+        BufferBuilder vb = Tesselator.getInstance().begin(
+                VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
+        for (int i = 0; i < segments; i++) {
+            double a0 = (Math.PI * 2) * (double) i / (double) segments;
+            double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
+            float x0 = (float) (Math.cos(a0) * (double) radius);
+            float z0 = (float) (Math.sin(a0) * (double) radius);
+            float x1 = (float) (Math.cos(a1) * (double) radius);
+            float z1 = (float) (Math.sin(a1) * (double) radius);
+            // 圆心 UV 为贴图中心；边缘 UV 沿圆周展开，形成放射状星空
+            float u0 = (float) (0.5 + Math.cos(a0) * 0.5);
+            float v0 = (float) (0.5 + Math.sin(a0) * 0.5);
+            float u1 = (float) (0.5 + Math.cos(a1) * 0.5);
+            float v1 = (float) (0.5 + Math.sin(a1) * 0.5);
+            // 边缘淡出：圆心不透明，外缘 alpha 归零，避免生硬的圆边
+            vertex(vb, mat, 0.0F, y, 0.0F, 0.5F, 0.5F, alpha);
+            vertex(vb, mat, x0, y, z0, u0, v0, 0.0F);
+            vertex(vb, mat, x1, y, z1, u1, v1, 0.0F);
+        }
+        net.minecraft.client.renderer.rendertype.RenderTypes
+                .entityTranslucent(STARRY_TEXTURE)
+                .draw(vb.buildOrThrow());
+    }
+
+    private static void vertex(BufferBuilder vb, Matrix4f mat, float x, float y, float z,
+                               float u, float v, float alpha) {
+        vb.addVertex(mat, x, y, z)
+                .setColor(1.0F, 1.0F, 1.0F, alpha)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(15728880)
+                .setNormal(0.0F, 1.0F, 0.0F);
     }
 
     public static class ZoneData {
