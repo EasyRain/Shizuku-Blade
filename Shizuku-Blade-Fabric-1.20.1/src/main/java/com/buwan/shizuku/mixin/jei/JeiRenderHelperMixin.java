@@ -28,6 +28,14 @@ import java.util.List;
  *
  * <p>目标类是 mod 类（JEI 编译在 intermediary 命名空间下），因此 {@code remap = false}
  * 并用 intermediary 描述符定位方法。</p>
+ *
+ * <p><b>版本兼容性（实测三个历史版本）</b>：</p>
+ * <pre>
+ * JEI 15.20.0.106 / 15.20.0.121  → RenderHelper 只有 6 参数重载
+ * JEI 15.62.0.219 / 15.74.0.234  → 6 参数 + 7 参数（多一个 ClientTooltipPositioner）
+ * </pre>
+ * <p>类名与 6 参数签名两年未变。两个重载都注入 + 配置里 {@code defaultRequire: 0}，
+ * 因此老版本只命中 6 参数那条、新版本两条都命中；将来若再变，失败也只记日志。</p>
  */
 @Mixin(targets = "mezz.jei.fabric.platform.RenderHelper", remap = false)
 public abstract class JeiRenderHelperMixin {
