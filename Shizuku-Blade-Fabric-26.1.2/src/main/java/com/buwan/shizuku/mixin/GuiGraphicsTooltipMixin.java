@@ -12,14 +12,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * 自定义 tooltip：Fabric 没有可取消的 RenderTooltipEvent，
- * 这里在 {@code GuiGraphicsExtractor.renderTooltip(Font, ItemStack, int, int)} HEAD 拦截，
+ * 这里在 {@code GuiGraphicsExtractor.setTooltipForNextFrame(Font, ItemStack, int, int)} HEAD 拦截，
  * 由 {@link TooltipEventHandler} / {@link ShizukuTooltipRenderer} 自行绘制并取消原版渲染。
+ *
+ * <p>26.1 把 {@code renderTooltip} 一族整体改名为 {@code setTooltipForNextFrame}，
+ * 但保留了 {@code (Font, ItemStack, int, int)} 这个重载，正好可以继续作为钩子。</p>
  */
 @Mixin(GuiGraphicsExtractor.class)
 public abstract class GuiGraphicsTooltipMixin {
 
     @Inject(
-            method = "renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",
+            method = "setTooltipForNextFrame(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",
             at = @At("HEAD"),
             cancellable = true
     )

@@ -10,8 +10,6 @@
     "EntityAbstractSummonedSwordMixin"
   ],
   "client": [
-    "DriveRendererMixin",
-    "SlashEffectRendererMixin",
     "GuiGraphicsTooltipMixin"
   ],
   "injectors": {
