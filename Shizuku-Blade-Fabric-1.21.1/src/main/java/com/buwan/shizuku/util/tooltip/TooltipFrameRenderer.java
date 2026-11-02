@@ -59,7 +59,7 @@ public final class TooltipFrameRenderer {
                     return null;
                 }
                 shader = new ShaderInstance(mc.getResourceManager(),
-                        shizuku.prefix("tooltip_frame").toString(), DefaultVertexFormat.POSITION);
+                        "tooltip_frame", DefaultVertexFormat.POSITION);
                 uOrigin = shader.safeGetUniform("u_Origin");
                 uSize = shader.safeGetUniform("u_Size");
                 uParams = shader.safeGetUniform("u_Params");

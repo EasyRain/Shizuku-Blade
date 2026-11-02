@@ -96,7 +96,7 @@ public final class CosmicShaders {
                     return null;
                 }
                 COSMIC_SHADER = new ShaderInstance(mc.getResourceManager(),
-                        shizuku.prefix("cosmic").toString(), DefaultVertexFormat.NEW_ENTITY);
+                        "cosmic", DefaultVertexFormat.NEW_ENTITY);
                 cosmicTime = COSMIC_SHADER.safeGetUniform("time");
                 cosmicYaw = COSMIC_SHADER.safeGetUniform("yaw");
                 cosmicPitch = COSMIC_SHADER.safeGetUniform("pitch");
