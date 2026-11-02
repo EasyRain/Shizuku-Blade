@@ -35,6 +35,10 @@ import java.util.List;
 
 
 public class ShizukuTooltipRenderer {
+    // 26.1 的 blit 需要显式给贴图尺寸
+    private static final int TEX_W = 612;
+    private static final int TEX_H = 960;
+
     private static final Identifier SHIZUKU_BACKGROUND = Identifier.fromNamespaceAndPath("shizuku", "textures/gui/shizuku_blade_bg.png");
     private static final int SEPARATOR_COLOR = -2130739136;
 
@@ -168,18 +172,22 @@ public class ShizukuTooltipRenderer {
         
         poseStack.pushMatrix();
         poseStack.translate(offset1X, offset1Y);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
         poseStack.popMatrix();
         poseStack.pushMatrix();
         poseStack.translate(offset2X, offset2Y);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
         poseStack.popMatrix();
         poseStack.pushMatrix();
         poseStack.translate(offset3X, offset3Y);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
         poseStack.popMatrix();
         
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, SHIZUKU_BACKGROUND,
+                x, y, 0.0F, 0.0F, width, height, TEX_W, TEX_H);
         
         
     }

@@ -36,8 +36,11 @@ public class ShizukuCraftScreen extends AbstractContainerScreen<ShizukuCraftMenu
 
     @Override
     public void extractRenderState(@NotNull GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.blit(BACKGROUND, this.leftPos, this.topPos,
-                this.imageWidth, this.imageHeight, 0.0F, 0.0F, 512.0F, 512.0F);
+        // 26.1：要用带贴图尺寸的 blit 重载（与根版 ContainerScreen 一致）。
+        // 9 参版本把 UV 当归一化值，直接传像素数会把整张贴图平铺拉伸。
+        graphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, BACKGROUND,
+                this.leftPos, this.topPos, 0.0F, 0.0F,
+                this.imageWidth, this.imageHeight, 512, 512);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         FallingPetalRenderer.render(graphics, this.width, this.height, partialTick);
     }
