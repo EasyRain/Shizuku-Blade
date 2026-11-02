@@ -35,6 +35,9 @@ public final class FieldActivateInput {
                 String key = CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                         .map(s -> s.getTranslationKey())
                         .orElse("");
+                org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
+                        "[shizuku-field] X released shift=true key={} match={}",
+                        key, CosmicShaders.COSMIC_BLADE_KEY.equals(key));
                 if (CosmicShaders.COSMIC_BLADE_KEY.equals(key)) {
                     PacketHandler.sendToServer(new FieldActivatePacket());
                 }
