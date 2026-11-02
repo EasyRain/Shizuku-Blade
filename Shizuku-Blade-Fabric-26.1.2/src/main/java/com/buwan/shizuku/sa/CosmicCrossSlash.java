@@ -75,10 +75,10 @@ public class CosmicCrossSlash {
         for (int i = -5; i <= 5; i++) {
             double offset = (double) i * 0.5;
             Vec3 pos1 = center.add(offset, 1.0 + (double) Math.abs(i) * 0.1, offset);
-            level.sendParticles(ParticleTypes.FLASH, pos1.x, pos1.y, pos1.z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.END_ROD, pos1.x, pos1.y, pos1.z, 1, 0.0, 0.0, 0.0, 0.0);
             level.sendParticles(ParticleTypes.ENCHANT, pos1.x, pos1.y, pos1.z, 3, 0.1, 0.1, 0.1, 0.05);
             Vec3 pos2 = center.add(offset, 1.0 + (double) Math.abs(i) * 0.1, -offset);
-            level.sendParticles(ParticleTypes.FLASH, pos2.x, pos2.y, pos2.z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.END_ROD, pos2.x, pos2.y, pos2.z, 1, 0.0, 0.0, 0.0, 0.0);
             level.sendParticles(ParticleTypes.ENCHANT, pos2.x, pos2.y, pos2.z, 3, 0.1, 0.1, 0.1, 0.05);
         }
 

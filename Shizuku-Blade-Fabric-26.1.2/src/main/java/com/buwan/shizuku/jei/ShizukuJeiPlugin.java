@@ -42,16 +42,8 @@ public class ShizukuJeiPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
-        ClientLevel world = Minecraft.getInstance().level;
-        if (world != null) {
-            List<RecipeHolder<ITierCraftingRecipe>> holders = world.getRecipeManager()
-                    .getAllRecipesFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get());
-            List<ITierCraftingRecipe> recipes = new ArrayList<>();
-            for (RecipeHolder<ITierCraftingRecipe> holder : holders) {
-                recipes.add(holder.value());
-            }
-            registration.addRecipes(ShizukuCraftingTableCategory.RECIPE_TYPE, recipes);
-        }
+        // 26.1 移除了 Level#getRecipeManager()（客户端改 RecipeAccess），
+        // 这里暂不注册配方展示；游戏内合成不受影响。
     }
 
     @Override

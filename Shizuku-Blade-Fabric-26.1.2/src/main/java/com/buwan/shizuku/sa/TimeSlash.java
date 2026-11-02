@@ -131,7 +131,7 @@ public class TimeSlash {
                     target.hurt(level.damageSources().playerAttack(player), damage);
                     Vec3 slashOffset = target.position().subtract(player.position()).normalize().scale(0.5);
                     SakuraEnd.doSlash(player, 0.0F, TIME_COLOR, slashOffset.add(0.0, 1.0, 0.0), true, true, 0.0, KnockBacks.cancel);
-                    level.sendParticles(ParticleTypes.FLASH, target.getX(), target.getY() + 1.0, target.getZ(), 5, 0.5, 0.5, 0.5, 0.1);
+                    level.sendParticles(ParticleTypes.END_ROD, target.getX(), target.getY() + 1.0, target.getZ(), 5, 0.5, 0.5, 0.5, 0.1);
                     level.sendParticles(ParticleTypes.POOF, target.getX(), target.getY() + 1.0, target.getZ(), 20, 0.5, 0.5, 0.5, 0.3);
                     validTargets++;
                 }

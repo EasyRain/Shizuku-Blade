@@ -46,7 +46,7 @@ public class Shizukusa {
         if (playSound) {
             RandomSource random = playerIn.getRandom();
             Identifier soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
-            SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc);
+            SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc).map(net.minecraft.core.Holder.Reference::value).orElse(null);
 
             if (sound != null) {
                 playerIn.level().playSound(null,

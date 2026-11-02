@@ -33,7 +33,7 @@ public class Leisa {
     private static void playLeisaSound(LivingEntity player) {
         RandomSource random = player.getRandom();
         Identifier soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
-        SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc);
+        SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc).map(net.minecraft.core.Holder.Reference::value).orElse(null);
         if (sound != null) {
             player.level()
                     .playSound(
