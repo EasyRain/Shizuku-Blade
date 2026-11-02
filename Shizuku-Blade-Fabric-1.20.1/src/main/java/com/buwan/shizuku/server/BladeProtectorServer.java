@@ -2,14 +2,14 @@ package com.buwan.shizuku.server;
 
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
-import net.minecraft.core.component.DataComponents;
+
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomData;
+
 
 
 
@@ -38,7 +38,7 @@ public class BladeProtectorServer {
                     return true;
                 }
 
-                CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+                CompoundTag tag = stack.getOrCreateTag().copy();
                 if (tag.contains("display")) {
                     CompoundTag display = tag.getCompound("display");
                     if (display.contains("Name")) {
@@ -125,10 +125,10 @@ public class BladeProtectorServer {
     }
 
     private static void applyProtectionTags(ItemStack stack) {
-        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        CompoundTag tag = stack.getOrCreateTag().copy();
         tag.putBoolean("shizuku:keep_on_death", true);
         tag.putString("shizuku:protected_blade", "true");
         tag.putLong("shizuku:protection_timestamp", System.currentTimeMillis());
-        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        stack.setTag(tag);
     }
 }

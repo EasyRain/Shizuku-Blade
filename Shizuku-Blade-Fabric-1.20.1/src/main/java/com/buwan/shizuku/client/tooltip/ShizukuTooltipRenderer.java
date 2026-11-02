@@ -252,7 +252,7 @@ public class ShizukuTooltipRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = com.buwan.shizuku.compat.TesselatorCompat.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         int centerX = x + width / 2;
         addGradientVertex(buffer, matrix, (float) x, (float) y, 16744512);
         addGradientVertex(buffer, matrix, (float) centerX, (float) y, SEPARATOR_COLOR);
@@ -262,7 +262,7 @@ public class ShizukuTooltipRenderer {
         addGradientVertex(buffer, matrix, (float) (x + width), (float) y, 16744512);
         addGradientVertex(buffer, matrix, (float) (x + width), (float) (y + 2), 16744512);
         addGradientVertex(buffer, matrix, (float) centerX, (float) (y + 2), SEPARATOR_COLOR);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -275,7 +275,7 @@ public class ShizukuTooltipRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        buffer.addVertex(matrix, x, y, 0.0F).setColor(r, g, b, a);
+        buffer.vertex(matrix, x, y, 0.0F).color(r, g, b, a);
     }
 
     private static List<TooltipLine> parseTooltipLines(List<Component> components, Font font, List<Integer> palette, List<Integer> lastLineColors) {

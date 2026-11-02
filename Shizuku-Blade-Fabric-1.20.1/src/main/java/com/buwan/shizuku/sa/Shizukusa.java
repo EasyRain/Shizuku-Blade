@@ -117,7 +117,7 @@ public class Shizukusa {
             judgementCut.setSilent(true);
 
             CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
-                    .ifPresent(state -> judgementCut.setColor(state.getColorCode()));
+                    .ifPresent(state -> judgementCut.color(state.getColorCode()));
 
             float rank = CapabilityConcentrationRank.RANK_POINT.maybeGet(owner)
                     .map(r -> r.getRankLevel(level.getGameTime())).orElse(0.0F);

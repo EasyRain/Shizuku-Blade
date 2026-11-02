@@ -126,12 +126,12 @@ public class SynthwaveShaderManager {
                     }
 
                     Tesselator tesselator = Tesselator.getInstance();
-                    BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-                    bufferbuilder.addVertex(-1.0F, 1.0F, 0.0F).setUv(0, 0);
-                    bufferbuilder.addVertex(-1.0F, -1.0F, 0.0F).setUv(0, 0);
-                    bufferbuilder.addVertex(1.0F, -1.0F, 0.0F).setUv(0, 0);
-                    bufferbuilder.addVertex(1.0F, 1.0F, 0.0F).setUv(0, 0);
-                    BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+                    BufferBuilder bufferbuilder = com.buwan.shizuku.compat.TesselatorCompat.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+                    bufferbuilder.vertex(-1.0F, 1.0F, 0.0F).uv(0, 0);
+                    bufferbuilder.vertex(-1.0F, -1.0F, 0.0F).uv(0, 0);
+                    bufferbuilder.vertex(1.0F, -1.0F, 0.0F).uv(0, 0);
+                    bufferbuilder.vertex(1.0F, 1.0F, 0.0F).uv(0, 0);
+                    BufferUploader.drawWithShader(bufferbuilder.end());
                     synthwave.apply();
                     RenderSystem.restoreProjectionMatrix();
                     RenderSystem.enableDepthTest();

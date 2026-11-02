@@ -158,21 +158,21 @@ public final class GalaxyFieldRenderer {
                     float z0 = (float) (Math.sin(a0) * (double) radius);
                     float x1 = (float) (Math.cos(a1) * (double) radius);
                     float z1 = (float) (Math.sin(a1) * (double) radius);
-                    vb.addVertex(mat, x0, y, z0)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
+                    vb.vertex(mat, x0, y, z0)
+                            .color(1.0F, 1.0F, 1.0F, alpha)
+                            .uv(0.0F, 0.0F)
                             .setOverlay(OverlayTexture.NO_OVERLAY)
                             .setLight(15728880)
                             .setNormal(0.0F, 1.0F, 0.0F);
-                    vb.addVertex(mat, x1, y, z1)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
+                    vb.vertex(mat, x1, y, z1)
+                            .color(1.0F, 1.0F, 1.0F, alpha)
+                            .uv(0.0F, 0.0F)
                             .setOverlay(OverlayTexture.NO_OVERLAY)
                             .setLight(15728880)
                             .setNormal(0.0F, 1.0F, 0.0F);
-                    vb.addVertex(mat, 0.0F, y, 0.0F)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
+                    vb.vertex(mat, 0.0F, y, 0.0F)
+                            .color(1.0F, 1.0F, 1.0F, alpha)
+                            .uv(0.0F, 0.0F)
                             .setOverlay(OverlayTexture.NO_OVERLAY)
                             .setLight(15728880)
                             .setNormal(0.0F, 1.0F, 0.0F);

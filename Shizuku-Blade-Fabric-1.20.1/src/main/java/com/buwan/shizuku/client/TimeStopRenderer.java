@@ -75,7 +75,7 @@ public class TimeStopRenderer {
 
     private void drawSphere(Matrix4f matrix, double radius, int segments, int rings, float r, float g, float b, float alpha) {
         // 1.21.1 的 build() 会结束构建状态，因此每一层都必须重新 begin，否则后续 addVertex 抛 "Not building!"
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = com.buwan.shizuku.compat.TesselatorCompat.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
         for (int i = 0; i < rings; i++) {
             double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
             double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
@@ -97,20 +97,20 @@ public class TimeStopRenderer {
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
                 float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F);
-                buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x11, (float) y1, (float) z11).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
+                buffer.vertex(matrix, (float) x00, (float) y0, (float) z00).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x01, (float) y0, (float) z01).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x11, (float) y1, (float) z11).color(r, g, b, currentAlpha).uv(0, 0);
+                buffer.vertex(matrix, (float) x10, (float) y1, (float) z10).color(r, g, b, currentAlpha).uv(0, 0);
             }
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        BufferUploader.drawWithShader(buffer.end());
     }
 
     private void drawLatitudeRings(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
-        BufferBuilder lineBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder lineBuffer = com.buwan.shizuku.compat.TesselatorCompat.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         double[] latitudes = new double[]{-Math.PI / 3, 0.0, Math.PI / 3};
         int segments = 60;
 
@@ -122,7 +122,7 @@ public class TimeStopRenderer {
                 double angle = (Math.PI * 2) * (double) i / (double) segments;
                 double x = Math.cos(angle) * ringRadius;
                 double z = Math.sin(angle) * ringRadius;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha).setUv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha).uv(0, 0);
             }
         }
 
@@ -138,11 +138,11 @@ public class TimeStopRenderer {
                 double rRing = Math.cos(lat) * radius;
                 double x = Math.cos(lng) * rRing;
                 double z = Math.sin(lng) * rRing;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha * 0.5F).setUv(0, 0);
+                lineBuffer.vertex(matrix, (float) x, (float) y, (float) z).color(r, g, b, alpha * 0.5F).uv(0, 0);
             }
         }
 
-        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+        BufferUploader.drawWithShader(lineBuffer.end());
     }
 
     public static void addTimeStopZone(UUID playerId, Vec3 center, double radius, int duration) {

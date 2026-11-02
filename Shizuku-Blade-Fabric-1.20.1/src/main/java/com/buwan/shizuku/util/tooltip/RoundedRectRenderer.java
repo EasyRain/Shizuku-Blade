@@ -339,7 +339,7 @@ public class RoundedRectRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        consumer.addVertex(matrix, x, y, z).setColor(r, g, b, a).setNormal(nx, ny, nz);
+        consumer.vertex(matrix, x, y, z).color(r, g, b, a).setNormal(nx, ny, nz);
     }
 
     public static void renderRoundedRectBorder(
@@ -382,7 +382,7 @@ public class RoundedRectRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder builder = tesselator.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder builder = com.buwan.shizuku.compat.TesselatorCompat.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
         float maxRadius = Math.min(width, height) / 2.0F;
         topLeft = Math.min(topLeft, maxRadius);
         topRight = Math.min(topRight, maxRadius);
@@ -548,7 +548,7 @@ public class RoundedRectRenderer {
             );
         }
 
-        BufferUploader.drawWithShader(builder.buildOrThrow());
+        BufferUploader.drawWithShader(builder.end());
         RenderSystem.disableBlend();
     }
 
@@ -797,6 +797,6 @@ public class RoundedRectRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        builder.addVertex(matrix, x, y, 0.0F).setColor(r, g, b, a);
+        builder.vertex(matrix, x, y, 0.0F).color(r, g, b, a);
     }
 }

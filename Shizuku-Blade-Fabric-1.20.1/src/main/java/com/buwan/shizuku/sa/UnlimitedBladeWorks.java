@@ -114,7 +114,7 @@ public class UnlimitedBladeWorks {
             EntityAbstractSummonedSword sword = new EntityAbstractSummonedSword(SBEntityTypes.SUMMONED_SWORD, level);
             sword.setPos(swordPos.x, swordPos.y, swordPos.z);
             sword.setOwner(player);
-            sword.setColor(data.colorCode);
+            sword.color(data.colorCode);
             sword.setDamage(data.baseDamage * 1.5F);
             sword.setIsCritical(true);
             sword.setPierce((byte) 1);

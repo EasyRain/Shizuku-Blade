@@ -85,7 +85,7 @@ public class StarRiverSlash {
         drive.shoot(dir.x, dir.y, dir.z, speed, 0.0F);
         drive.setOwner(player);
         drive.setRotationRoll(roll);
-        drive.setColor(colorCode);
+        drive.color(colorCode);
         drive.setIsCritical(false);
         drive.setKnockBack(knockback);
         drive.setLifetime(lifetime);

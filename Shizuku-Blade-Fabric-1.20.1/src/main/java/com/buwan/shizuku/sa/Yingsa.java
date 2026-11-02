@@ -104,7 +104,7 @@ public class Yingsa {
                 phantomBlade.setOwner(caster);
                 float refinedDamage = DamageCalculator.calculateRefinedDamage(caster, 0.6F);
                 phantomBlade.setDamage(refinedDamage);
-                phantomBlade.setColor(16716947);
+                phantomBlade.color(16716947);
                 phantomBlade.setPierce((byte) 0);
                 phantomBlade.setIsCritical(true);
                 phantomBlade.setRoll(0.0F);
