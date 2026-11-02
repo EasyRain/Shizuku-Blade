@@ -36,7 +36,7 @@ public class UnlimitedBladeWorks {
                 List<LivingEntity> targets = findAllTargets(entity, level);
                 if (!targets.isEmpty()) {
                     List<Vec3> swordPositions = calculateSwordPositionsAboveTargets(targets);
-                    int colorCode = CapabilitySlashBlade.getBladeState(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWORD_COLOR);
+                    int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWORD_COLOR);
                     float damage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
                     UBWData ubwData = new UBWData(swordPositions, targets, damage, colorCode);
                     activeUBW.put(player.getUUID(), ubwData);

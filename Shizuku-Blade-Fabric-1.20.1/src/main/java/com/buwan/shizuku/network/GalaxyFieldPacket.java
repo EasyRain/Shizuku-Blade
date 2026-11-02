@@ -1,20 +1,15 @@
 package com.buwan.shizuku.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
 /** S2C：星河领域圆盘特效（添加/移除）。 */
-public class GalaxyFieldPacket implements CustomPacketPayload {
+public class GalaxyFieldPacket implements ShizukuPacket {
 
-    public static final CustomPacketPayload.Type<GalaxyFieldPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "galaxy_field"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, GalaxyFieldPacket> STREAM_CODEC =
-            StreamCodec.ofMember(GalaxyFieldPacket::write, GalaxyFieldPacket::new);
+    public static final ResourceLocation ID = new ResourceLocation("shizuku", "galaxy_field");
 
     private final UUID playerId;
     private final double x;
@@ -44,7 +39,7 @@ public class GalaxyFieldPacket implements CustomPacketPayload {
         this.remove = true;
     }
 
-    private GalaxyFieldPacket(RegistryFriendlyByteBuf buf) {
+    public GalaxyFieldPacket(FriendlyByteBuf buf) {
         this.playerId = buf.readUUID();
         this.remove = buf.readBoolean();
         if (this.remove) {
@@ -60,7 +55,8 @@ public class GalaxyFieldPacket implements CustomPacketPayload {
         }
     }
 
-    private void write(RegistryFriendlyByteBuf buf) {
+    @Override
+    public void write(FriendlyByteBuf buf) {
         buf.writeUUID(this.playerId);
         buf.writeBoolean(this.remove);
         if (!this.remove) {
@@ -70,6 +66,11 @@ public class GalaxyFieldPacket implements CustomPacketPayload {
             buf.writeFloat(this.radius);
             buf.writeInt(this.duration);
         }
+    }
+
+    @Override
+    public ResourceLocation id() {
+        return ID;
     }
 
     public UUID playerId() {
@@ -90,10 +91,5 @@ public class GalaxyFieldPacket implements CustomPacketPayload {
 
     public boolean remove() {
         return remove;
-    }
-
-    @Override
-    public CustomPacketPayload.Type<GalaxyFieldPacket> type() {
-        return TYPE;
     }
 }

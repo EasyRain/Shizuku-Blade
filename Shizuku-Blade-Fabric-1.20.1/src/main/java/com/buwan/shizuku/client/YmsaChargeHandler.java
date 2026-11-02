@@ -29,7 +29,7 @@ public class YmsaChargeHandler {
             } else {
                 boolean isUsing = mc.player.isUsingItem();
                 int usingTicks = mc.player.getTicksUsingItem();
-                CapabilitySlashBlade.getBladeState(mainHand).ifPresent(state -> {
+                CapabilitySlashBlade.BLADESTATE.maybeGet(mainHand).ifPresent(state -> {
                     boolean isYmsa = state.getSlashArts().equals(SASlashArtRegistry.Ymsa.get());
                     if (isUsing && isYmsa && usingTicks > 0) {
                         if (!isChargingYmsa) {

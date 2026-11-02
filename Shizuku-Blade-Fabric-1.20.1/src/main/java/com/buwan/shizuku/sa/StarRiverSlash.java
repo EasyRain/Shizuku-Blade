@@ -34,7 +34,7 @@ public class StarRiverSlash {
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
-                int colorCode = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
+                int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())
                         .map(ISlashBladeState::getColorCode).orElse(STAR_COLOR);
                 float roll = randomPhantomRoll(player.getRandom());
                 // 3.7.0：幻影剑气用穿透音效（三叉戟投掷声），伤害固定 0.7

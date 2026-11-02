@@ -20,7 +20,7 @@ public class CosmicCrossSlash {
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
-                int colorCode = CapabilitySlashBlade.getBladeState(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(COSMIC_COLOR);
+                int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(COSMIC_COLOR);
                 float finalDamage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 1.5F, 1.5F);
                 createCosmicAura(level, entity.position(), entity.getViewVector(1.0F));

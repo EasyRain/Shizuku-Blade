@@ -15,9 +15,9 @@ import net.minecraft.world.phys.Vec3;
 public class Leisa {
     private static final int PURPLE_COLOR = 10040319;
     private static final ResourceLocation[] LEISA_SOUNDS = new ResourceLocation[]{
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound1"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound2"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound3")
+            new ResourceLocation("shizuku", "leisa_sound1"),
+            new ResourceLocation("shizuku", "leisa_sound2"),
+            new ResourceLocation("shizuku", "leisa_sound3")
     };
 
     public static void doLeisaSlash(LivingEntity player) {

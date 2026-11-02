@@ -14,7 +14,7 @@ public class SlashEffectUtils {
         if (effectLoc == null) {
             return false;
         }
-        return CapabilitySlashBlade.getBladeState(stack).map(s -> s.hasSpecialEffect(effectLoc)).orElse(false);
+        return CapabilitySlashBlade.BLADESTATE.maybeGet(stack).map(s -> s.hasSpecialEffect(effectLoc)).orElse(false);
     }
 
     public static int addslashbladesaDamage(LivingEntity player, int damageex) {

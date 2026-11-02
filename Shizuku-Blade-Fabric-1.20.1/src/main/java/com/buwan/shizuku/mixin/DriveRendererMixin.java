@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = DriveRenderer.class, remap = false)
 public abstract class DriveRendererMixin {
-    private static final ResourceLocation DAOGUANG_MODEL = ResourceLocation.fromNamespaceAndPath("shizuku", "model/util/daoguang.obj");
+    private static final ResourceLocation DAOGUANG_MODEL = new ResourceLocation("shizuku", "model/util/daoguang.obj");
     private static final float DAOGUANG_SCALE = 0.02F;
 
     @Inject(
@@ -66,7 +66,7 @@ public abstract class DriveRendererMixin {
         if (entity.getShooter() instanceof LivingEntity living) {
             ItemStack held = living.getMainHandItem();
             return held.getItem() instanceof ItemSlashBlade
-                    && CapabilitySlashBlade.getBladeState(held)
+                    && CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                     .map(s -> CosmicShaders.COSMIC_BLADE_KEY.equals(s.getTranslationKey()))
                     .orElse(false);
         } else {

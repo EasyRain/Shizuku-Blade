@@ -32,7 +32,7 @@ public final class FieldActivateInput {
         if (prevXDown && !xDown && shiftDown) {
             ItemStack held = mc.player.getMainHandItem();
             if (held.getItem() instanceof ItemSlashBlade) {
-                String key = CapabilitySlashBlade.getBladeState(held)
+                String key = CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                         .map(s -> s.getTranslationKey())
                         .orElse("");
                 if (CosmicShaders.COSMIC_BLADE_KEY.equals(key)) {

@@ -79,7 +79,7 @@ public class GalaxyField {
         if (!(held.getItem() instanceof ItemSlashBlade)) {
             return false;
         }
-        return CapabilitySlashBlade.getBladeState(held)
+        return CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                 .map(s -> "item.shizuku.mosmicblade".equals(s.getTranslationKey())).orElse(false);
     }
 

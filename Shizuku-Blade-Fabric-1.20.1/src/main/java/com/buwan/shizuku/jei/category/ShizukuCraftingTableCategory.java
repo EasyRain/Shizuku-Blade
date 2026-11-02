@@ -36,7 +36,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             RecipeType.create("shizuku", "shizuku_crafting_table_recipe", ITierCraftingRecipe.class);
 
     public static final ResourceLocation GUI_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
+            new ResourceLocation("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
 
     private static final int GUI_WIDTH = 189;
     private static final int GUI_HEIGHT = 163;
@@ -51,12 +51,12 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 Component.translatable("jei.category.shizuku.shizuku_crafting_table"),
                 guiHelper.createDrawableItemStack(new ItemStack(
                         net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                                ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku_crafting_table")))),
+                                new ResourceLocation("shizuku", "shizuku_crafting_table")))),
                 GUI_WIDTH, GUI_HEIGHT);
         this.background = guiHelper.createDrawable(GUI_TEXTURE, 0, 0, GUI_WIDTH, GUI_HEIGHT);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(
                 net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                        ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))));
+                        new ResourceLocation("shizuku", "shizuku_crafting_table"))));
     }
 
     @Override
@@ -118,18 +118,18 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         ItemStack[] items = ingredient.getItems();
         ItemStack plain = items.length > 0 ? items[0] : ItemStack.EMPTY;
         if (plain.getItem() instanceof ItemSlashBlade) {
-            String key = CapabilitySlashBlade.getBladeState(plain).map(ISlashBladeState::getTranslationKey).orElse("");
+            String key = CapabilitySlashBlade.BLADESTATE.maybeGet(plain).map(ISlashBladeState::getTranslationKey).orElse("");
             if (!key.isBlank()) {
                 for (Holder.Reference<SlashBladeDefinition> ref :
                         access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList()) {
                     ItemStack defStack = ref.value().getBlade();
-                    String defKey = CapabilitySlashBlade.getBladeState(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
+                    String defKey = CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
                     if (key.equals(defKey)) {
                         // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
                         // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
                         ItemStack display = plain.copy();
-                        CapabilitySlashBlade.getBladeState(defStack).ifPresent(defState ->
-                                CapabilitySlashBlade.getBladeState(display).ifPresent(displayState -> {
+                        CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).ifPresent(defState ->
+                                CapabilitySlashBlade.BLADESTATE.maybeGet(display).ifPresent(displayState -> {
                                     defState.getModel().ifPresent(displayState::setModel);
                                     defState.getTexture().ifPresent(displayState::setTexture);
                                 }));

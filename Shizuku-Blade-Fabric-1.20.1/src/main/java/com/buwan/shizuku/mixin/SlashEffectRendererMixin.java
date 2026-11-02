@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = SlashEffectRenderer.class, remap = false)
 public abstract class SlashEffectRendererMixin {
-    private static final ResourceLocation SLASH_MODEL = ResourceLocation.fromNamespaceAndPath("slashblade", "model/util/slash.obj");
+    private static final ResourceLocation SLASH_MODEL = new ResourceLocation("slashblade", "model/util/slash.obj");
 
     @Inject(
             method = "render",
@@ -38,7 +38,7 @@ public abstract class SlashEffectRendererMixin {
             if (entity.getShooter() instanceof LivingEntity living) {
                 ItemStack held = living.getMainHandItem();
                 if (held.getItem() instanceof ItemSlashBlade) {
-                    String translationKey = CapabilitySlashBlade.getBladeState(held)
+                    String translationKey = CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                             .map(s -> s.getTranslationKey())
                             .orElse("");
                     if (CosmicShaders.COSMIC_BLADE_KEY.equals(translationKey)) {

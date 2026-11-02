@@ -34,7 +34,7 @@ public class Shizukusa {
     };
 
     public static void doSlash(LivingEntity playerIn, float speed) {
-        int colorCode = CapabilitySlashBlade.getBladeState(playerIn.getMainHandItem())
+        int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(playerIn.getMainHandItem())
                 .map(ISlashBladeState::getColorCode).orElse(0xFF3333FF);
         doSlash(playerIn, speed, colorCode, true); // 默认播放音效
     }
@@ -61,7 +61,7 @@ public class Shizukusa {
             }
         }
 
-        CapabilitySlashBlade.getBladeState(playerIn.getMainHandItem()).ifPresent((state) -> {
+        CapabilitySlashBlade.BLADESTATE.maybeGet(playerIn.getMainHandItem()).ifPresent((state) -> {
             Level worldIn = playerIn.level();
             RandomSource random = playerIn.getRandom();
 
@@ -116,7 +116,7 @@ public class Shizukusa {
             judgementCut.setOwner(owner);
             judgementCut.setSilent(true);
 
-            CapabilitySlashBlade.getBladeState(stack)
+            CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
                     .ifPresent(state -> judgementCut.setColor(state.getColorCode()));
 
             float rank = CapabilityConcentrationRank.RANK_POINT.maybeGet(owner)

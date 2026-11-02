@@ -36,7 +36,7 @@ public class WorldsFavorite extends SpecialEffect {
     }
 
     private static boolean isBladeWithFavor(ItemStack stack, LivingEntity entity) {
-        return CapabilitySlashBlade.getBladeState(stack).map(state ->
+        return CapabilitySlashBlade.BLADESTATE.maybeGet(stack).map(state ->
                 state.hasSpecialEffect(SERegistry.WORLDS_FAVORITE.getId())
                         && SpecialEffect.isEffective(SERegistry.WORLDS_FAVORITE.getId(),
                         entity instanceof Player p ? p.experienceLevel : 0)).orElse(false);

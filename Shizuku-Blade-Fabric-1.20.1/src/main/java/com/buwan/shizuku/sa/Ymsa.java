@@ -220,7 +220,7 @@ public class Ymsa {
     private static DamageSource ymsaKillSource(ServerLevel level, ServerPlayer attacker) {
         try {
             ResourceKey<DamageType> key = ResourceKey.create(Registries.DAMAGE_TYPE,
-                    ResourceLocation.fromNamespaceAndPath("shizuku", "ymsa_kill"));
+                    new ResourceLocation("shizuku", "ymsa_kill"));
             return level.damageSources().source(key, attacker, attacker);
         } catch (Exception e) {
             LOGGER.debug("[SA] 自定义伤害类型 shizuku:ymsa_kill 不可用, 回退 genericKill: {}", e.toString());

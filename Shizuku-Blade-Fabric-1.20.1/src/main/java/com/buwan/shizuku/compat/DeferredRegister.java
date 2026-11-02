@@ -28,7 +28,7 @@ public class DeferredRegister<T> {
     }
 
     public ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, name);
+        return new ResourceLocation(namespace, name);
     }
 
     public <R extends T> DeferredHolder<T, R> register(String name, Supplier<R> supplier) {

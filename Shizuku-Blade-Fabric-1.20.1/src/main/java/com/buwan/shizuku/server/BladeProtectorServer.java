@@ -22,9 +22,9 @@ import java.util.Set;
 public class BladeProtectorServer {
 
     private static final Set<ResourceLocation> PROTECTED_BLADES = Set.of(
-            ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "el"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "ym")
+            new ResourceLocation("shizuku", "shizuku"),
+            new ResourceLocation("shizuku", "el"),
+            new ResourceLocation("shizuku", "ym")
     );
 
     public static boolean isProtectedBlade(ItemStack stack) {
@@ -57,7 +57,7 @@ public class BladeProtectorServer {
                 }
 
                 if (!tag.contains("shizuku:protected_blade") && !tag.contains("shizuku:keep_on_death")) {
-                    return CapabilitySlashBlade.getBladeState(stack).map(state -> {
+                    return CapabilitySlashBlade.BLADESTATE.maybeGet(stack).map(state -> {
                         String bladeNamex = tag.getString("SB.SwordName");
                         return bladeNamex != null && (bladeNamex.contains("shizuku")
                                 || bladeNamex.contains("el") || bladeNamex.contains("ym"));

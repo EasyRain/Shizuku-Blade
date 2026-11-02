@@ -47,46 +47,52 @@ public class ShizukuFabricClient implements ClientModInitializer {
         });
 
         // S2C：抹除广播
-        ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.TYPE, (payload, context) ->
-                context.client().execute(() -> YmsaClientReceiver.handle(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.ID, (client, handler, buf, sender) -> {
+            YmsaForceRemovePacket msg = new YmsaForceRemovePacket(buf);
+            client.execute(() -> YmsaClientReceiver.handle(msg));
+        });
 
         // S2C：星河领域
-        ClientPlayNetworking.registerGlobalReceiver(GalaxyFieldPacket.TYPE, (payload, context) ->
-                context.client().execute(() -> {
-                    if (payload.remove()) {
-                        GalaxyFieldRenderer.removeZone(payload.playerId());
-                    } else {
-                        GalaxyFieldRenderer.addZone(payload.playerId(), payload.center(),
-                                payload.radius(), payload.duration());
-                    }
-                }));
+        ClientPlayNetworking.registerGlobalReceiver(GalaxyFieldPacket.ID, (client, handler, buf, sender) -> {
+            GalaxyFieldPacket msg = new GalaxyFieldPacket(buf);
+            client.execute(() -> {
+                if (msg.remove()) {
+                    GalaxyFieldRenderer.removeZone(msg.playerId());
+                } else {
+                    GalaxyFieldRenderer.addZone(msg.playerId(), msg.center(), msg.radius(), msg.duration());
+                }
+            });
+        });
 
         // S2C：时间停止
-        ClientPlayNetworking.registerGlobalReceiver(TimeStopPacket.TYPE, (payload, context) ->
-                context.client().execute(() -> {
-                    if (payload.remove()) {
-                        TimeStopRenderer.removeTimeStopZone(payload.playerId());
-                    } else {
-                        TimeStopRenderer.addTimeStopZone(payload.playerId(), payload.center(),
-                                payload.radius(), payload.duration());
-                    }
-                }));
+        ClientPlayNetworking.registerGlobalReceiver(TimeStopPacket.ID, (client, handler, buf, sender) -> {
+            TimeStopPacket msg = new TimeStopPacket(buf);
+            client.execute(() -> {
+                if (msg.remove()) {
+                    TimeStopRenderer.removeTimeStopZone(msg.playerId());
+                } else {
+                    TimeStopRenderer.addTimeStopZone(msg.playerId(), msg.center(), msg.radius(), msg.duration());
+                }
+            });
+        });
 
         // S2C：虚空囚笼
-        ClientPlayNetworking.registerGlobalReceiver(VoidPrisonPacket.TYPE, (payload, context) ->
-                context.client().execute(() -> {
-                    if (payload.remove()) {
-                        VoidPrisonRenderer.removePrisonZone(payload.playerId());
-                    } else {
-                        VoidPrisonRenderer.addPrisonZone(payload.playerId(), payload.center(),
-                                payload.radius(), payload.duration());
-                    }
-                }));
+        ClientPlayNetworking.registerGlobalReceiver(VoidPrisonPacket.ID, (client, handler, buf, sender) -> {
+            VoidPrisonPacket msg = new VoidPrisonPacket(buf);
+            client.execute(() -> {
+                if (msg.remove()) {
+                    VoidPrisonRenderer.removePrisonZone(msg.playerId());
+                } else {
+                    VoidPrisonRenderer.addPrisonZone(msg.playerId(), msg.center(), msg.radius(), msg.duration());
+                }
+            });
+        });
 
         // S2C：时停着色器
-        ClientPlayNetworking.registerGlobalReceiver(TimeStopShaderPacket.TYPE, (payload, context) ->
-                context.client().execute(() ->
-                        TimeStopShaderManager.syncFromServer(payload.activate(), payload.strength())));
+        ClientPlayNetworking.registerGlobalReceiver(TimeStopShaderPacket.ID, (client, handler, buf, sender) -> {
+            TimeStopShaderPacket msg = new TimeStopShaderPacket(buf);
+            client.execute(() -> TimeStopShaderManager.syncFromServer(msg.activate(), msg.strength()));
+        });
 
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             if (context.matrixStack() == null) {

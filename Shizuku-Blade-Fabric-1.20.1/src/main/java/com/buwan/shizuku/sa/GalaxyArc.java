@@ -32,7 +32,7 @@ public class GalaxyArc {
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
-                int color = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
+                int color = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())
                         .map(ISlashBladeState::getColorCode).orElse(STAR_COLOR);
                 Vec3 dir = player.getViewVector(1.0F);
                 Vec3 pos = player.position().add(0.0, player.getBbHeight() * 0.75 + 0.4, 0.0)
@@ -62,7 +62,7 @@ public class GalaxyArc {
             if (entity instanceof Player player) {
                 if (index >= 0 && index < QI_ROLLS.length) {
                     ServerLevel level = (ServerLevel) entity.level();
-                    int color = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
+                    int color = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())
                             .map(ISlashBladeState::getColorCode).orElse(STAR_COLOR);
                     float damage = DamageCalculator.calculateRefinedDamage(player, 1.0F) * 1.5F;
                     Vec3 pos = player.position().add(0.0, player.getBbHeight() * 0.75 + 0.3, 0.0)
@@ -78,7 +78,7 @@ public class GalaxyArc {
     private static void spawnSlashEffect(Player player, ServerLevel level, float roll, Vec3 pos, int color,
                                          float damage, float size, int lifetime, boolean crit, KnockBacks knockback) {
         ItemStack blade = player.getMainHandItem();
-        CapabilitySlashBlade.getBladeState(blade).ifPresent(state -> {
+        CapabilitySlashBlade.BLADESTATE.maybeGet(blade).ifPresent(state -> {
             SlashBladeEvent.DoSlashEvent event = new SlashBladeEvent.DoSlashEvent(
                     blade, state, player, roll, crit, damage, knockback);
             SlashBladeEvent.DO_SLASH.invoker().onDoSlash(event);

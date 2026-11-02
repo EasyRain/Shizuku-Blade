@@ -1,16 +1,11 @@
 package com.buwan.shizuku.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
 /** S2C：时间停止后处理着色器开关。 */
-public class TimeStopShaderPacket implements CustomPacketPayload {
-    public static final CustomPacketPayload.Type<TimeStopShaderPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "time_stop_shader"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopShaderPacket> STREAM_CODEC =
-            StreamCodec.ofMember(TimeStopShaderPacket::write, TimeStopShaderPacket::new);
+public class TimeStopShaderPacket implements ShizukuPacket {
+    public static final ResourceLocation ID = new ResourceLocation("shizuku", "time_stop_shader");
 
     private final boolean activate;
     private final float strength;
@@ -24,13 +19,19 @@ public class TimeStopShaderPacket implements CustomPacketPayload {
         this(activate, activate ? 1.0F : 0.0F);
     }
 
-    private TimeStopShaderPacket(RegistryFriendlyByteBuf buf) {
+    public TimeStopShaderPacket(FriendlyByteBuf buf) {
         this(buf.readBoolean(), buf.readFloat());
     }
 
-    private void write(RegistryFriendlyByteBuf buf) {
+    @Override
+    public void write(FriendlyByteBuf buf) {
         buf.writeBoolean(this.activate);
         buf.writeFloat(this.strength);
+    }
+
+    @Override
+    public ResourceLocation id() {
+        return ID;
     }
 
     public boolean activate() {
@@ -39,10 +40,5 @@ public class TimeStopShaderPacket implements CustomPacketPayload {
 
     public float strength() {
         return strength;
-    }
-
-    @Override
-    public CustomPacketPayload.Type<TimeStopShaderPacket> type() {
-        return TYPE;
     }
 }

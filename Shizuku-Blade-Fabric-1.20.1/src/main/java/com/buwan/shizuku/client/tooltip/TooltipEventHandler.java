@@ -59,7 +59,7 @@ public class TooltipEventHandler {
     }
 
     private static String getBladeName(ItemStack stack) {
-        return CapabilitySlashBlade.getBladeState(stack)
+        return CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
                 .map(s -> {
                     String translationKey = s.getTranslationKey();
                     // "item.shizuku.mosmicblade" → "shizuku:mosmicblade"

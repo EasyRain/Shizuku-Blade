@@ -36,7 +36,7 @@ import java.util.List;
 
 
 public class ShizukuTooltipRenderer {
-    private static final ResourceLocation SHIZUKU_BACKGROUND = ResourceLocation.fromNamespaceAndPath("shizuku", "textures/gui/shizuku_blade_bg.png");
+    private static final ResourceLocation SHIZUKU_BACKGROUND = new ResourceLocation("shizuku", "textures/gui/shizuku_blade_bg.png");
     private static final int SEPARATOR_COLOR = -2130739136;
 
     
@@ -54,7 +54,7 @@ public class ShizukuTooltipRenderer {
         if (stack.isEmpty()) {
             return false;
         }
-        return CapabilitySlashBlade.getBladeState(stack)
+        return CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
                 .map(s -> "item.shizuku.ymblade".equals(s.getTranslationKey()))
                 .orElse(false);
     }

@@ -52,7 +52,7 @@ public class shizuku {
     public static final String MODID = "shizuku";
 
     public static ResourceLocation prefix(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+        return new ResourceLocation(MODID, path);
     }
 
     public static final DeferredRegister<Item> ITEMS =
@@ -112,8 +112,8 @@ public class shizuku {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) ->
                 BladeProtectorServer.onPlayerDeath(entity));
 
-        // 网络 payload 注册 + 服务器实例捕获（sendToAll 用）
-        PacketHandler.register();
+        // 网络注册 + 服务器实例捕获（sendToAll 用）
+        PacketHandler.registerServer();
         ServerLifecycleEvents.SERVER_STARTED.register(PacketHandler::setServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> PacketHandler.setServer(null));
 

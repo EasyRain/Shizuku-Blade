@@ -45,7 +45,7 @@ public abstract class EntityAbstractSummonedSwordMixin {
             if (!(held.getItem() instanceof ItemSlashBlade)) {
                 return false;
             } else {
-                String key = CapabilitySlashBlade.getBladeState(held)
+                String key = CapabilitySlashBlade.BLADESTATE.maybeGet(held)
                         .map(s -> s.getTranslationKey())
                         .orElse("");
                 return CosmicShaders.COSMIC_BLADE_KEY.equals(key);

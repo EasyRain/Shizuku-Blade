@@ -1,19 +1,14 @@
 package com.buwan.shizuku.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
 /** S2C：时间停止领域（添加/移除）。 */
-public class TimeStopPacket implements CustomPacketPayload {
-    public static final CustomPacketPayload.Type<TimeStopPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "time_stop"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopPacket> STREAM_CODEC =
-            StreamCodec.ofMember(TimeStopPacket::write, TimeStopPacket::new);
+public class TimeStopPacket implements ShizukuPacket {
+    public static final ResourceLocation ID = new ResourceLocation("shizuku", "time_stop");
 
     private final UUID playerId;
     private final double x;
@@ -43,7 +38,7 @@ public class TimeStopPacket implements CustomPacketPayload {
         this.remove = true;
     }
 
-    private TimeStopPacket(RegistryFriendlyByteBuf buf) {
+    public TimeStopPacket(FriendlyByteBuf buf) {
         this.playerId = buf.readUUID();
         this.remove = buf.readBoolean();
         if (this.remove) {
@@ -59,7 +54,8 @@ public class TimeStopPacket implements CustomPacketPayload {
         }
     }
 
-    private void write(RegistryFriendlyByteBuf buf) {
+    @Override
+    public void write(FriendlyByteBuf buf) {
         buf.writeUUID(this.playerId);
         buf.writeBoolean(this.remove);
         if (!this.remove) {
@@ -69,6 +65,11 @@ public class TimeStopPacket implements CustomPacketPayload {
             buf.writeDouble(this.radius);
             buf.writeInt(this.duration);
         }
+    }
+
+    @Override
+    public ResourceLocation id() {
+        return ID;
     }
 
     public UUID playerId() {
@@ -89,10 +90,5 @@ public class TimeStopPacket implements CustomPacketPayload {
 
     public boolean remove() {
         return remove;
-    }
-
-    @Override
-    public CustomPacketPayload.Type<TimeStopPacket> type() {
-        return TYPE;
     }
 }
