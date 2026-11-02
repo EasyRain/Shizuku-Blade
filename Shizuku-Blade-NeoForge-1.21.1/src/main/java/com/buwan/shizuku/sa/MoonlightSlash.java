@@ -29,7 +29,7 @@ public class MoonlightSlash {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
                 int colorCode = BladeStateAccess.of(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(MOONLIGHT_COLOR);
-                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 1.3F);
+                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.3F);
                 SlashData slashData = new SlashData(damage, colorCode);
                 activeSlashes.put(player.getUUID(), slashData);
                 executeSlash(player, slashData, 0);
@@ -70,14 +70,14 @@ public class MoonlightSlash {
                 break;
             case 2:
                 SakuraEnd.doSlash(player, 0.0F, data.colorCode, new Vec3(0.0, 0.2, 0.0), true, true, data.baseDamage * 0.7F, KnockBacks.cancel);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 0.8F, 1.2F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8F, 1.2F);
                 break;
             case 3:
                 SakuraEnd.doSlash(player, 90.0F, data.colorCode, new Vec3(0.0, 0.2, 0.0), true, false, data.baseDamage * 0.6F, KnockBacks.cancel);
                 break;
             case 4:
                 SakuraEnd.doSlash(player, 45.0F, data.colorCode, new Vec3(0.0, 0.3, 0.0), false, true, data.baseDamage * 1.2F, KnockBacks.smash);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.5F, 0.8F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.5F, 0.8F);
                 break;
             default:
                 break;

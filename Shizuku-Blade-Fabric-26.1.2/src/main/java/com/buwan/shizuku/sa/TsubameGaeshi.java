@@ -29,7 +29,7 @@ public class TsubameGaeshi {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
                 int colorCode = CapabilitySlashBlade.getBladeState(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWALLOW_COLOR);
-                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 1.5F, 0.8F);
+                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.5F, 0.8F);
                 SlashData slashData = new SlashData(damage, colorCode);
                 activeSlashes.put(player.getUUID(), slashData);
                 executeSlash(player, slashData, 0);
@@ -64,15 +64,15 @@ public class TsubameGaeshi {
         switch (slashIndex) {
             case 0:
                 SakuraEnd.doSlash(player, 60.0F, data.colorCode, new Vec3(0.0, -0.3, 0.0), true, true, data.baseDamage, KnockBacks.toss);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 1.2F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.2F, 1.2F);
                 break;
             case 1:
                 SakuraEnd.doSlash(player, 0.0F, data.colorCode, new Vec3(0.0, 0.0, 0.0), true, true, data.baseDamage, KnockBacks.toss);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 1.0F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.2F, 1.0F);
                 break;
             case 2:
                 SakuraEnd.doSlash(player, -60.0F, data.colorCode, new Vec3(0.0, 0.3, 0.0), false, true, data.baseDamage, KnockBacks.toss);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 0.8F);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.2F, 0.8F);
                 break;
             default:
                 break;

@@ -46,7 +46,8 @@ public class GalaxyField {
                             new GalaxyFieldPacket(player.getUUID(), player.position(), RADIUS, -1),
                             (ServerPlayer) player, 64.0);
                     level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                            SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.9F, 0.7F);
+                            // 原版是紫水晶方块的风铃音（SRG f_144243_ = AMETHYST_BLOCK_CHIME）
+                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 0.7F);
                 }
             }
         }

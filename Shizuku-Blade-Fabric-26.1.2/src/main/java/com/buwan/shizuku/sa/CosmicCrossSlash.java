@@ -22,7 +22,7 @@ public class CosmicCrossSlash {
                 ServerLevel level = (ServerLevel) entity.level();
                 int colorCode = CapabilitySlashBlade.getBladeState(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(COSMIC_COLOR);
                 float finalDamage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
-                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 1.5F, 1.5F);
+                level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.5F, 1.5F);
                 createCosmicAura(level, entity.position(), entity.getViewVector(1.0F));
                 SakuraEnd.doSlash(player, 45.0F, colorCode, new Vec3(0.0, 0.2, 0.8), true, true, finalDamage * 0.6F, KnockBacks.cancel);
                 Vec3 frontPos = entity.position().add(entity.getViewVector(1.0F).scale(3.0));

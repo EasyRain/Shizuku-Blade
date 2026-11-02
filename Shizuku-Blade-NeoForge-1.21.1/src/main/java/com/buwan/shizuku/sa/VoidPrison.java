@@ -57,7 +57,7 @@ public class VoidPrison {
 
                     PrisonData prisonData = new PrisonData(center, prisoners, walls);
                     activePrisons.put(player.getUUID(), prisonData);
-                    level.playSound(null, center.x, center.y, center.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 2.0F, 0.6F);
+                    level.playSound(null, center.x, center.y, center.z, SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 2.0F, 0.6F);
                     if (player instanceof ServerPlayer serverPlayer) {
                         VoidPrisonPacket packet = new VoidPrisonPacket(player.getUUID(), center, PRISON_RADIUS, 100);
                         PacketHandler.sendToNearby(packet, serverPlayer, 64.0);

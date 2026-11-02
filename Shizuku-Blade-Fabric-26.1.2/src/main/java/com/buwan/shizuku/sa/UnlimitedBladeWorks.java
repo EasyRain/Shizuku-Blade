@@ -72,7 +72,7 @@ public class UnlimitedBladeWorks {
                 if (ubwData.tickCounter >= DEPLOY_DURATION) {
                     ubwData.phase = 1;
                     ubwData.tickCounter = 0;
-                    level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.5F, 1.0F);
+                    level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.5F, 1.0F);
                 }
             } else if (ubwData.phase == 1) {
                 if (ubwData.tickCounter % 2 == 0 && ubwData.swordsFired < ubwData.swordPositions.size()) {

@@ -32,7 +32,7 @@ public class TornadoSlash {
                 float damage = DamageCalculator.calculateRefinedDamage(entity, 0.6F);
                 TornadoData tornadoData = new TornadoData(center, damage);
                 activeTornados.put(player.getUUID(), tornadoData);
-                level.playSound(null, center.x, center.y, center.z, SoundEvents.PHANTOM_SWOOP, SoundSource.PLAYERS, 2.0F, 0.5F);
+                level.playSound(null, center.x, center.y, center.z, SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 2.0F, 0.5F);
             }
         }
     }
@@ -59,7 +59,7 @@ public class TornadoSlash {
                             tornadoData.center.x,
                             tornadoData.center.y,
                             tornadoData.center.z,
-                            SoundEvents.ENDER_DRAGON_GROWL,
+                            SoundEvents.PLAYER_ATTACK_SWEEP,
                             SoundSource.PLAYERS,
                             1.0F,
                             1.5F

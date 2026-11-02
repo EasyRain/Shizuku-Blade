@@ -47,7 +47,7 @@ public class TimeSlash {
                     player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, FREEZE_DURATION, 255, false, false));
                     player.addEffect(new MobEffectInstance(MobEffects.MINING_FATIGUE, FREEZE_DURATION, 255, false, false));
                     player.setDeltaMovement(Vec3.ZERO);
-                    level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 2.0F, 0.5F);
+                    level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 2.0F, 0.5F);
                     TimeFreezeData freezeData = new TimeFreezeData(targets);
                     freezeData.center = entity.position();
                     activeFreezes.put(player.getUUID(), freezeData);
@@ -119,7 +119,7 @@ public class TimeSlash {
 
     private static void releaseAllDamage(Player player, TimeFreezeData freezeData) {
         ServerLevel level = (ServerLevel) player.level();
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.5F, 1.8F);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 1.5F, 1.8F);
         int validTargets = 0;
         int totalTargets = freezeData.frozenTargets.size();
 

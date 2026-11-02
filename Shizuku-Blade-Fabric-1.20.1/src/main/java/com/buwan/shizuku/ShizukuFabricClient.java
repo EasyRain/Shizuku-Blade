@@ -36,6 +36,8 @@ public class ShizukuFabricClient implements ClientModInitializer {
     public void onInitializeClient() {
         MenuScreens.register(ModMenus.SHIZUKU_CRAFT_TABLE.get(), ShizukuCraftScreen::new);
         WorldsFavoriteClient.register();
+        // 宇宙刀手持模型的星光覆盖层（SlashBlade 的 RenderOverrideEvent）
+        com.buwan.shizuku.client.CosmicBladeRenderer.register();
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientTickEvent.Post event = new ClientTickEvent.Post();
