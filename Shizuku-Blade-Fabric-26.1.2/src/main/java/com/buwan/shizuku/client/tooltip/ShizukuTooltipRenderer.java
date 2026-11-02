@@ -63,7 +63,7 @@ public class ShizukuTooltipRenderer {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(stack.getHoverName());
         List<Component> itemTooltip = new ArrayList<>();
-        stack.getItem().appendHoverText(stack, Item.TooltipContext.EMPTY, itemTooltip, TooltipFlag.NORMAL);
+        stack.getItem().appendHoverText(stack, Item.TooltipContext.EMPTY, net.minecraft.world.item.component.TooltipDisplay.DEFAULT, itemTooltip::add, TooltipFlag.NORMAL);
         tooltip.addAll(itemTooltip);
         tooltip.add(Component.empty());
         tooltip.add(Component.empty());
@@ -95,9 +95,9 @@ public class ShizukuTooltipRenderer {
             boolean cosmic = tooltipType == ICustomTooltip.TooltipType.COSMIC;
             List<Integer> palette = ColorHelper.ShizukuBlade;
             List<Integer> lastLineColors = ColorHelper.ShizukuBlade_B;
-            PoseStack poseStack = graphics.pose();
-            poseStack.pushPose();
-            poseStack.translate(0.0F, 0.0F, 400.0F);
+            org.joml.Matrix3x2fStack poseStack = graphics.pose();
+            poseStack.pushMatrix();
+            poseStack.translate(0.0F, 0.0F);
             List<TooltipLine> lines = parseTooltipLines(components, font, palette, lastLineColors);
             int maxWidth = 0;
 
@@ -145,12 +145,12 @@ public class ShizukuTooltipRenderer {
                 }
             }
 
-            poseStack.popPose();
+            poseStack.popMatrix();
         }
     }
 
     private static void renderShizukuBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        RenderSystem.setShaderTexture(0, SHIZUKU_BACKGROUND);
+        
         
         
         
@@ -165,29 +165,29 @@ public class ShizukuTooltipRenderer {
         float offset2Y = (float) Math.sin(Math.toRadians(angle2)) * orbitRadius;
         float offset3X = (float) Math.cos(Math.toRadians(angle3)) * orbitRadius;
         float offset3Y = (float) Math.sin(Math.toRadians(angle3)) * orbitRadius;
-        PoseStack poseStack = graphics.pose();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.3F);
-        poseStack.pushPose();
-        poseStack.translate(offset1X, offset1Y, 0.0F);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
-        poseStack.popPose();
-        poseStack.pushPose();
-        poseStack.translate(offset2X, offset2Y, 0.0F);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
-        poseStack.popPose();
-        poseStack.pushPose();
-        poseStack.translate(offset3X, offset3Y, 0.0F);
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
-        poseStack.popPose();
+        org.joml.Matrix3x2fStack poseStack = graphics.pose();
         
-        graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
+        poseStack.pushMatrix();
+        poseStack.translate(offset1X, offset1Y);
+        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        poseStack.popMatrix();
+        poseStack.pushMatrix();
+        poseStack.translate(offset2X, offset2Y);
+        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        poseStack.popMatrix();
+        poseStack.pushMatrix();
+        poseStack.translate(offset3X, offset3Y);
+        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
+        poseStack.popMatrix();
+        
+        graphics.blit(SHIZUKU_BACKGROUND, x, y, width, height, 0.0F, 0.0F, (float) width, (float) height);
         
         
     }
 
     private static void renderTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
+        org.joml.Matrix3x2fStack poseStack = graphics.pose();
+        poseStack.pushMatrix();
         float cornerRadius = 12.0F;
         int segments = 16;
         GradientConfig borderGradient = new GradientConfig(borderColors, 2.0F, GradientConfig.GradientType.BORDER_CIRCULAR, true);
@@ -219,13 +219,13 @@ public class ShizukuTooltipRenderer {
                 new Vector4i(255, 255, 255, 255),
                 segments
         );
-        poseStack.popPose();
+        poseStack.popMatrix();
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
     private static void renderCosmicTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
-        PoseStack poseStack = graphics.pose();
-        poseStack.pushPose();
+        org.joml.Matrix3x2fStack poseStack = graphics.pose();
+        poseStack.pushMatrix();
         float cornerRadius = 12.0F;
         int segments = 16;
         RoundedRectRenderer.renderRoundedRectBorder(
@@ -242,11 +242,11 @@ public class ShizukuTooltipRenderer {
                 new Vector4i(255, 255, 255, 255),
                 segments
         );
-        poseStack.popPose();
+        poseStack.popMatrix();
     }
 
     private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
-        PoseStack poseStack = graphics.pose();
+        org.joml.Matrix3x2fStack poseStack = graphics.pose();
         Matrix4f matrix = poseStack.last().pose();
         
         
