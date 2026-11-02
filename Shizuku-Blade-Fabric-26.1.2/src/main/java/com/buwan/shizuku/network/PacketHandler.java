@@ -31,12 +31,12 @@ public class PacketHandler {
     }
 
     public static void register() {
-        PayloadTypeRegistry.playS2C().register(TimeStopPacket.TYPE, TimeStopPacket.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
-        PayloadTypeRegistry.playC2S().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(TimeStopPacket.TYPE, TimeStopPacket.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
 
         // C2S：Shift+X 切换星河领域（服务端校验手持 mosmicblade）
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.TYPE, (payload, context) ->
@@ -66,7 +66,7 @@ public class PacketHandler {
      * 注意：NeoForge 版第二参数是 excluded，这里直接遍历，不含排除语义。
      */
     public static void sendToNearby(CustomPacketPayload packet, ServerPlayer player, double radius) {
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = (ServerLevel) player.level();
         for (ServerPlayer target : level.getServer().getPlayerList().getPlayers()) {
             if (target.level() != level) {
                 continue;
