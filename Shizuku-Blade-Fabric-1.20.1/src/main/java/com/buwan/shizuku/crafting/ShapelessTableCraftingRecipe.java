@@ -146,7 +146,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         public void toNetwork(FriendlyByteBuf buffer, ShapelessTableCraftingRecipe recipe) {
             buffer.writeVarInt(recipe.inputs.size());
             for (Ingredient ingredient : recipe.inputs) {
-                Ingredient.toNetwork(buffer, ingredient);
+                ingredient.toNetwork(buffer);
             }
             buffer.writeItem(recipe.output);
             buffer.writeVarInt(recipe.tier);

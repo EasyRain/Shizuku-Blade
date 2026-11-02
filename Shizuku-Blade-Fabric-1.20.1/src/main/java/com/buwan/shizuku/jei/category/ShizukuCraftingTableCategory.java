@@ -18,7 +18,7 @@ import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Holder;
-import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -67,7 +67,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     @Override
     public void setRecipe(@NotNull IRecipeLayoutBuilder builder, @NotNull ITierCraftingRecipe recipe, @NotNull IFocusGroup focuses) {
         List<Ingredient> inputs = recipe.getIngredients();
-        HolderLookup.Provider access = Minecraft.getInstance().level.registryAccess();
+        RegistryAccess access = Minecraft.getInstance().level.registryAccess();
 
         if (recipe instanceof ShapedTableCraftingRecipe shaped) {
             int width = shaped.getWidth();
@@ -102,7 +102,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
      * 这里按 translationKey 匹配 SlashBladeDefinition，取完整命名刀（含模型与贴图）用于展示。
      */
     private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
-                                          int x, int y, HolderLookup.Provider access) {
+                                          int x, int y, RegistryAccess access) {
         var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
         if (ingredient.getCustomIngredient() != null) {
             ItemStack display = resolveNamedBlade(ingredient, access);
@@ -114,15 +114,14 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         slot.addIngredients(ingredient);
     }
 
-    private static ItemStack resolveNamedBlade(Ingredient ingredient, HolderLookup.Provider access) {
+    private static ItemStack resolveNamedBlade(Ingredient ingredient, RegistryAccess access) {
         ItemStack[] items = ingredient.getItems();
         ItemStack plain = items.length > 0 ? items[0] : ItemStack.EMPTY;
         if (plain.getItem() instanceof ItemSlashBlade) {
             String key = CapabilitySlashBlade.BLADESTATE.maybeGet(plain).map(ISlashBladeState::getTranslationKey).orElse("");
             if (!key.isBlank()) {
-                for (Holder.Reference<SlashBladeDefinition> ref :
-                        access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList()) {
-                    ItemStack defStack = ref.value().getBlade();
+                for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
+                    ItemStack defStack = def.getBlade();
                     String defKey = CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
                     if (key.equals(defKey)) {
                         // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，

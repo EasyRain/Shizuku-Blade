@@ -45,7 +45,7 @@ public class GalaxyArc {
                 drive.shoot(dir.x, dir.y, dir.z, 1.0F, 0.0F);
                 drive.setOwner(player);
                 drive.setRotationRoll(0.0F);
-                drive.color(color);
+                drive.setColor(color);
                 drive.setIsCritical(true);
                 drive.setKnockBack(KnockBacks.cancel);
                 drive.setLifetime(20.0F);
@@ -89,7 +89,7 @@ public class GalaxyArc {
                 se.setRotationRoll(event.getRoll());
                 se.setYRot(player.getYRot());
                 se.setXRot(0.0F);
-                se.color(color);
+                se.setColor(color);
                 se.setMute(true);
                 se.setIsCritical(event.isCritical());
                 se.setDamage(event.getDamage());

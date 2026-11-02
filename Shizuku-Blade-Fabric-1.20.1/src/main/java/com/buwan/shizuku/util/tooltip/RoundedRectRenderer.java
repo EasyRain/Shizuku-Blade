@@ -339,7 +339,7 @@ public class RoundedRectRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        consumer.vertex(matrix, x, y, z).color(r, g, b, a).setNormal(nx, ny, nz);
+        consumer.vertex(matrix, x, y, z).color(r, g, b, a).normal(nx, ny, nz);
     }
 
     public static void renderRoundedRectBorder(

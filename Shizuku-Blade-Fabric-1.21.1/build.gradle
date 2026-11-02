@@ -7,7 +7,7 @@ version = project.mod_version
 group = project.maven_group
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = "${project.archives_base_name}-${project.minecraft_version}-fabric"
 }
 
 loom {
@@ -79,5 +79,4 @@ jar {
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
-    archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.minecraft_version}-fabric.jar"
 }

@@ -119,9 +119,8 @@ public class Ymsa {
         ItemStack mainHand = player.getMainHandItem();
         if (!mainHand.isEmpty() && mainHand.isDamageableItem()) {
             mainHand.setDamageValue(mainHand.getDamageValue());
-            mainHand.set(net.minecraft.core.component.DataComponents.UNBREAKABLE,
-                    new net.minecraft.world.item.component.Unbreakable(false));
-            mainHand.set(net.minecraft.core.component.DataComponents.REPAIR_COST, 0);
+            mainHand.getOrCreateTag().putBoolean("Unbreakable", false);
+            mainHand.getOrCreateTag().putInt("RepairCost", 0);
         }
     }
 

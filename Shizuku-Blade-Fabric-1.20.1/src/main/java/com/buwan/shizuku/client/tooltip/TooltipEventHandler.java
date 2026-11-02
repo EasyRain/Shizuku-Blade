@@ -76,7 +76,7 @@ public class TooltipEventHandler {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(stack.getHoverName());
         List<Component> itemTooltip = new ArrayList<>();
-        stack.getItem().appendHoverText(stack, Item.TooltipContext.EMPTY, itemTooltip, TooltipFlag.NORMAL);
+        stack.getItem().appendHoverText(stack, null, itemTooltip, TooltipFlag.NORMAL);
         tooltip.addAll(itemTooltip);
         tooltip.add(Component.empty());
         if (tooltipType == ICustomTooltip.TooltipType.COSMIC) {

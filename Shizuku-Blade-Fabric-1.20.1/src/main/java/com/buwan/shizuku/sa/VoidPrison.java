@@ -158,7 +158,7 @@ public class VoidPrison {
             wall.setOwner(player);
             wall.setYRot((float) Math.toDegrees(angle));
             wall.setRotationRoll(90.0F);
-            wall.color(colorCode);
+            wall.setColor(colorCode);
             wall.setDamage(0.0);
             wall.setKnockBack(KnockBacks.cancel);
             wall.setMute(true);

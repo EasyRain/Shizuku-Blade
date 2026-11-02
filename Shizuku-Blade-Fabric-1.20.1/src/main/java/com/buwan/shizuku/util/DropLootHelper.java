@@ -1,6 +1,6 @@
 package com.buwan.shizuku.util;
 
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +23,7 @@ public class DropLootHelper {
         DamageSource damageSource = level.damageSources().playerAttack(player);
         if (!forceAllDrops) {
             if (entity instanceof LivingEntity le) {
-                ExperienceOrb.award(serverLevel, entity.position(), le.getExperienceReward(serverLevel, player));
+                ExperienceOrb.award(serverLevel, entity.position(), le.getExperienceReward());
             }
         } else {
             forceDropAllLoot(entity, player, damageSource, serverLevel);
@@ -37,7 +37,7 @@ public class DropLootHelper {
                 livingEntity.die(damageSource);
             }
 
-            ExperienceOrb.award(serverLevel, entity.position(), livingEntity.getExperienceReward(serverLevel, player));
+            ExperienceOrb.award(serverLevel, entity.position(), livingEntity.getExperienceReward());
 
             for (ItemStack item : livingEntity.getHandSlots()) {
                 if (!item.isEmpty()) {
@@ -47,7 +47,7 @@ public class DropLootHelper {
         }
     }
 
-    private static ResourceKey<LootTable> getLootTableLocation(Entity entity) {
+    private static ResourceLocation getLootTableLocation(Entity entity) {
         return entity instanceof LivingEntity livingEntity ? livingEntity.getLootTable() : null;
     }
 

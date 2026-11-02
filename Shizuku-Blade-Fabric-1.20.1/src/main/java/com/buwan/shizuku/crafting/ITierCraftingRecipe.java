@@ -22,8 +22,8 @@ public interface ITierCraftingRecipe extends Recipe<Container> {
         NonNullList<ItemStack> remaining = NonNullList.withSize(inv.getContainerSize(), ItemStack.EMPTY);
         for (int i = 0; i < remaining.size(); i++) {
             ItemStack stack = inv.getItem(i);
-            if (stack.hasCraftingRemainingItem()) {
-                remaining.set(i, stack.getCraftingRemainingItem());
+            if (stack.getItem().hasCraftingRemainingItem()) {
+                remaining.set(i, new ItemStack(stack.getItem().getCraftingRemainingItem()));
             }
         }
         return remaining;

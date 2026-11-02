@@ -112,9 +112,9 @@ public final class GalaxyFieldRenderer {
         }
 
         RenderSystem.backupProjectionMatrix();
-        org.joml.Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushMatrix();
-        modelViewStack.set(worldModelView);
+        com.mojang.blaze3d.vertex.PoseStack modelViewStack = RenderSystem.getModelViewStack();
+        modelViewStack.pushPose();
+        modelViewStack.last().pose().set(worldModelView);
         RenderSystem.applyModelViewMatrix();
         RenderSystem.setProjectionMatrix(worldProjection, VertexSorting.DISTANCE_TO_ORIGIN);
 
@@ -134,7 +134,7 @@ public final class GalaxyFieldRenderer {
 
         buffers.endBatch(CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH);
 
-        modelViewStack.popMatrix();
+        modelViewStack.popPose();
         RenderSystem.applyModelViewMatrix();
         RenderSystem.restoreProjectionMatrix();
     }
@@ -161,21 +161,21 @@ public final class GalaxyFieldRenderer {
                     vb.vertex(mat, x0, y, z0)
                             .color(1.0F, 1.0F, 1.0F, alpha)
                             .uv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
+                            .overlayCoords(OverlayTexture.NO_OVERLAY)
+                            .uv2(15728880)
+                            .normal(0.0F, 1.0F, 0.0F);
                     vb.vertex(mat, x1, y, z1)
                             .color(1.0F, 1.0F, 1.0F, alpha)
                             .uv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
+                            .overlayCoords(OverlayTexture.NO_OVERLAY)
+                            .uv2(15728880)
+                            .normal(0.0F, 1.0F, 0.0F);
                     vb.vertex(mat, 0.0F, y, 0.0F)
                             .color(1.0F, 1.0F, 1.0F, alpha)
                             .uv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
+                            .overlayCoords(OverlayTexture.NO_OVERLAY)
+                            .uv2(15728880)
+                            .normal(0.0F, 1.0F, 0.0F);
                 }
             }
         }

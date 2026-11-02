@@ -112,7 +112,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     private static String[] patternFromJson(JsonArray jsonArr) {
         String[] astring = new String[jsonArr.size()];
         for (int i = 0; i < astring.length; i++) {
-            String s = GsonHelper.getAsString(jsonArr.get(i), "pattern[" + i + "]");
+            String s = jsonArr.get(i).getAsString();
             if (i > 0 && astring[0].length() != s.length()) {
                 throw new JsonSyntaxException("Invalid pattern: each row must be the same width");
             }
@@ -283,7 +283,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
             buffer.writeVarInt(recipe.width);
             buffer.writeVarInt(recipe.height);
             for (Ingredient ingredient : recipe.inputs) {
-                Ingredient.toNetwork(buffer, ingredient);
+                ingredient.toNetwork(buffer);
             }
             buffer.writeItem(recipe.output);
             buffer.writeVarInt(recipe.tier);

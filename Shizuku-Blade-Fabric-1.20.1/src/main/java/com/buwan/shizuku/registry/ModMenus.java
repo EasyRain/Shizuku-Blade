@@ -16,5 +16,5 @@ public class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<ShizukuCraftMenu>> SHIZUKU_CRAFT_TABLE =
             MENUS.register("shizuku_craft_table",
                     () -> new ExtendedScreenHandlerType<>(
-                            (syncId, inv, pos) -> new ShizukuCraftMenu(syncId, inv, pos)));
+                            (syncId, inv, buf) -> new ShizukuCraftMenu(syncId, inv, buf.readBlockPos())));
 }

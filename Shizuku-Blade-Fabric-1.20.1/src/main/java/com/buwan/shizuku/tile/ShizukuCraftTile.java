@@ -49,7 +49,7 @@ public class ShizukuCraftTile extends BlockEntity implements MenuProvider, Exten
     }
 
     @Override
-    protected void load(CompoundTag tag) {
+    public void load(CompoundTag tag) {
         super.load(tag);
         this.inventory.deserializeNBT(tag.getCompound("Inventory"));
     }

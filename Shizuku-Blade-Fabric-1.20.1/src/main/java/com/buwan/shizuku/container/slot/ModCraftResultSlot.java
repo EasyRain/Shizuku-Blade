@@ -81,7 +81,7 @@ public class ModCraftResultSlot extends Slot {
             if (!remainingStack.isEmpty()) {
                 if (slotStack.isEmpty()) {
                     this.craftSlots.setItem(i, remainingStack);
-                } else if (ItemStack.isSameItem(slotStack, remainingStack) && ItemStack.isSameItemSameComponents(slotStack, remainingStack)) {
+                } else if (ItemStack.isSameItem(slotStack, remainingStack) && ItemStack.isSameItemSameTags(slotStack, remainingStack)) {
                     remainingStack.grow(slotStack.getCount());
                     this.craftSlots.setItem(i, remainingStack);
                 } else if (!this.player.getInventory().add(remainingStack)) {

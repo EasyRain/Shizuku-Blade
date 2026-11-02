@@ -49,7 +49,7 @@ public class ItemStackHandler {
         ItemStack existing = stacks.get(slot);
         int limit = Math.min(getSlotLimit(slot), stack.getMaxStackSize());
         if (!existing.isEmpty()) {
-            if (!ItemStack.isSameItemSameComponents(existing, stack)) {
+            if (!ItemStack.isSameItemSameTags(existing, stack)) {
                 return stack;
             }
             limit -= existing.getCount();
@@ -93,19 +93,19 @@ public class ItemStackHandler {
     protected void onChange(int slot) {
     }
 
-    public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+    public CompoundTag serializeNBT() {
         NonNullList<ItemStack> copy = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
         for (int i = 0; i < getSlots(); i++) {
             copy.set(i, stacks.get(i));
         }
         CompoundTag tag = new CompoundTag();
-        ContainerHelper.saveAllItems(tag, copy, registries);
+        ContainerHelper.saveAllItems(tag, copy);
         return tag;
     }
 
-    public void deserializeNBT(HolderLookup.Provider registries, CompoundTag tag) {
+    public void deserializeNBT(CompoundTag tag) {
         NonNullList<ItemStack> copy = NonNullList.withSize(getSlots(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, copy, registries);
+        ContainerHelper.loadAllItems(tag, copy);
         for (int i = 0; i < getSlots(); i++) {
             stacks.set(i, copy.get(i));
         }

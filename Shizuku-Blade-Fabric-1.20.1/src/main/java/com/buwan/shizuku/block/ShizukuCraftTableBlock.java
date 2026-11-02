@@ -5,6 +5,7 @@ import com.buwan.shizuku.tile.ShizukuCraftTile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -23,7 +24,7 @@ public class ShizukuCraftTableBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof ShizukuCraftTile table) {
             serverPlayer.openMenu(table);
