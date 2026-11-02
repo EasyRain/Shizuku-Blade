@@ -58,8 +58,8 @@ public final class GalaxyFieldRenderer {
             // 每帧捕获世界相机矩阵，供光影下的 GUI 阶段重绘复现相同的投影关系
             worldVertexMatrix = new Matrix4f(event.getPoseStack().last().pose());
             worldModelView = new Matrix4f(RenderSystem.getModelViewMatrix());
-            worldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
-            worldCameraPos = event.getCamera().getPosition();
+            worldProjection = null;
+            worldCameraPos = event.getCamera().position();
 
             if (!ShaderPackCompat.isShaderPackActive()) {
                 if (!activeZones.isEmpty()) {
@@ -102,7 +102,7 @@ public final class GalaxyFieldRenderer {
         if (activeZones.isEmpty() || CosmicShaders.COSMIC_SHADER == null) {
             return;
         }
-        if (worldVertexMatrix == null || worldModelView == null || worldProjection == null || worldCameraPos == null) {
+        if (worldVertexMatrix == null || worldModelView == null || worldCameraPos == null) {
             return;
         }
 
@@ -110,13 +110,6 @@ public final class GalaxyFieldRenderer {
         if (mc.level == null || mc.player == null) {
             return;
         }
-
-        RenderSystem.backupProjectionMatrix();
-        org.joml.Matrix4fStack modelViewStack = RenderSystem.getModelViewStack();
-        modelViewStack.pushMatrix();
-        modelViewStack.set(worldModelView);
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.setProjectionMatrix(worldProjection, VertexSorting.DISTANCE_TO_ORIGIN);
 
         MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 
@@ -133,10 +126,6 @@ public final class GalaxyFieldRenderer {
         }
 
         buffers.endBatch(CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH);
-
-        modelViewStack.popMatrix();
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.restoreProjectionMatrix();
     }
 
     private static void drawDisk(MultiBufferSource.BufferSource buffers, ZoneData zone, Matrix4f mat, boolean noDepth) {
