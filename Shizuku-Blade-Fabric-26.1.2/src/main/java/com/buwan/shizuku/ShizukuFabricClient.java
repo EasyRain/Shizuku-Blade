@@ -22,9 +22,11 @@ import com.buwan.shizuku.se.WorldsFavoriteClient;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.resources.Identifier;
 
 /**
  * Fabric 客户端入口：菜单界面、坐标位移、渲染器事件派发。
@@ -88,29 +90,29 @@ public class ShizukuFabricClient implements ClientModInitializer {
                 context.client().execute(() ->
                         TimeStopShaderManager.syncFromServer(payload.activate(), payload.strength())));
 
-        WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
-            if (context.matrixStack() == null) {
+        LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(context -> {
+            if (context.poseStack() == null) {
                 return;
             }
             RenderLevelStageEvent event = new RenderLevelStageEvent(
-                    context.matrixStack(), context.camera(),
+                    context.poseStack(), Minecraft.getInstance().gameRenderer.getMainCamera(),
                     RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS);
             GalaxyFieldRenderer.onRenderLevel(event);
             TimeStopRenderer.getInstance().onRenderLevel(event);
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
         });
 
-        // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，Fabric 用 AFTER_ENTITIES 近似
-        WorldRenderEvents.AFTER_ENTITIES.register(context -> {
-            if (context.matrixStack() == null) {
+        // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，26.1 用 AFTER_SOLID_FEATURES 近似
+        LevelRenderEvents.AFTER_SOLID_FEATURES.register(context -> {
+            if (context.poseStack() == null) {
                 return;
             }
             SynthwaveShaderRenderer.onRenderWorld(new RenderLevelStageEvent(
-                    context.matrixStack(), context.camera(),
-                    RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS, context.projectionMatrix()));
+                    context.poseStack(), Minecraft.getInstance().gameRenderer.getMainCamera(),
+                    RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS, null));
         });
 
-        HudRenderCallback.EVENT.register((guiGraphics, tickCounter) ->
-                GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post()));
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("shizuku", "galaxy_field"),
+                (graphics, deltaTracker) -> GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post()));
     }
 }
