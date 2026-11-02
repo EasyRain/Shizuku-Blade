@@ -25,7 +25,7 @@ public final class FieldActivateInput {
             prevXDown = false;
             return;
         }
-        long window = mc.getWindow().getWindow();
+        com.mojang.blaze3d.platform.Window window = mc.getWindow();
         boolean xDown = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_X);
         boolean shiftDown = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
                 || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
