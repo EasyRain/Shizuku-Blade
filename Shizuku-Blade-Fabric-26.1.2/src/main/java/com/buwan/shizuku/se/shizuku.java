@@ -24,7 +24,7 @@ public class shizuku extends SpecialEffect {
 
             if (player.tickCount % 100 == 0) {
                 player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 120, 2, false, false));
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 120, 1, false, false));
+                player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 120, 1, false, false));
             }
         }
     }
@@ -37,7 +37,7 @@ public class shizuku extends SpecialEffect {
 
         if (event.getUser() instanceof Player player
                 && SpecialEffect.isEffective(SERegistry.SHIZUKU.getId(), player.experienceLevel)) {
-            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 40, 2, false, false));
+            player.addEffect(new MobEffectInstance(MobEffects.SPEED, 40, 2, false, false));
             player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 40, 1, false, false));
         }
     }

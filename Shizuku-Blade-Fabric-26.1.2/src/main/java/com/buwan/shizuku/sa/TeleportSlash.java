@@ -120,7 +120,7 @@ public class TeleportSlash {
             // 必须用 teleportTo：向客户端发送位置同步包并锁定位置确认，
             // 否则客户端移动包会在下一 tick 把服务器端玩家位置“回滚”，
             // 导致以玩家坐标为伤害中心的斩击打不到远处目标。
-            serverPlayer.teleportTo(level, behindPos.x, behindPos.y, behindPos.z, yaw, pitch);
+            serverPlayer.teleportTo(level, behindPos.x, behindPos.y, behindPos.z, java.util.Set.of(), yaw, pitch, false);
         } else {
             entity.setPos(behindPos.x, behindPos.y, behindPos.z);
             entity.setYRot(yaw);
@@ -133,7 +133,7 @@ public class TeleportSlash {
         Vec3 look = entity.getViewVector(1.0F).normalize();
         Vec3 newPos = entity.position().add(look.scale(5.0));
         if (entity instanceof ServerPlayer serverPlayer) {
-            serverPlayer.teleportTo(level, newPos.x, newPos.y, newPos.z, serverPlayer.getYRot(), serverPlayer.getXRot());
+            serverPlayer.teleportTo(level, newPos.x, newPos.y, newPos.z, java.util.Set.of(), serverPlayer.getYRot(), serverPlayer.getXRot(), false);
         } else {
             entity.setPos(newPos.x, newPos.y, newPos.z);
         }

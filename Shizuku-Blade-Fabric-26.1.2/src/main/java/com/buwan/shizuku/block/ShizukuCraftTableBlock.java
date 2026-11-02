@@ -32,18 +32,18 @@ public class ShizukuCraftTableBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock()) && level.getBlockEntity(pos) instanceof ShizukuCraftTile table) {
+    public void destroy(net.minecraft.world.level.LevelAccessor level, BlockPos pos, BlockState state) {
+        if (level.getBlockEntity(pos) instanceof ShizukuCraftTile table) {
             ItemStackHandler handler = table.getInventory();
             for (int i = 0; i < handler.getSlots(); i++) {
                 ItemStack stack = handler.getStackInSlot(i);
-                if (!stack.isEmpty()) {
-                    Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), stack);
+                if (!stack.isEmpty() && level instanceof Level realLevel) {
+                    Containers.dropItemStack(realLevel, pos.getX(), pos.getY(), pos.getZ(), stack);
                 }
             }
             level.updateNeighbourForOutputSignal(pos, this);
         }
-        super.onRemove(state, level, pos, newState, movedByPiston);
+        super.destroy(level, pos, state);
     }
 
     @Nullable
