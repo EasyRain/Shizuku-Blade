@@ -112,7 +112,9 @@ public class shizuku {
                 .sorted(Comparator.comparing(ref -> ref.key().location()))
                 .flatMap(ref -> {
                     LOGGER.info("Registering Slashblade: {}", ref.key().location());
-                    ItemStack blade = ref.value().getBlade(registries);
+                    // canonical：按当前注册表重建附魔 Holder，否则拖出创造页时编码失败会掉线
+                    ItemStack blade = com.buwan.shizuku.util.BladeStacks.canonical(
+                            ref.value().getBlade(registries), registries);
                     return blade.isEmpty() ? Stream.empty() : Stream.of(blade);
                 })
                 .forEach(output::accept);

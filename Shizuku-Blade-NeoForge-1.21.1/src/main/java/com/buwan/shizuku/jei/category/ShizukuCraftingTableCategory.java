@@ -165,7 +165,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         if (request.name() != null) {
             for (Holder.Reference<SlashBladeDefinition> ref : all) {
                 if (ref.key().location().equals(request.name())) {
-                    return ref.value().getBlade(access).copy();
+                    return com.buwan.shizuku.util.BladeStacks.canonical(ref.value().getBlade(access), access);
                 }
             }
         }
@@ -175,7 +175,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 ItemStack blade = ref.value().getBlade(access);
                 String key = BladeStateAccess.of(blade).map(ISlashBladeState::getTranslationKey).orElse("");
                 if (wanted.equals(key)) {
-                    return blade.copy();
+                    return com.buwan.shizuku.util.BladeStacks.canonical(blade, access);
                 }
             }
         }

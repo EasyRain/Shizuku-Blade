@@ -58,7 +58,9 @@ public final class ModCreativeTabs {
             access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY).entrySet().stream()
                     .filter(e -> e.getKey().location().getNamespace().equals("shizuku"))
                     .sorted(Comparator.comparing(e -> e.getKey().location().toString()))
-                    .forEach(e -> entries.accept(e.getValue().getBlade()));
+                    // canonical：按当前注册表重建附魔 Holder，否则拖出创造页时编码失败会掉线
+                    .forEach(e -> entries.accept(com.buwan.shizuku.util.BladeStacks.canonical(
+                            e.getValue().getBlade(), access)));
         }
 
         // 「噬雷」示例刀（连招根 + SE）
