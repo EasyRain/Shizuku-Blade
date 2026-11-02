@@ -96,49 +96,115 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 .addItemStack(recipe.getResultItem(access));
     }
 
-    /**
-     * 修复 JEI 中命名刀显示为"无名无铭"样式的问题：
-     * 拔刀剑配料（slashblade:blade）的 getItems() 只带名字与属性、不带模型/材质，
-     * 这里按 translationKey 匹配 SlashBladeDefinition，取完整命名刀（含模型与贴图）用于展示。
-     */
-    private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
-                                          int x, int y, HolderLookup.Provider access) {
-        var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
-        if (ingredient.getCustomIngredient() != null) {
-            ItemStack display = resolveNamedBlade(ingredient, access);
-            if (!display.isEmpty()) {
-                slot.addItemStack(display);
-                return;
-            }
-        }
-        slot.addIngredients(ingredient);
-    }
+    /** {@code SlashBladeIngredient#request}（私有字段，无 getter）。 */
+    private static final java.lang.reflect.Field REQUEST_FIELD = findRequestField();
 
-    private static ItemStack resolveNamedBlade(Ingredient ingredient, HolderLookup.Provider access) {
-        ItemStack[] items = ingredient.getItems();
-        ItemStack plain = items.length > 0 ? items[0] : ItemStack.EMPTY;
-        if (plain.getItem() instanceof ItemSlashBlade) {
-            String key = CapabilitySlashBlade.getBladeState(plain).map(ISlashBladeState::getTranslationKey).orElse("");
-            if (!key.isBlank()) {
-                for (Holder.Reference<SlashBladeDefinition> ref :
-                        access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList()) {
-                    ItemStack defStack = ref.value().getBlade();
-                    String defKey = CapabilitySlashBlade.getBladeState(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
-                    if (key.equals(defKey)) {
-                        // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
-                        // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
-                        ItemStack display = plain.copy();
-                        CapabilitySlashBlade.getBladeState(defStack).ifPresent(defState ->
-                                CapabilitySlashBlade.getBladeState(display).ifPresent(displayState -> {
-                                    defState.getModel().ifPresent(displayState::setModel);
-                                    defState.getTexture().ifPresent(displayState::setTexture);
-                                }));
-                        return display;
+    private static java.lang.reflect.Field findRequestField() {
+        Class<?> type = mods.flammpfeil.slashblade.recipe.SlashBladeIngredient.class;
+        while (type != null && type != Object.class) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                if (mods.flammpfeil.slashblade.recipe.RequestDefinition.class.isAssignableFrom(field.getType())) {
+                    try {
+                        field.setAccessible(true);
+                        return field;
+                    } catch (Throwable ignored) {
+                        return null;
                     }
                 }
             }
+            type = type.getSuperclass();
         }
-        return plain;
+        return null;
+    }
+
+    private static mods.flammpfeil.slashblade.recipe.RequestDefinition requestOf(Ingredient ingredient) {
+        Object custom = ingredient.getCustomIngredient();
+        if (custom == null || REQUEST_FIELD == null) {
+            return null;
+        }
+        try {
+            Object value = REQUEST_FIELD.get(custom);
+            return value instanceof mods.flammpfeil.slashblade.recipe.RequestDefinition def ? def : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
+                                          int x, int y, HolderLookup.Provider access) {
+        var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
+        mods.flammpfeil.slashblade.recipe.RequestDefinition request = requestOf(ingredient);
+        ItemStack display = resolveBladeFor(request, access);
+        if (display.isEmpty()) {
+            slot.addIngredients(ingredient);
+            return;
+        }
+        slot.addItemStack(display);
+        if (request != null) {
+            addRequirementTooltip(slot, request);
+        }
+    }
+
+    /**
+     * 按配方要求取真实的命名刀（含完整默认属性）用于展示。
+     *
+     * <p>两级查找：先按 id 直查；再按 translationKey 比对 —— request 的 name 是刀的显示名 id，
+     * 不一定等于注册表键（稻光的定义是 {@code shizuku:el}，name 却是
+     * {@code shizuku:engulfing_lightning}）。</p>
+     *
+     * <p>返回完整定义刀而不是"只补模型贴图"的壳，这样能看到刀的默认属性，不会显示成封刀。</p>
+     */
+    private static ItemStack resolveBladeFor(mods.flammpfeil.slashblade.recipe.RequestDefinition request,
+                                             HolderLookup.Provider access) {
+        if (request == null) {
+            return ItemStack.EMPTY;
+        }
+        List<Holder.Reference<SlashBladeDefinition>> all =
+                access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList();
+        if (request.getName() != null) {
+            for (Holder.Reference<SlashBladeDefinition> ref : all) {
+                if (ref.key().location().equals(request.getName())) {
+                    return ref.value().getBlade().copy();
+                }
+            }
+        }
+        String wanted = request.getTranslationKey();
+        if (wanted != null) {
+            for (Holder.Reference<SlashBladeDefinition> ref : all) {
+                ItemStack blade = ref.value().getBlade();
+                String key = CapabilitySlashBlade.getBladeState(blade)
+                        .map(ISlashBladeState::getTranslationKey).orElse("");
+                if (wanted.equals(key)) {
+                    return blade.copy();
+                }
+            }
+        }
+        return ItemStack.EMPTY;
+    }
+
+    /** 把配方对刀的要求（击杀数 / 耀魂 / 精炼 / 附魔）作为额外 tooltip 行显示。 */
+    private static void addRequirementTooltip(mezz.jei.api.gui.builder.IRecipeSlotBuilder slot,
+                                              mods.flammpfeil.slashblade.recipe.RequestDefinition request) {
+        List<Component> lines = new java.util.ArrayList<>();
+        if (request.getKillCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.kill", request.getKillCount()));
+        }
+        if (request.getProudSoulCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.proud_soul", request.getProudSoulCount()));
+        }
+        if (request.getRefineCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.refine", request.getRefineCount()));
+        }
+        for (var enchantment : request.getEnchantments()) {
+            // 1.21.1 的 EnchantmentDefinition 只暴露 Holder<Enchantment>，用官方 API 取"锋利 V"全名
+            lines.add(Component.translatable("jei.shizuku.requirement.enchant",
+                    net.minecraft.world.item.enchantment.Enchantment.getFullname(
+                            enchantment.getEnchantment(), enchantment.getEnchantmentLevel())));
+        }
+        if (lines.isEmpty()) {
+            return;
+        }
+        slot.addRichTooltipCallback((view, tooltip) -> tooltip.addAll(lines));
     }
 
     @Override

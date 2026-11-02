@@ -38,5 +38,9 @@
   "se.shizuku.leise": "§f大雷~",
   "block.shizuku.shizuku_crafting_table": "雫工作台",
   "jei.category.shizuku.shizuku_crafting_table": "雫合成",
+  "jei.shizuku.requirement.kill": "§7需要击杀数 §f≥ %s",
+  "jei.shizuku.requirement.proud_soul": "§7需要耀魂数 §f≥ %s",
+  "jei.shizuku.requirement.refine": "§7需要精炼数 §f≥ %s",
+  "jei.shizuku.requirement.enchant": "§7需要附魔 §f%s",
   "death.attack.ymsa_kill": "%1$s 被审判抹除了",
   "death.attack.ymsa_kill.player": "%1$s 被 %2$s 的审判抹除了"}
