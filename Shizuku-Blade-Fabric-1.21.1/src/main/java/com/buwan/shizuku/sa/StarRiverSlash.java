@@ -68,7 +68,7 @@ public class StarRiverSlash {
         }
 
         EnumSet<InputCommand> getCommands() {
-            var state = owner.getData(CapabilityInputState.INPUT_STATE.get());
+            var state = CapabilityInputState.INPUT_STATE.maybeGet(owner).orElse(null);
             return state != null ? state.getCommands(owner) : EnumSet.noneOf(InputCommand.class);
         }
     }
@@ -90,10 +90,8 @@ public class StarRiverSlash {
         drive.setKnockBack(knockback);
         drive.setLifetime(lifetime);
         drive.setBaseSize(size);
-        var rank = player.getData(CapabilityConcentrationRank.RANK_POINT.get());
-        if (rank != null) {
-            drive.setRank(rank.getRankLevel(level.getGameTime()));
-        }
+        CapabilityConcentrationRank.RANK_POINT.maybeGet(player).ifPresent(rank ->
+                drive.setRank(rank.getRankLevel(level.getGameTime())));
         level.addFreshEntity(drive);
     }
 }

@@ -163,8 +163,8 @@ public class VoidPrison {
             wall.setKnockBack(KnockBacks.cancel);
             wall.setMute(true);
             wall.setLifetime(PRISON_DURATION);
-            float rank = player.getData(CapabilityConcentrationRank.RANK_POINT.get())
-                    .getRankLevel(level.getGameTime());
+            float rank = CapabilityConcentrationRank.RANK_POINT.maybeGet(player)
+                    .map(r -> r.getRankLevel(level.getGameTime())).orElse(0.0F);
             wall.setRank(rank);
             level.addFreshEntity(wall);
             walls.add(wall);

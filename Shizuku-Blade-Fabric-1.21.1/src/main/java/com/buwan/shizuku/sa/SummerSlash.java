@@ -161,9 +161,6 @@ public class SummerSlash {
             float newHealth = currentHealth - damage;
             newHealth = Math.max(0.0F, newHealth);
 
-            target.getPersistentData().remove("Immortal");
-            target.getPersistentData().remove("Protected");
-            target.getPersistentData().remove("Invincible");
             target.setSharedFlagOnFire(false);
             AgentHealthMethodHelper.forceSetHealth(target, newHealth, maxHealth);
             EntityHelper.forcedSetHealth(target, newHealth);

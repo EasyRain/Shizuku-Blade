@@ -50,10 +50,8 @@ public class GalaxyArc {
                 drive.setKnockBack(KnockBacks.cancel);
                 drive.setLifetime(20.0F);
                 drive.setBaseSize(3.0F);
-                var rank = player.getData(CapabilityConcentrationRank.RANK_POINT.get());
-                if (rank != null) {
-                    drive.setRank(rank.getRankLevel(level.getGameTime()));
-                }
+                CapabilityConcentrationRank.RANK_POINT.maybeGet(player).ifPresent(rank ->
+                        drive.setRank(rank.getRankLevel(level.getGameTime())));
                 level.addFreshEntity(drive);
             }
         }
@@ -98,10 +96,8 @@ public class GalaxyArc {
                 se.setKnockBack(event.getKnockback());
                 se.setBaseSize(size);
                 se.setLifetime(lifetime);
-                var rank = player.getData(CapabilityConcentrationRank.RANK_POINT.get());
-                if (rank != null) {
-                    se.setRank(rank.getRankLevel(level.getGameTime()));
-                }
+                CapabilityConcentrationRank.RANK_POINT.maybeGet(player).ifPresent(rank ->
+                        se.setRank(rank.getRankLevel(level.getGameTime())));
                 level.addFreshEntity(se);
             }
         });

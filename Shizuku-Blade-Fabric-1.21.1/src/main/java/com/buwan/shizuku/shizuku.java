@@ -5,6 +5,7 @@ import com.buwan.shizuku.compat.DeferredRegister;
 import com.buwan.shizuku.compat.PlayerTickEvent;
 import com.buwan.shizuku.compat.ServerTickEvent;
 import com.buwan.shizuku.item.MeowStoneItem;
+import com.buwan.shizuku.network.PacketHandler;
 import com.buwan.shizuku.registry.ModBlocks;
 import com.buwan.shizuku.registry.ModMenus;
 import com.buwan.shizuku.registry.ModRecipeSerializers;
@@ -25,6 +26,7 @@ import com.buwan.shizuku.se.Leise;
 import com.buwan.shizuku.se.SERegistry;
 import com.buwan.shizuku.se.WorldsFavorite;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -79,6 +81,11 @@ public class shizuku {
 
         // 特殊效果（SE）注册
         SERegistry.registerAll();
+
+        // 网络 payload 注册 + 服务器实例捕获（sendToAll 用）
+        PacketHandler.register();
+        ServerLifecycleEvents.SERVER_STARTED.register(PacketHandler::setServer);
+        ServerLifecycleEvents.SERVER_STOPPING.register(s -> PacketHandler.setServer(null));
 
         // SE 事件（Refabricated 用 Fabric Event：HIT / UPDATE）
         SlashBladeEvent.HIT.register(Jingxin::onHitEntity);
