@@ -17,4 +17,7 @@ public interface ITierCraftingRecipe extends Recipe<RecipeInput> {
     int getTier();
 
     boolean hasRequiredTier();
+
+    /** 26.1 的 Recipe 接口不再暴露 getIngredients，这里自己声明。 */
+    net.minecraft.core.NonNullList<Ingredient> getIngredients();
 }

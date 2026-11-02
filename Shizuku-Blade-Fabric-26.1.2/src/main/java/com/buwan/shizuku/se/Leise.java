@@ -24,7 +24,7 @@ public class Leise extends SpecialEffect {
 
             if (player.tickCount % 100 == 0) {
                 player.addEffect(new MobEffectInstance(MobEffects.JUMP, 120, 1, false, false));
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 120, 2, false, false));
+                player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 120, 2, false, false));
             }
         }
     }

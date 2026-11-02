@@ -163,7 +163,7 @@ public class Ymsa {
         if (e instanceof Player) {
             return false;
         }
-        boolean isOwnPet = e instanceof TamableAnimal ta && caster.getUUID().equals(ta.getOwnerUUID());
+        boolean isOwnPet = e instanceof TamableAnimal ta && caster.getUUID().equals(ta.getOwnerReference().getUUID());
         return YmsaLogic.shouldKillPure(caster.getUUID().equals(e.getUUID()), isOwnPet,
                 e.isRemoved() && e.getRemovalReason() != null, false);
     }

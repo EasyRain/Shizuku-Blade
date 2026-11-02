@@ -23,7 +23,7 @@ public class shizuku extends SpecialEffect {
                 && SpecialEffect.isEffective(SERegistry.SHIZUKU.getId(), player.experienceLevel)) {
 
             if (player.tickCount % 100 == 0) {
-                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 120, 2, false, false));
+                player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 120, 2, false, false));
                 player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 120, 1, false, false));
             }
         }
