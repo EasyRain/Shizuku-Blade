@@ -18,11 +18,30 @@ public final class CosmicBladeRenderer {
     private CosmicBladeRenderer() {
     }
 
+    /** GUI 物品渲染的嵌套深度（>0 表示当前正在画物品图标）。 */
+    private static int guiItemDepth;
+
+    public static void enterGuiItemRender(boolean gui) {
+        if (gui) {
+            guiItemDepth++;
+        }
+    }
+
+    public static void exitGuiItemRender(boolean gui) {
+        if (gui && guiItemDepth > 0) {
+            guiItemDepth--;
+        }
+    }
+
     public static void register() {
         RenderOverrideEvent.CALLBACK.register(CosmicBladeRenderer::onRenderOverride);
     }
 
     private static void onRenderOverride(RenderOverrideEvent event) {
+        // GUI 里的物品图标不画：那里没有世界矩阵，cosmic 层会被放大成铺满屏幕的星空并随视角闪烁
+        if (guiItemDepth > 0) {
+            return;
+        }
         ItemStack stack = event.getStack();
         if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof ItemSlashBlade)) {
             return;

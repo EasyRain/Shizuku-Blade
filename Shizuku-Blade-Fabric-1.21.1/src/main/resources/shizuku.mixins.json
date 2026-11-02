@@ -12,6 +12,7 @@
   "client": [
     "DriveRendererMixin",
     "SlashEffectRendererMixin",
+    "ItemRendererGuiMixin",
     "GuiGraphicsTooltipMixin"
   ],
   "injectors": {
