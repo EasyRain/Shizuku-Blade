@@ -3,7 +3,7 @@ package com.buwan.shizuku.registry;
 import com.buwan.shizuku.compat.DeferredHolder;
 import com.buwan.shizuku.compat.DeferredRegister;
 import com.buwan.shizuku.menu.ShizukuCraftMenu;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -20,7 +20,7 @@ public class ModMenus {
 
     public static final DeferredHolder<MenuType<?>, MenuType<ShizukuCraftMenu>> SHIZUKU_CRAFT_TABLE =
             MENUS.register("shizuku_craft_table",
-                    () -> new ExtendedScreenHandlerType<>(
+                    () -> new ExtendedMenuType<>(
                             (syncId, inv, pos) -> new ShizukuCraftMenu(syncId, inv, pos),
                             POS_CODEC));
 }

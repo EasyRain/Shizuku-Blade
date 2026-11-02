@@ -3,7 +3,7 @@ package com.buwan.shizuku.tile;
 import com.buwan.shizuku.compat.ItemStackHandler;
 import com.buwan.shizuku.menu.ShizukuCraftMenu;
 import com.buwan.shizuku.registry.ModTileEntities;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.fabricmc.fabric.api.menu.v1.ExtendedMenuProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class ShizukuCraftTile extends BlockEntity implements MenuProvider, ExtendedScreenHandlerFactory<BlockPos> {
+public class ShizukuCraftTile extends BlockEntity implements MenuProvider, ExtendedMenuProvider<BlockPos> {
 
     public static final int GRID = 9;
     public static final int SLOT_COUNT = 81;
