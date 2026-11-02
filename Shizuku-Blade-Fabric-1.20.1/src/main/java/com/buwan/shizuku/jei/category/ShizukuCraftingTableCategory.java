@@ -163,47 +163,21 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     /**
-     * 按配方要求找一把真实的命名刀用于展示。
+     * 按配方要求取真实的命名刀用于展示。
      *
-     * <p>两级查找，缺一不可：</p>
-     * <ol>
-     *   <li>先按 id 直接查注册表 —— 多数刀的「定义文件名」与 request 里的 name 相同；</li>
-     *   <li>再按 translationKey 比对 —— request 的 name 是刀的**显示名 id**，不一定等于注册表键。
-     *       例如稻光的定义文件是 {@code shizuku:el}，而 name 是
-     *       {@code shizuku:engulfing_lightning}（→ {@code item.shizuku.engulfing_lightning}），
-     *       只按 id 查会失败，图标就退化成默认模型（名字对、外观错）。</li>
-     * </ol>
+     * <p>直接按定义注册表键（= 定义 JSON 文件名）查。约定：命名刀的定义文件名必须与
+     * {@code name} 字段一致；不一致时按 id 查不到，图标会退化成默认模型。
+     * （历史遗留的稻光/有名已于本次统一改名修正，不再做二级兜底查找。）</p>
      */
     private static ItemStack resolveBladeFor(RequestDefinition request, RegistryAccess access) {
-        if (request == null) {
+        if (request == null || request.getName() == null) {
             return ItemStack.EMPTY;
         }
-        var registry = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY);
-        if (request.getName() != null) {
-            SlashBladeDefinition direct = registry.get(request.getName());
-            if (direct != null) {
-                return direct.getBlade().copy();
-            }
-        }
-        String wanted = request.getTranslationKey();
-        if (wanted == null) {
-            return ItemStack.EMPTY;
-        }
-        for (SlashBladeDefinition def : registry) {
-            ItemStack blade = def.getBlade();
-            if (blade.isEmpty()) {
-                continue;
-            }
-            String key = CapabilitySlashBlade.BLADESTATE.maybeGet(blade)
-                    .map(ISlashBladeState::getTranslationKey).orElse("");
-            if (wanted.equals(key)) {
-                return blade.copy();
-            }
-        }
-        return ItemStack.EMPTY;
+        SlashBladeDefinition definition =
+                access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY).get(request.getName());
+        return definition == null ? ItemStack.EMPTY : definition.getBlade().copy();
     }
 
-    /** 把配方对刀的要求（击杀数 / 耀魂 / 精炼 / 附魔）作为额外 tooltip 行显示出来。 */
     private static void addRequirementTooltip(mezz.jei.api.gui.builder.IRecipeSlotBuilder slot,
                                               RequestDefinition request) {
         List<Component> lines = new ArrayList<>();

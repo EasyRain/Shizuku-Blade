@@ -149,41 +149,24 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     /**
      * 按配方要求取真实的命名刀（含完整默认属性）用于展示。
      *
-     * <p>两级查找：先按 id 直查；再按 translationKey 比对 —— request 的 name 是刀的显示名 id，
-     * 不一定等于注册表键（如稻光的定义是 {@code shizuku:el}，name 却是
-     * {@code shizuku:engulfing_lightning}）。</p>
+     * <p>直接按定义注册表键（= 定义 JSON 文件名）查。约定：命名刀的定义文件名必须与
+     * {@code name} 字段一致；不一致时按 id 查不到，图标会退化成默认模型
+     * （历史遗留的稻光/有名已统一改名修正，因此不再做二级兜底查找）。</p>
      *
-     * <p>返回完整的定义刀而不是"只补模型贴图"的壳：这样 JEI 里能看到刀的默认属性
-     * （攻击力/附魔等），不再是封刀/无名外观。</p>
+     * <p>返回完整定义刀而不是"只补模型贴图"的壳，这样能看到刀的默认属性。</p>
      */
     private static ItemStack resolveBladeFor(mods.flammpfeil.slashblade.recipe.RequestDefinition request,
                                              HolderLookup.Provider access) {
-        if (request == null) {
+        if (request == null || request.name() == null) {
             return ItemStack.EMPTY;
         }
-        List<Holder.Reference<SlashBladeDefinition>> all =
-                access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY).listElements().toList();
-        if (request.name() != null) {
-            for (Holder.Reference<SlashBladeDefinition> ref : all) {
-                if (ref.key().location().equals(request.name())) {
-                    return com.buwan.shizuku.util.BladeStacks.canonical(ref.value().getBlade(access), access);
-                }
-            }
-        }
-        String wanted = request.getTranslationKey();
-        if (wanted != null) {
-            for (Holder.Reference<SlashBladeDefinition> ref : all) {
-                ItemStack blade = ref.value().getBlade(access);
-                String key = BladeStateAccess.of(blade).map(ISlashBladeState::getTranslationKey).orElse("");
-                if (wanted.equals(key)) {
-                    return com.buwan.shizuku.util.BladeStacks.canonical(blade, access);
-                }
-            }
-        }
-        return ItemStack.EMPTY;
+        return access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY)
+                .get(net.minecraft.resources.ResourceKey.create(
+                        SlashBladeDefinition.REGISTRY_KEY, request.name()))
+                .map(holder -> com.buwan.shizuku.util.BladeStacks.canonical(holder.value().getBlade(access), access))
+                .orElse(ItemStack.EMPTY);
     }
 
-    /** 把配方对刀的要求（击杀数 / 耀魂 / 精炼 / 附魔）作为额外 tooltip 行显示。 */
     private static void addRequirementTooltip(mezz.jei.api.gui.builder.IRecipeSlotBuilder slot,
                                               mods.flammpfeil.slashblade.recipe.RequestDefinition request) {
         List<Component> lines = new java.util.ArrayList<>();
