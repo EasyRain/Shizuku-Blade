@@ -53,7 +53,6 @@ public class VoidPrisonRenderer {
     }
 
     private void renderPrisonSphere(PoseStack poseStack, Vec3 cameraPos, PrisonZoneData zone) {
-        DiagLog.once("prison-draw", "r=%s alpha=%s", zone.radius, zone.getAlpha());
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
         RenderSystem.enableBlend();
@@ -154,15 +153,10 @@ public class VoidPrisonRenderer {
 
     public static void addPrisonZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new PrisonZoneData(center, radius, duration));
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] addPrisonZone {} at {} r={} dur={} total={}",
-                playerId, center, radius, duration, activeZones.size());
     }
 
     public static void removePrisonZone(UUID playerId) {
         activeZones.remove(playerId);
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] removePrisonZone {} total={}", playerId, activeZones.size());
     }
 
     public static void clearAll() {

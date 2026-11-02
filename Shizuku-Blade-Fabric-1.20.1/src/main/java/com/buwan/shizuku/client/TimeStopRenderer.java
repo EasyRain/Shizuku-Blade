@@ -53,10 +53,6 @@ public class TimeStopRenderer {
     }
 
     private void renderTimeStopSphere(PoseStack poseStack, Vec3 cameraPos, TimeStopZoneData zone) {
-        DiagLog.once("timestop-draw", "r=%s alpha=%s", zone.radius, zone.getAlpha());
-        DiagLog.once("timestop-mat", "cam=%s pose=%s proj=%s",
-                cameraPos, DiagLog.fmt(poseStack.last().pose()),
-                DiagLog.fmt(RenderSystem.getProjectionMatrix()));
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
         RenderSystem.enableBlend();
@@ -66,15 +62,7 @@ public class TimeStopRenderer {
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         Matrix4f matrix = poseStack.last().pose();
         float baseAlpha = zone.getAlpha() * 0.3F;
-        if (DiagLog.DEBUG_BRIGHT) {
-            // 诊断：不透明品红大球 + 关深度测试。看不见 => 几何根本没进画面（变换/阶段问题）；
-            // 看得见 => 之前只是 alpha 太淡或颜色问题。
-            RenderSystem.disableDepthTest();
-            this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.0F, 1.0F, 1.0F);
-            RenderSystem.enableDepthTest();
-        } else {
-            this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
-        }
+        this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
         poseStack.scale(0.95F, 0.95F, 0.95F);
         matrix = poseStack.last().pose();
         this.drawSphere(matrix, zone.radius, 20, 15, 1.0F, 0.95F, 0.4F, baseAlpha * 0.5F);
@@ -159,15 +147,10 @@ public class TimeStopRenderer {
 
     public static void addTimeStopZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new TimeStopZoneData(center, radius, duration));
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] addTimeStopZone {} at {} r={} dur={} total={}",
-                playerId, center, radius, duration, activeZones.size());
     }
 
     public static void removeTimeStopZone(UUID playerId) {
         activeZones.remove(playerId);
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] removeTimeStopZone {} total={}", playerId, activeZones.size());
     }
 
     public static void clearAll() {

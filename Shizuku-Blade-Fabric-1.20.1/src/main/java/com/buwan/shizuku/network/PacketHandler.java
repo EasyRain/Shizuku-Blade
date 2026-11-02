@@ -35,9 +35,6 @@ public class PacketHandler {
                 (srv, player, handler, buf, sender) -> srv.execute(() -> {
                     boolean mosmic = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())
                             .map(s -> "item.shizuku.mosmicblade".equals(s.getTranslationKey())).orElse(false);
-                    org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                            "[shizuku-field] server got activate from {} mosmic={} item={}",
-                            player.getName().getString(), mosmic, player.getMainHandItem().getItem());
                     if (mosmic && player.getMainHandItem().getItem() instanceof ItemSlashBlade) {
                         GalaxyField.toggleField(player);
                     }

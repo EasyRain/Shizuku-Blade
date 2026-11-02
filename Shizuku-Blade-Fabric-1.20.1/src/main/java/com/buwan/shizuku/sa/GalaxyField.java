@@ -38,8 +38,6 @@ public class GalaxyField {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
                 FieldData old = activeFields.remove(player.getUUID());
-                org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                        "[shizuku-field] toggle {} -> {}", player.getName().getString(), old == null ? "ON" : "OFF");
                 if (old != null) {
                     PacketHandler.sendToNearby(new GalaxyFieldPacket(player.getUUID()), (ServerPlayer) player, 64.0);
                 } else {

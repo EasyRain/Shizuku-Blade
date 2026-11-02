@@ -37,14 +37,10 @@ public final class GalaxyFieldRenderer {
 
     public static void addZone(UUID id, Vec3 center, float radius, int duration) {
         activeZones.put(id, new ZoneData(center, radius));
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] addZone {} at {} r={} total={}", id, center, radius, activeZones.size());
     }
 
     public static void removeZone(UUID id) {
         activeZones.remove(id);
-        org.slf4j.LoggerFactory.getLogger("shizuku-field").info(
-                "[shizuku-field] removeZone {} total={}", id, activeZones.size());
     }
 
     
@@ -65,7 +61,7 @@ public final class GalaxyFieldRenderer {
             worldProjection = new Matrix4f(RenderSystem.getProjectionMatrix());
             worldCameraPos = event.getCamera().getPosition();
 
-            if (!ShaderPackCompat.isShaderPackActive() && !DiagLog.DEBUG_GUI) {
+            if (!ShaderPackCompat.isShaderPackActive()) {
                 if (!activeZones.isEmpty()) {
                     if (CosmicShaders.ensureShader() != null) {
                         Minecraft mc = Minecraft.getInstance();
@@ -100,7 +96,7 @@ public final class GalaxyFieldRenderer {
      */
     
     public static void onRenderGuiPost(RenderGuiEvent.Post event) {
-        if (!ShaderPackCompat.isShaderPackActive() && !DiagLog.DEBUG_GUI) {
+        if (!ShaderPackCompat.isShaderPackActive()) {
             return;
         }
         if (activeZones.isEmpty() || CosmicShaders.ensureShader() == null) {
@@ -114,8 +110,6 @@ public final class GalaxyFieldRenderer {
         if (mc.level == null || mc.player == null) {
             return;
         }
-
-        DiagLog.once("galaxy-gui", "zones=%s cam=%s", activeZones.size(), worldCameraPos);
 
         RenderSystem.backupProjectionMatrix();
         com.mojang.blaze3d.vertex.PoseStack modelViewStack = RenderSystem.getModelViewStack();
@@ -150,7 +144,6 @@ public final class GalaxyFieldRenderer {
         if (!(alpha <= 0.01F)) {
             // 光影 GUI 阶段沿用玩家视角（世界特效朝向），不冻结 yaw/pitch
             boolean prepared = CosmicShaders.prepareCosmicRender(alpha, false);
-            DiagLog.once("galaxy-draw", "age=%s alpha=%s prepared=%s", zone.ageTicks, alpha, prepared);
             if (prepared) {
                 VertexConsumer vb = buffers.getBuffer(noDepth
                         ? CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH
