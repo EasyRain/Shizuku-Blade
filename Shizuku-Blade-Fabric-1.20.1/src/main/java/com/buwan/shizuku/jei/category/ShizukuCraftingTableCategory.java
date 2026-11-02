@@ -14,6 +14,8 @@ import mezz.jei.api.recipe.category.AbstractRecipeCategory;
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+import mods.flammpfeil.slashblade.recipe.RequestDefinition;
+import mods.flammpfeil.slashblade.recipe.SlashBladeIngredient;
 import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -25,6 +27,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 /**
@@ -37,6 +40,19 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
 
     public static final ResourceLocation GUI_TEXTURE =
             new ResourceLocation("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
+
+    /** {@code SlashBladeIngredient#request}（私有、无 getter），用于取配方要求的刀 id。 */
+    private static final Field REQUEST_FIELD = findRequestField();
+
+    private static Field findRequestField() {
+        try {
+            Field field = SlashBladeIngredient.class.getDeclaredField("request");
+            field.setAccessible(true);
+            return field;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
 
     private static final int GUI_WIDTH = 189;
     private static final int GUI_HEIGHT = 163;
@@ -133,12 +149,24 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     /**
      * 把「拔刀剑配料」解析成一把真实的命名刀用于展示。
      *
-     * <p>不能按 translationKey 去比：配料栈里的刀名与定义注册表里刀的名字不一定同一形式，
-     * 而且 {@code ingredient.getItems()} 对自定义配料常是空的。这里反过来做 ——
-     * 遍历命名刀定义，用配料**自己的匹配逻辑**（{@link Ingredient#test}）判断哪把刀满足要求，
-     * 命中即返回完整定义栈（含模型与贴图）。</p>
+     * <p>配料是 Fabric 的 {@code CustomIngredient}（{@code SlashBladeIngredient}），它内部持有
+     * {@code RequestDefinition}，里面有配方要求的**刀 id**。但该字段没有 getter，
+     * 只能反射取（拿不到就退回下面的兜底逻辑，不影响主流程）。</p>
+     *
+     * <p>不能用 {@code ingredient.test(def.getBlade())} 判断：配方常常带门槛
+     * （如 {@code kill:700 / proud_soul:3000 / refine:40}），而定义里的刀是全新状态，必然不匹配。
+     * 也不要用 {@code getMatchingStacks()}：那只是 {@code new ItemStack(item)} + 填请求状态，
+     * 没有模型/贴图，显示出来就是"无名"占位刀。</p>
      */
     private static ItemStack resolveNamedBlade(Ingredient ingredient, RegistryAccess access) {
+        ResourceLocation requested = requestedBladeId(ingredient);
+        if (requested != null) {
+            SlashBladeDefinition def = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY).get(requested);
+            if (def != null) {
+                return def.getBlade().copy();
+            }
+        }
+        // 兜底：没有刀名要求时，找第一把能被该配料接受的刀
         for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
             ItemStack blade = def.getBlade();
             if (!blade.isEmpty() && ingredient.test(blade)) {
@@ -146,6 +174,23 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             }
         }
         return ItemStack.EMPTY;
+    }
+
+    /** 从 {@code SlashBladeIngredient.request.getName()} 取配方要求的刀 id。 */
+    private static ResourceLocation requestedBladeId(Ingredient ingredient) {
+        Object custom = ingredient.getCustomIngredient();
+        if (custom == null || REQUEST_FIELD == null) {
+            return null;
+        }
+        try {
+            Object request = REQUEST_FIELD.get(custom);
+            if (request instanceof RequestDefinition definition) {
+                return definition.getName();
+            }
+        } catch (Throwable ignored) {
+            // 反射失败时走兜底
+        }
+        return null;
     }
 
     @Override
