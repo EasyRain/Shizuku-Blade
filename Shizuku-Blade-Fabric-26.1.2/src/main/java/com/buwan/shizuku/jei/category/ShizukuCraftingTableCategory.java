@@ -51,12 +51,14 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 Component.translatable("jei.category.shizuku.shizuku_crafting_table"),
                 guiHelper.createDrawableItemStack(new ItemStack(
                         net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                                Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table")))),
+                                Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))
+                                .orElseThrow().value())),
                 GUI_WIDTH, GUI_HEIGHT);
         this.background = guiHelper.createDrawable(GUI_TEXTURE, 0, 0, GUI_WIDTH, GUI_HEIGHT);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(
                 net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                        Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))));
+                        Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))
+                        .orElseThrow().value()));
     }
 
     @Override

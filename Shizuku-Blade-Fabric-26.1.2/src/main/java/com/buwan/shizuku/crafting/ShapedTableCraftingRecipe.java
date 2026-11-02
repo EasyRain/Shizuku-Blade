@@ -230,7 +230,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         static final com.mojang.serialization.Codec<java.util.List<String>> STRING_LIST =
                 com.mojang.serialization.Codec.STRING.listOf();
         static final com.mojang.serialization.Codec<Map<String, Ingredient>> STRING_INGREDIENT_MAP =
-                net.minecraft.util.ExtraCodecs.strictUnboundedMap(com.mojang.serialization.Codec.STRING, Ingredient.CODEC_NONEMPTY);
+                net.minecraft.util.ExtraCodecs.strictUnboundedMap(com.mojang.serialization.Codec.STRING, Ingredient.CODEC);
     }
 
     public static final class Serializer {

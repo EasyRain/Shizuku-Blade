@@ -11,6 +11,10 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeBookCategories;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -39,8 +43,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         return size < 10 ? 1 : (size < 26 ? 2 : (size < 50 ? 3 : 4));
     }
 
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider access) {
+    public ItemStack buildResult() {
         return this.output;
     }
 
@@ -65,8 +68,28 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public ItemStack assemble(RecipeInput input, HolderLookup.Provider access) {
+    public ItemStack assemble(RecipeInput input) {
         return this.output.copy();
+    }
+
+    @Override
+    public String group() {
+        return "";
+    }
+
+    @Override
+    public boolean showNotification() {
+        return true;
+    }
+
+    @Override
+    public RecipeBookCategory recipeBookCategory() {
+        return RecipeBookCategories.CRAFTING_MISC;
+    }
+
+    @Override
+    public PlacementInfo placementInfo() {
+        return PlacementInfo.create(this.inputs);
     }
 
     @Override
@@ -96,10 +119,10 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         return this.tier > 0;
     }
 
-    public static class Serializer implements RecipeSerializer<ShapelessTableCraftingRecipe> {
+    public static final class Serializer {
 
         public static final MapCodec<ShapelessTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                Ingredient.CODEC_NONEMPTY.listOf().fieldOf("ingredients").forGetter(ShapelessTableCraftingRecipe::getIngredients),
+                Ingredient.CODEC.listOf().fieldOf("ingredients").forGetter(ShapelessTableCraftingRecipe::getIngredients),
                 ItemStack.CODEC.fieldOf("result").forGetter(r -> r.output),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier)
         ).apply(inst, (inputs, output, tier) -> {
@@ -114,15 +137,5 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
                 ByteBufCodecs.VAR_INT, r -> r.tier,
                 ShapelessTableCraftingRecipe::new
         );
-
-        @Override
-        public MapCodec<ShapelessTableCraftingRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, ShapelessTableCraftingRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
     }
 }
