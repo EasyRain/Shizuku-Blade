@@ -24,7 +24,7 @@ public final class WorldsFavoriteClient {
         if (player == null) {
             return;
         }
-        long window = mc.getWindow().getWindow();
+        com.mojang.blaze3d.platform.Window window = mc.getWindow();
 
         boolean altDown = isDown(window, 342) || isDown(window, 346);
         if (altDown && !prevAlt && mc.screen == null
@@ -77,7 +77,7 @@ public final class WorldsFavoriteClient {
             Vec3 newPos = player.position().add(rotatedDx, dy, rotatedDz);
             var connection = mc.getConnection();
             if (connection != null) {
-                connection.sendUnsignedCommand(String.format("tp @s %f %f %f", newPos.x, newPos.y, newPos.z));
+                connection.sendCommand(String.format("tp @s %f %f %f", newPos.x, newPos.y, newPos.z));
             }
             player.setPos(newPos.x, newPos.y, newPos.z);
         }

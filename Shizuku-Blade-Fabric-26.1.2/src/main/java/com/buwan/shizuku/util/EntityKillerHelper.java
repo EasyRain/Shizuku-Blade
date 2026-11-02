@@ -30,7 +30,7 @@ public class EntityKillerHelper {
                     : le.damageSources().genericKill();
             le.hurt(source, Float.MAX_VALUE);
             if (le.isAlive()) {
-                le.kill();
+                le.kill((net.minecraft.server.level.ServerLevel) le.level());
             }
             if (le.isAlive()) {
                 le.discard();
@@ -44,7 +44,7 @@ public class EntityKillerHelper {
         if (entity instanceof LivingEntity le) {
             le.hurt(le.damageSources().genericKill(), Float.MAX_VALUE);
             if (le.isAlive()) {
-                le.kill();
+                le.kill((net.minecraft.server.level.ServerLevel) le.level());
             }
             if (le.isAlive()) {
                 le.discard();
@@ -63,7 +63,7 @@ public class EntityKillerHelper {
     public static boolean remove(Entity entity, Player player) {
         if (entity instanceof LivingEntity le) {
             le.hurt(player.damageSources().playerAttack(player), Float.MAX_VALUE);
-            le.kill();
+            le.kill((net.minecraft.server.level.ServerLevel) le.level());
             if (le.isAlive()) {
                 le.discard();
             }
@@ -89,7 +89,7 @@ public class EntityKillerHelper {
         target.setHealth(0.0F);
         target.hurt(attacker.damageSources().playerAttack(attacker), Float.MAX_VALUE);
         if (target.isAlive()) {
-            target.kill();
+            target.kill((net.minecraft.server.level.ServerLevel) target.level());
         }
         return true;
     }

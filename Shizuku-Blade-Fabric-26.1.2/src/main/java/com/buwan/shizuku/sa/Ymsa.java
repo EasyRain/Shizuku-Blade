@@ -18,7 +18,6 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
-import net.minecraft.world.entity.boss.EnderDragonPart;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
@@ -120,7 +119,7 @@ public class Ymsa {
         if (!mainHand.isEmpty() && mainHand.isDamageableItem()) {
             mainHand.setDamageValue(mainHand.getDamageValue());
             mainHand.set(net.minecraft.core.component.DataComponents.UNBREAKABLE,
-                    new net.minecraft.world.item.component.Unbreakable(false));
+                    net.minecraft.util.Unit.INSTANCE);
             mainHand.set(net.minecraft.core.component.DataComponents.REPAIR_COST, 0);
         }
     }
@@ -374,7 +373,7 @@ public class Ymsa {
                 target.die(src);
             }
 
-            target.kill();
+            target.kill((net.minecraft.server.level.ServerLevel) target.level());
             if (level.getEntity(target.getId()) == target) {
                 physicallyRemove(target, level);
             }

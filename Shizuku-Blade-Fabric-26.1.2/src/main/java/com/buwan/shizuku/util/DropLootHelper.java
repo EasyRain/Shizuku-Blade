@@ -39,16 +39,12 @@ public class DropLootHelper {
 
             ExperienceOrb.award(serverLevel, entity.position(), livingEntity.getExperienceReward(serverLevel, player));
 
-            for (ItemStack item : livingEntity.getHandSlots()) {
+            for (ItemStack item : new ItemStack[]{livingEntity.getMainHandItem(), livingEntity.getOffhandItem()}) {
                 if (!item.isEmpty()) {
-                    entity.spawnAtLocation(item);
+                    entity.spawnAtLocation(serverLevel, item);
                 }
             }
         }
-    }
-
-    private static ResourceKey<LootTable> getLootTableLocation(Entity entity) {
-        return entity instanceof LivingEntity livingEntity ? livingEntity.getLootTable() : null;
     }
 
     public static void dropItemAt(Level level, Vec3 pos, ItemStack stack) {
