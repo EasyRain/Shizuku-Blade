@@ -1,0 +1,31 @@
+{
+  "type": "shizuku:shaped_table",
+  "tier": 4,
+  "blade": "shizuku:mosmicblade",
+  "pattern": [
+    "MMMMMMMMM",
+    "MMMMMMMMM",
+    "MMMMMMMMM",
+    "MMMMMMMMM",
+    "MMMMSMMMM",
+    "MMMMMMMMM",
+    "MMMMMMMMM",
+    "MMMMMMMMM",
+    "MMMMMMMMM"
+  ],
+  "key": {
+    "M": {
+      "item": "shizuku:meow_stone"
+    },
+    "S": {
+      "type": "slashblade:blade",
+      "item": "slashblade:slashblade",
+      "request": {
+        "name": "shizuku:shizuku"
+      }
+    }
+  },
+  "result": {
+    "item": "slashblade:slashblade"
+  }
+}

@@ -24,6 +24,11 @@ public class PacketHandler {
         server = s;
     }
 
+    /** 供创造页/配方等处取数据包注册表（服务端实例存在时）。 */
+    public static net.minecraft.core.RegistryAccess registryAccess() {
+        return server != null ? server.registryAccess() : null;
+    }
+
     /** 服务端接收（common init 调用）。 */
     public static void registerServer() {
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.ID,
