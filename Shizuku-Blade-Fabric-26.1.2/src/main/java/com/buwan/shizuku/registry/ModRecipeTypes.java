@@ -3,7 +3,7 @@ package com.buwan.shizuku.registry;
 import com.buwan.shizuku.compat.DeferredRegister;
 import com.buwan.shizuku.crafting.ITierCraftingRecipe;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.crafting.RecipeType;
 
 import java.util.function.Supplier;

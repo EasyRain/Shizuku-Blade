@@ -3,7 +3,7 @@ package com.buwan.shizuku.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
@@ -12,7 +12,7 @@ import java.util.UUID;
 public class GalaxyFieldPacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<GalaxyFieldPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "galaxy_field"));
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "galaxy_field"));
     public static final StreamCodec<RegistryFriendlyByteBuf, GalaxyFieldPacket> STREAM_CODEC =
             StreamCodec.ofMember(GalaxyFieldPacket::write, GalaxyFieldPacket::new);
 

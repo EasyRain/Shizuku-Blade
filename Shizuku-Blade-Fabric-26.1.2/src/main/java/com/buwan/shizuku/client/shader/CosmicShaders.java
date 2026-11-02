@@ -14,7 +14,7 @@ import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.inventory.InventoryMenu;
 
 import java.util.function.Function;
@@ -119,7 +119,7 @@ public final class CosmicShaders {
         if (mc == null) {
             return;
         }
-        Function<ResourceLocation, TextureAtlasSprite> atlas = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
+        Function<Identifier, TextureAtlasSprite> atlas = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
         for (int i = 0; i < COSMIC_SPRITES.length; i++) {
             TextureAtlasSprite sprite = atlas.apply(shizuku.prefix("item/misc/cosmic_" + i));
             COSMIC_SPRITES[i] = sprite;

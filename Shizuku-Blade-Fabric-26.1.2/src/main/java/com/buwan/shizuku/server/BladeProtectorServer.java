@@ -4,7 +4,7 @@ import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -21,10 +21,10 @@ import java.util.Set;
 
 public class BladeProtectorServer {
 
-    private static final Set<ResourceLocation> PROTECTED_BLADES = Set.of(
-            ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "el"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "ym")
+    private static final Set<Identifier> PROTECTED_BLADES = Set.of(
+            Identifier.fromNamespaceAndPath("shizuku", "shizuku"),
+            Identifier.fromNamespaceAndPath("shizuku", "el"),
+            Identifier.fromNamespaceAndPath("shizuku", "ym")
     );
 
     public static boolean isProtectedBlade(ItemStack stack) {

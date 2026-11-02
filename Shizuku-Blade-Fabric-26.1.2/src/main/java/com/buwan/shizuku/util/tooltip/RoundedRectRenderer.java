@@ -8,7 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
 import org.joml.Matrix3f;
@@ -17,7 +17,7 @@ import org.joml.Vector4i;
 
 public class RoundedRectRenderer {
     public static void renderRoundedRect(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float x,
             float y,
             float width,
@@ -35,7 +35,7 @@ public class RoundedRectRenderer {
     }
 
     public static void renderRoundedRectGradient(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float x,
             float y,
             float width,
@@ -343,7 +343,7 @@ public class RoundedRectRenderer {
     }
 
     public static void renderRoundedRectBorder(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float x,
             float y,
             float width,
@@ -362,7 +362,7 @@ public class RoundedRectRenderer {
     }
 
     public static void renderRoundedRectBorderGradient(
-            GuiGraphics graphics,
+            GuiGraphicsExtractor graphics,
             float x,
             float y,
             float width,

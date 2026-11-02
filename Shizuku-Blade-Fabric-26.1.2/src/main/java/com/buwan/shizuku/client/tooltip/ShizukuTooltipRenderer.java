@@ -15,10 +15,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -36,12 +36,12 @@ import java.util.List;
 
 
 public class ShizukuTooltipRenderer {
-    private static final ResourceLocation SHIZUKU_BACKGROUND = ResourceLocation.fromNamespaceAndPath("shizuku", "textures/gui/shizuku_blade_bg.png");
+    private static final Identifier SHIZUKU_BACKGROUND = Identifier.fromNamespaceAndPath("shizuku", "textures/gui/shizuku_blade_bg.png");
     private static final int SEPARATOR_COLOR = -2130739136;
 
     
     /** 无铭「有名」刀专属 tooltip（由 mixin 在 renderTooltip 时调用）；返回 true 表示已自行绘制。 */
-    public static boolean renderYmbladeTooltip(GuiGraphics graphics, ItemStack stack, Font font, int x, int y) {
+    public static boolean renderYmbladeTooltip(GuiGraphicsExtractor graphics, ItemStack stack, Font font, int x, int y) {
         if (!isShizukuNamedBlade(stack)) {
             return false;
         }
@@ -84,11 +84,11 @@ public class ShizukuTooltipRenderer {
         return tooltip;
     }
 
-    public static void renderCustomTooltip(GuiGraphics graphics, List<Component> components, int x, int y, Font font) {
+    public static void renderCustomTooltip(GuiGraphicsExtractor graphics, List<Component> components, int x, int y, Font font) {
         renderCustomTooltip(graphics, components, x, y, font, ICustomTooltip.TooltipType.DEFAULT);
     }
 
-    public static void renderCustomTooltip(GuiGraphics graphics, List<Component> components, int x, int y, Font font, ICustomTooltip.TooltipType tooltipType) {
+    public static void renderCustomTooltip(GuiGraphicsExtractor graphics, List<Component> components, int x, int y, Font font, ICustomTooltip.TooltipType tooltipType) {
         if (!components.isEmpty()) {
             // 3.6.0：宇宙刀（COSMIC）特殊信息框与 1.20.1 原版一致：
             // 全透明背景 + 纯白边框 + ShizukuBlade 流动渐变文字（白色带黄边霓虹位移特效）
@@ -149,7 +149,7 @@ public class ShizukuTooltipRenderer {
         }
     }
 
-    private static void renderShizukuBackground(GuiGraphics graphics, int x, int y, int width, int height) {
+    private static void renderShizukuBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         RenderSystem.setShaderTexture(0, SHIZUKU_BACKGROUND);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.enableBlend();
@@ -185,7 +185,7 @@ public class ShizukuTooltipRenderer {
         RenderSystem.disableBlend();
     }
 
-    private static void renderTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
+    private static void renderTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
         float cornerRadius = 12.0F;
@@ -223,7 +223,7 @@ public class ShizukuTooltipRenderer {
     }
 
     // 3.6.0：宇宙刀 tooltip —— 与 1.20.1 原版一致：背景全透明（不画底板），仅纯白边框
-    private static void renderCosmicTooltipBackground(GuiGraphics graphics, int x, int y, int width, int height, List<Integer> borderColors) {
+    private static void renderCosmicTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
         float cornerRadius = 12.0F;
@@ -245,7 +245,7 @@ public class ShizukuTooltipRenderer {
         poseStack.popPose();
     }
 
-    private static void renderSeparatorLine(GuiGraphics graphics, int x, int y, int width) {
+    private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
         PoseStack poseStack = graphics.pose();
         Matrix4f matrix = poseStack.last().pose();
         RenderSystem.enableBlend();
@@ -266,7 +266,7 @@ public class ShizukuTooltipRenderer {
         RenderSystem.disableBlend();
     }
 
-    private static void renderRainbowText(GuiGraphics graphics, Component component, int x, int y, Font font) {
+    private static void renderRainbowText(GuiGraphicsExtractor graphics, Component component, int x, int y, Font font) {
         graphics.drawString(font, component, x, y, -1642241, false);
     }
 

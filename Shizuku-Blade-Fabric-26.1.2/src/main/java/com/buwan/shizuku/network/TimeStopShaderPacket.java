@@ -3,12 +3,12 @@ package com.buwan.shizuku.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /** S2C：时间停止后处理着色器开关。 */
 public class TimeStopShaderPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<TimeStopShaderPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "time_stop_shader"));
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "time_stop_shader"));
     public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopShaderPacket> STREAM_CODEC =
             StreamCodec.ofMember(TimeStopShaderPacket::write, TimeStopShaderPacket::new);
 

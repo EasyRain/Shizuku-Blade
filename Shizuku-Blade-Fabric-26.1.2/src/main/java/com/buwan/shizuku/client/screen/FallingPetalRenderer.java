@@ -5,9 +5,9 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class FallingPetalRenderer {
 
     private static final Random RNG = new Random();
     private static final List<Particle> PARTICLES = new ArrayList<>();
-    private static final List<ResourceLocation> TEXTURES = new ArrayList<>();
+    private static final List<Identifier> TEXTURES = new ArrayList<>();
     private static final int MAX_VARIANTS = 8;
     private static final int PARTICLE_COUNT = 50;
     private static boolean useFallback = true;
@@ -34,7 +34,7 @@ public class FallingPetalRenderer {
         ResourceManager manager = Minecraft.getInstance().getResourceManager();
 
         for (int i = 0; i < MAX_VARIANTS; i++) {
-            ResourceLocation loc = shizuku.prefix("textures/gui/falling/petal_" + i + ".png");
+            Identifier loc = shizuku.prefix("textures/gui/falling/petal_" + i + ".png");
             if (manager.getResource(loc).isPresent()) {
                 TEXTURES.add(loc);
             }
@@ -64,7 +64,7 @@ public class FallingPetalRenderer {
         }
     }
 
-    public static void render(GuiGraphics guiGraphics, int screenWidth, int screenHeight, float partialTick) {
+    public static void render(GuiGraphicsExtractor guiGraphics, int screenWidth, int screenHeight, float partialTick) {
         if (!PARTICLES.isEmpty()) {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
@@ -104,8 +104,8 @@ public class FallingPetalRenderer {
         }
     }
 
-    private static void renderTexture(GuiGraphics guiGraphics, double x, double y, int size, float rot,
-                                      ResourceLocation tex, float alpha) {
+    private static void renderTexture(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
+                                      Identifier tex, float alpha) {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         PoseStack pose = guiGraphics.pose();
@@ -117,7 +117,7 @@ public class FallingPetalRenderer {
         pose.popPose();
     }
 
-    private static void renderFallback(GuiGraphics guiGraphics, double x, double y, int size, float rot,
+    private static void renderFallback(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
                                        int color, float alpha) {
         int a = (int) (alpha * 255.0F) & 0xFF;
         int argb = a << 24 | color & 16777215;
@@ -175,7 +175,7 @@ public class FallingPetalRenderer {
         int color;
         int texIndex;
 
-        public ResourceLocation getTexture() {
+        public Identifier getTexture() {
             return TEXTURES.isEmpty() ? null : TEXTURES.get(this.texIndex % TEXTURES.size());
         }
     }

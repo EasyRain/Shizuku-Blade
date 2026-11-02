@@ -3,14 +3,14 @@ package com.buwan.shizuku;
 
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
 
 public class SlashEffectUtils {
     public static boolean hasSpecialEffect(ItemStack stack, String effect) {
-        ResourceLocation effectLoc = ResourceLocation.tryParse(effect);
+        Identifier effectLoc = Identifier.tryParse(effect);
         if (effectLoc == null) {
             return false;
         }

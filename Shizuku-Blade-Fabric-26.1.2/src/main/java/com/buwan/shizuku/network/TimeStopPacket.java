@@ -3,7 +3,7 @@ package com.buwan.shizuku.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
@@ -11,7 +11,7 @@ import java.util.UUID;
 /** S2C：时间停止领域（添加/移除）。 */
 public class TimeStopPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<TimeStopPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "time_stop"));
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "time_stop"));
     public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopPacket> STREAM_CODEC =
             StreamCodec.ofMember(TimeStopPacket::write, TimeStopPacket::new);
 

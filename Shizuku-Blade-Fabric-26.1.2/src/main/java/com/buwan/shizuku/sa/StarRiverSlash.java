@@ -11,7 +11,7 @@ import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.util.AttackManager;
 import mods.flammpfeil.slashblade.util.InputCommand;
 import mods.flammpfeil.slashblade.util.KnockBacks;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -48,7 +48,7 @@ public class StarRiverSlash {
         return PHANTOM_ROLLS[rand.nextInt(PHANTOM_ROLLS.length)];
     }
 
-    public static ResourceLocation standbyCommand(LivingEntity user) {
+    public static Identifier standbyCommand(LivingEntity user) {
         IInputStateView view = new IInputStateView(user);
         EnumSet<InputCommand> commands = view.getCommands();
         if (commands.contains(InputCommand.R_CLICK)) {

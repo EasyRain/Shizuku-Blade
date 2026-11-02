@@ -12,7 +12,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeInput;
@@ -42,10 +42,10 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     private final int height;
     private final int tier;
     @Nullable
-    private final ResourceLocation outputBlade;
+    private final Identifier outputBlade;
 
     public ShapedTableCraftingRecipe(int width, int height, NonNullList<Ingredient> inputs, ItemStack output,
-                                     int tier, @Nullable ResourceLocation outputBlade) {
+                                     int tier, @Nullable Identifier outputBlade) {
         this.inputs = inputs;
         this.output = output;
         this.width = width;
@@ -56,7 +56,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     /** 由 pattern/key JSON 数据溶解出 1.21.1 配方实例。 */
     public static ShapedTableCraftingRecipe fromPatternData(PatternData data, ItemStack output,
-                                                            int tier, @Nullable ResourceLocation outputBlade) {
+                                                            int tier, @Nullable Identifier outputBlade) {
         List<String> rows = data.rows();
         int width = rows.isEmpty() ? 0 : rows.get(0).length();
         int height = rows.size();
@@ -215,7 +215,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                 PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r))),
                 ItemStack.CODEC.fieldOf("result").forGetter(r -> r.output),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier),
-                ResourceLocation.CODEC.optionalFieldOf("blade").forGetter(r -> Optional.ofNullable(r.outputBlade))
+                Identifier.CODEC.optionalFieldOf("blade").forGetter(r -> Optional.ofNullable(r.outputBlade))
         ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, output, tier, blade.orElse(null))));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
@@ -224,7 +224,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                 ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.CONTENTS_STREAM_CODEC), ShapedTableCraftingRecipe::getIngredients,
                 ItemStack.STREAM_CODEC, r -> r.output,
                 ByteBufCodecs.VAR_INT, r -> r.tier,
-                ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC), r -> Optional.ofNullable(r.outputBlade),
+                ByteBufCodecs.optional(Identifier.STREAM_CODEC), r -> Optional.ofNullable(r.outputBlade),
                 (width, height, inputs, output, tier, blade) ->
                         new ShapedTableCraftingRecipe(width, height, inputs, output, tier, blade.orElse(null))
         );

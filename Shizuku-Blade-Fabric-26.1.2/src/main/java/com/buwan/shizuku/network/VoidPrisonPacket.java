@@ -3,7 +3,7 @@ package com.buwan.shizuku.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
@@ -11,7 +11,7 @@ import java.util.UUID;
 /** S2C：虚空囚笼领域（添加/移除）。 */
 public class VoidPrisonPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<VoidPrisonPacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "void_prison"));
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "void_prison"));
     public static final StreamCodec<RegistryFriendlyByteBuf, VoidPrisonPacket> STREAM_CODEC =
             StreamCodec.ofMember(VoidPrisonPacket::write, VoidPrisonPacket::new);
 

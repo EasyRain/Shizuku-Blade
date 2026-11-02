@@ -1,7 +1,7 @@
 package com.buwan.shizuku.compat;
 
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.function.Supplier;
 
@@ -11,11 +11,11 @@ import java.util.function.Supplier;
  */
 public class DeferredHolder<B, T extends B> implements Supplier<T> {
     private final Registry<B> registry;
-    private final ResourceLocation id;
+    private final Identifier id;
     private final Supplier<? extends T> supplier;
     private T value;
 
-    public DeferredHolder(Registry<B> registry, ResourceLocation id, Supplier<? extends T> supplier) {
+    public DeferredHolder(Registry<B> registry, Identifier id, Supplier<? extends T> supplier) {
         this.registry = registry;
         this.id = id;
         this.supplier = supplier;
@@ -35,7 +35,7 @@ public class DeferredHolder<B, T extends B> implements Supplier<T> {
         return value;
     }
 
-    public ResourceLocation getId() {
+    public Identifier getId() {
         return id;
     }
 }

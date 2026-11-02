@@ -8,7 +8,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -220,7 +220,7 @@ public class Ymsa {
     private static DamageSource ymsaKillSource(ServerLevel level, ServerPlayer attacker) {
         try {
             ResourceKey<DamageType> key = ResourceKey.create(Registries.DAMAGE_TYPE,
-                    ResourceLocation.fromNamespaceAndPath("shizuku", "ymsa_kill"));
+                    Identifier.fromNamespaceAndPath("shizuku", "ymsa_kill"));
             return level.damageSources().source(key, attacker, attacker);
         } catch (Exception e) {
             LOGGER.debug("[SA] 自定义伤害类型 shizuku:ymsa_kill 不可用, 回退 genericKill: {}", e.toString());
@@ -332,7 +332,7 @@ public class Ymsa {
     private static void suppressRespawn(LivingEntity target, ServerPlayer player) {
         RESPAWN_TRACKER.put(target.getUUID(), new YmsaLogic.CleanupEntry(player.getUUID(), RESPAWN_TRACK_TICKS));
         if (isBossLike(target)) {
-            ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
+            Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType());
             if (key != null) {
                 TYPE_SUPPRESSION.put(key.toString(), BOSS_SUPPRESS_TICKS);
             }
@@ -348,7 +348,7 @@ public class Ymsa {
     }
 
     private static boolean isMinecraftNamespace(LivingEntity entity) {
-        ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return key != null && "minecraft".equals(key.getNamespace());
     }
 
@@ -692,7 +692,7 @@ public class Ymsa {
             if (RESPAWN_TRACKER.containsKey(living.getUUID())) {
                 return true;
             }
-            ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
+            Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
             return key != null && TYPE_SUPPRESSION.containsKey(key.toString());
         }
         return false;

@@ -16,11 +16,11 @@ import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.NotNull;
@@ -35,8 +35,8 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     public static final RecipeType<ITierCraftingRecipe> RECIPE_TYPE =
             RecipeType.create("shizuku", "shizuku_crafting_table_recipe", ITierCraftingRecipe.class);
 
-    public static final ResourceLocation GUI_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
+    public static final Identifier GUI_TEXTURE =
+            Identifier.fromNamespaceAndPath("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
 
     private static final int GUI_WIDTH = 189;
     private static final int GUI_HEIGHT = 163;
@@ -51,12 +51,12 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 Component.translatable("jei.category.shizuku.shizuku_crafting_table"),
                 guiHelper.createDrawableItemStack(new ItemStack(
                         net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                                ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku_crafting_table")))),
+                                Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table")))),
                 GUI_WIDTH, GUI_HEIGHT);
         this.background = guiHelper.createDrawable(GUI_TEXTURE, 0, 0, GUI_WIDTH, GUI_HEIGHT);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(
                 net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                        ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))));
+                        Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))));
     }
 
     @Override
@@ -142,7 +142,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     @Override
-    public void draw(ITierCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics,
+    public void draw(ITierCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor guiGraphics,
                      double mouseX, double mouseY) {
         if (recipe instanceof ShapedTableCraftingRecipe) {
             // 形状提示：标题旁显示图案尺寸

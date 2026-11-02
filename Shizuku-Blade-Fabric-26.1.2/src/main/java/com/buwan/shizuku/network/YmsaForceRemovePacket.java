@@ -3,7 +3,7 @@ package com.buwan.shizuku.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
@@ -11,7 +11,7 @@ import java.util.UUID;
 public class YmsaForceRemovePacket implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<YmsaForceRemovePacket> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath("shizuku", "ymsa_force_remove"));
+            new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "ymsa_force_remove"));
     public static final StreamCodec<RegistryFriendlyByteBuf, YmsaForceRemovePacket> STREAM_CODEC =
             new StreamCodec<>() {
                 @Override

@@ -17,7 +17,7 @@ import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.IRecipeTransferRegistration;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import org.jetbrains.annotations.NotNull;
@@ -28,10 +28,10 @@ import java.util.List;
 @JeiPlugin
 public class ShizukuJeiPlugin implements IModPlugin {
 
-    public static final ResourceLocation UID = shizuku.prefix("jei_plugin");
+    public static final Identifier UID = shizuku.prefix("jei_plugin");
 
     @Override
-    public @NotNull ResourceLocation getPluginUid() {
+    public @NotNull Identifier getPluginUid() {
         return UID;
     }
 

@@ -5,7 +5,7 @@ import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
 import mods.flammpfeil.slashblade.util.KnockBacks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -14,10 +14,10 @@ import net.minecraft.world.phys.Vec3;
 
 public class Leisa {
     private static final int PURPLE_COLOR = 10040319;
-    private static final ResourceLocation[] LEISA_SOUNDS = new ResourceLocation[]{
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound1"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound2"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "leisa_sound3")
+    private static final Identifier[] LEISA_SOUNDS = new Identifier[]{
+            Identifier.fromNamespaceAndPath("shizuku", "leisa_sound1"),
+            Identifier.fromNamespaceAndPath("shizuku", "leisa_sound2"),
+            Identifier.fromNamespaceAndPath("shizuku", "leisa_sound3")
     };
 
     public static void doLeisaSlash(LivingEntity player) {
@@ -32,7 +32,7 @@ public class Leisa {
 
     private static void playLeisaSound(LivingEntity player) {
         RandomSource random = player.getRandom();
-        ResourceLocation soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
+        Identifier soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
         SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc);
         if (sound != null) {
             player.level()

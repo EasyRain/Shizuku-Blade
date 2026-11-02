@@ -11,7 +11,7 @@ import mods.flammpfeil.slashblade.entity.EntitySlashEffect;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = SlashEffectRenderer.class, remap = false)
 public abstract class SlashEffectRendererMixin {
-    private static final ResourceLocation SLASH_MODEL = ResourceLocation.fromNamespaceAndPath("slashblade", "model/util/slash.obj");
+    private static final Identifier SLASH_MODEL = Identifier.fromNamespaceAndPath("slashblade", "model/util/slash.obj");
 
     @Inject(
             method = "render",

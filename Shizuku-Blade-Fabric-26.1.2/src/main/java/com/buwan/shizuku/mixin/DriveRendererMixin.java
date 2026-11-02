@@ -10,7 +10,7 @@ import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = DriveRenderer.class, remap = false)
 public abstract class DriveRendererMixin {
-    private static final ResourceLocation DAOGUANG_MODEL = ResourceLocation.fromNamespaceAndPath("shizuku", "model/util/daoguang.obj");
+    private static final Identifier DAOGUANG_MODEL = Identifier.fromNamespaceAndPath("shizuku", "model/util/daoguang.obj");
     private static final float DAOGUANG_SCALE = 0.02F;
 
     @Inject(

@@ -37,7 +37,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -51,8 +51,8 @@ import net.minecraft.world.item.Item;
 public class shizuku {
     public static final String MODID = "shizuku";
 
-    public static ResourceLocation prefix(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, path);
+    public static Identifier prefix(String path) {
+        return Identifier.fromNamespaceAndPath(MODID, path);
     }
 
     public static final DeferredRegister<Item> ITEMS =

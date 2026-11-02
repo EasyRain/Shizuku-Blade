@@ -1,7 +1,7 @@
 package com.buwan.shizuku.compat;
 
 import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,8 +27,8 @@ public class DeferredRegister<T> {
         return new DeferredRegister<>(registry, namespace);
     }
 
-    public ResourceLocation id(String name) {
-        return ResourceLocation.fromNamespaceAndPath(namespace, name);
+    public Identifier id(String name) {
+        return Identifier.fromNamespaceAndPath(namespace, name);
     }
 
     public <R extends T> DeferredHolder<T, R> register(String name, Supplier<R> supplier) {

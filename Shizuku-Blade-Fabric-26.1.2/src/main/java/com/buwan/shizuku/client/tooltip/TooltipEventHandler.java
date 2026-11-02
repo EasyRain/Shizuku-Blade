@@ -3,7 +3,7 @@ package com.buwan.shizuku.client.tooltip;
 import com.buwan.shizuku.util.tooltip.ICustomTooltip;
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -19,8 +19,8 @@ import java.util.List;
 
 public class TooltipEventHandler {
     
-    /** 由 mixin 在 GuiGraphics.renderTooltip(Font, ItemStack, int, int) HEAD 调用；返回 true 表示已自行绘制。 */
-    public static boolean tryRender(GuiGraphics graphics, ItemStack stack, Font font, int x, int y) {
+    /** 由 mixin 在 GuiGraphicsExtractor.renderTooltip(Font, ItemStack, int, int) HEAD 调用；返回 true 表示已自行绘制。 */
+    public static boolean tryRender(GuiGraphicsExtractor graphics, ItemStack stack, Font font, int x, int y) {
         if (stack.isEmpty()) {
             return false;
         }
@@ -35,7 +35,7 @@ public class TooltipEventHandler {
         return false;
     }
 
-    private static void renderCustomTooltip(GuiGraphics graphics, ItemStack stack, Font font, int x, int y,
+    private static void renderCustomTooltip(GuiGraphicsExtractor graphics, ItemStack stack, Font font, int x, int y,
                                             ICustomTooltip.TooltipType tooltipType) {
         List<Component> textLines = generateTooltipText(stack, font, tooltipType);
         ShizukuTooltipRenderer.renderCustomTooltip(graphics, textLines, x, y, font, tooltipType);

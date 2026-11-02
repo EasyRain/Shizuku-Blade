@@ -10,7 +10,7 @@ import mods.flammpfeil.slashblade.entity.EntityDrive;
 import mods.flammpfeil.slashblade.entity.EntityJudgementCut;
 import mods.flammpfeil.slashblade.slasharts.Drive;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -27,7 +27,7 @@ import java.util.List;
 
 public class Shizukusa {
     // 音效资源位置数组（直接使用注册名）
-    private static final ResourceLocation[] LEISA_SOUNDS = {
+    private static final Identifier[] LEISA_SOUNDS = {
             shizuku.LEISA_SOUND1.getId(),
             shizuku.LEISA_SOUND2.getId(),
             shizuku.LEISA_SOUND3.getId()
@@ -45,7 +45,7 @@ public class Shizukusa {
         // 音效播放逻辑（优化：使用资源位置直接获取）
         if (playSound) {
             RandomSource random = playerIn.getRandom();
-            ResourceLocation soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
+            Identifier soundLoc = LEISA_SOUNDS[random.nextInt(LEISA_SOUNDS.length)];
             SoundEvent sound = BuiltInRegistries.SOUND_EVENT.get(soundLoc);
 
             if (sound != null) {
