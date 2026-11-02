@@ -28,8 +28,10 @@ import com.buwan.shizuku.se.Jingxin;
 import com.buwan.shizuku.se.Leise;
 import com.buwan.shizuku.se.SERegistry;
 import com.buwan.shizuku.se.WorldsFavorite;
+import com.buwan.shizuku.server.BladeProtectorServer;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -103,6 +105,12 @@ public class shizuku {
                 Ymsa.onPlayerLoggedOut(handler.getPlayer()));
         ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) ->
                 Ymsa.onPlayerChangedDimension(player));
+
+        // 保护刀（登录/死亡时补保护标签）
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                BladeProtectorServer.onPlayerLoggedIn(handler.getPlayer()));
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) ->
+                BladeProtectorServer.onPlayerDeath(entity));
 
         // 网络 payload 注册 + 服务器实例捕获（sendToAll 用）
         PacketHandler.register();

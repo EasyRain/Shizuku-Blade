@@ -31,6 +31,8 @@ repositories {
         name = "Ladysnake Mods"
         url = 'https://maven.ladysnake.org/releases'
     }
+    // JEI
+    maven { url = 'https://maven.blamejared.com' }
 }
 
 dependencies {
@@ -50,6 +52,8 @@ dependencies {
     // Refabricated 的能力系统（CapabilityConcentrationRank 等用 CCA）
     modCompileOnly "org.ladysnake.cardinal-components-api:cardinal-components-base:6.1.2"
     modCompileOnly "org.ladysnake.cardinal-components-api:cardinal-components-entity:6.1.2"
+    // JEI（Fabric 版，compileOnly）
+    modCompileOnly "mezz.jei:jei-1.21.1-fabric-api:19.22.1.316"
 }
 
 processResources {

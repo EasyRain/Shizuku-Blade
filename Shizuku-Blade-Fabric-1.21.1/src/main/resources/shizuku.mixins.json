@@ -11,7 +11,8 @@
   ],
   "client": [
     "DriveRendererMixin",
-    "SlashEffectRendererMixin"
+    "SlashEffectRendererMixin",
+    "GuiGraphicsTooltipMixin"
   ],
   "injectors": {
     "defaultRequire": 1

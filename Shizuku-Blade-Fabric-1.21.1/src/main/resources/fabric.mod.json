@@ -18,7 +18,13 @@
     ],
     "client": [
       "com.buwan.shizuku.ShizukuFabricClient"
+    ],
+    "jei_mod_plugin": [
+      "com.buwan.shizuku.jei.ShizukuJeiPlugin"
     ]
+  },
+  "recommends": {
+    "jei": "*"
   },
   "depends": {
     "fabricloader": ">=0.17.2",
