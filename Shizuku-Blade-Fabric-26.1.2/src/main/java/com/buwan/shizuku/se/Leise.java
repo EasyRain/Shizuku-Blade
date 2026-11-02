@@ -23,7 +23,7 @@ public class Leise extends SpecialEffect {
                 && SpecialEffect.isEffective(SERegistry.LEISE.getId(), player.experienceLevel)) {
 
             if (player.tickCount % 100 == 0) {
-                player.addEffect(new MobEffectInstance(MobEffects.JUMP, 120, 1, false, false));
+                player.addEffect(new MobEffectInstance(MobEffects.JUMP_BOOST, 120, 1, false, false));
                 player.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 120, 2, false, false));
             }
         }

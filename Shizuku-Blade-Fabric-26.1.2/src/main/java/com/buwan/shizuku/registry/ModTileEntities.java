@@ -13,6 +13,8 @@ public class ModTileEntities {
 
     public static final Supplier<BlockEntityType<ShizukuCraftTile>> SHIZUKU_CRAFT_TILE = BLOCK_ENTITIES.register(
             "shizuku_craft_tile",
-            () -> BlockEntityType.Builder.of(ShizukuCraftTile::new, ModBlocks.SHIZUKU_CRAFTING_TABLE.get()).build(null)
+            // 26.1 移除了 BlockEntityType.Builder，构造器是 private（由 shizuku.accesswidener 开放）
+            () -> new BlockEntityType<>(ShizukuCraftTile::new,
+                    java.util.Set.of(ModBlocks.SHIZUKU_CRAFTING_TABLE.get()))
     );
 }

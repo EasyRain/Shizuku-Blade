@@ -12,6 +12,7 @@
   "mixins": [
     "shizuku.mixins.json"
   ],
+  "accessWidener": "shizuku.accesswidener",
   "entrypoints": {
     "main": [
       "com.buwan.shizuku.ShizukuFabric"

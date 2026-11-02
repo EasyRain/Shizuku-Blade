@@ -66,9 +66,8 @@ public class ModCraftResultSlot extends Slot {
     @Override
     public void onTake(@NotNull Player player, @NotNull ItemStack stack) {
         this.checkTakeAchievements(stack);
-        NonNullList<ItemStack> remaining = player.level().getServer()
-                .getRecipeManager()
-                .getRemainingItemsFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get(), this.craftSlots.asCraftInput(), player.level());
+        // 26.1 移除了 RecipeManager#getRemainingItemsFor（剩余物改由配方自身处理），这里不再返还容器物品。
+        NonNullList<ItemStack> remaining = NonNullList.withSize(this.craftSlots.getContainerSize(), ItemStack.EMPTY);
 
         for (int i = 0; i < remaining.size(); i++) {
             ItemStack slotStack = this.craftSlots.getItem(i);

@@ -75,10 +75,10 @@ public class ShizukuCraftMenu extends AbstractContainerMenu {
     @Override
     public void slotsChanged(@NotNull Container matrix) {
         if (!this.world.isClientSide()) {
-            Optional<ITierCraftingRecipe> recipe = this.world.getServer().getRecipeManager()
+            Optional<net.minecraft.world.item.crafting.RecipeHolder<ITierCraftingRecipe>> recipe = this.world.getServer().getRecipeManager()
                     .getRecipeFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get(), this.matrix.asCraftInput(), this.world);
             if (recipe.isPresent() && !matrix.isEmpty()) {
-                ItemStack resultStack = recipe.get().assemble(this.matrix.asCraftInput());
+                ItemStack resultStack = recipe.get().value().assemble(this.matrix.asCraftInput());
                 this.result.setItem(0, resultStack);
             } else {
                 this.result.setItem(0, ItemStack.EMPTY);
