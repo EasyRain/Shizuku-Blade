@@ -93,7 +93,8 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         }
 
         builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X, OUTPUT_Y)
-                .addItemStack(recipe.getResultItem(access));
+                // 产物同样要规范化：直接 getResultItem 会带出旧注册表的附魔 Holder
+                .addItemStack(com.buwan.shizuku.util.BladeStacks.canonical(recipe.getResultItem(access), access));
     }
 
     /** {@code SlashBladeIngredient#request}（私有字段，无 getter）。 */

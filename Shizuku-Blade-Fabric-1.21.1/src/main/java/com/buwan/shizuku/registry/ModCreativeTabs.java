@@ -53,7 +53,11 @@ public final class ModCreativeTabs {
     }
 
     private static void fill(FabricItemGroupEntries entries) {
-        RegistryAccess access = PacketHandler.registryAccess();
+        // 注意：必须用“客户端”的注册表。单人游戏下 PacketHandler.registryAccess() 给的是
+        // 服务端实例，而 set_creative_mode_slot 的编码用的是客户端实例，两者不是同一个对象，
+        // 用它重建出来的附魔 Holder 依旧不可编码（会继续掉线）。
+        net.minecraft.client.multiplayer.ClientLevel level = net.minecraft.client.Minecraft.getInstance().level;
+        RegistryAccess access = level != null ? level.registryAccess() : PacketHandler.registryAccess();
         if (access != null) {
             access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY).entrySet().stream()
                     .filter(e -> e.getKey().location().getNamespace().equals("shizuku"))

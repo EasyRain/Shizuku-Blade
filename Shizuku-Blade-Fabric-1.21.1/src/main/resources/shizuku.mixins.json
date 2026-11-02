@@ -12,6 +12,8 @@
   "client": [
     "DriveRendererMixin",
     "SlashEffectRendererMixin",
+    "AbstractContainerScreenAccessor",
+    "AbstractContainerScreenTooltipMixin",
     "ItemRendererGuiMixin",
     "GuiGraphicsTooltipMixin"
   ],
