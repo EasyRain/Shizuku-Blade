@@ -14,6 +14,7 @@ loom {
     mixin {
         defaultRefmapName = "shizuku.refmap.json"
     }
+    accessWidenerPath = file("src/main/resources/shizuku.accesswidener")
 }
 
 repositories {

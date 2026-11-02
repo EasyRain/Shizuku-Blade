@@ -5,8 +5,8 @@ import com.buwan.shizuku.menu.ShizukuCraftMenu;
 import com.buwan.shizuku.registry.ModTileEntities;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class ShizukuCraftTile extends BlockEntity implements MenuProvider, ExtendedScreenHandlerFactory<BlockPos> {
+public class ShizukuCraftTile extends BlockEntity implements MenuProvider, ExtendedScreenHandlerFactory {
 
     public static final int GRID = 9;
     public static final int SLOT_COUNT = 81;
@@ -38,8 +38,8 @@ public class ShizukuCraftTile extends BlockEntity implements MenuProvider, Exten
     }
 
     @Override
-    public BlockPos getScreenOpeningData(ServerPlayer player) {
-        return this.getBlockPos();
+    public void writeScreenOpeningData(ServerPlayer player, FriendlyByteBuf buf) {
+        buf.writeBlockPos(this.getBlockPos());
     }
 
     @Nullable
@@ -49,14 +49,14 @@ public class ShizukuCraftTile extends BlockEntity implements MenuProvider, Exten
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        this.inventory.deserializeNBT(registries, tag.getCompound("Inventory"));
+    protected void load(CompoundTag tag) {
+        super.load(tag);
+        this.inventory.deserializeNBT(tag.getCompound("Inventory"));
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
-        tag.put("Inventory", this.inventory.serializeNBT(registries));
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        tag.put("Inventory", this.inventory.serializeNBT());
     }
 }

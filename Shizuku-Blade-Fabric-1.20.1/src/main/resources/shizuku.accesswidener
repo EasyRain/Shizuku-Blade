@@ -1,0 +1,8 @@
+accessWidener v2 named
+
+# 1.20.1 中这些渲染状态内部类是 protected（1.21.1 才公开）
+accessible class net/minecraft/client/renderer/RenderStateShard$EmptyTextureStateShard
+accessible class net/minecraft/client/renderer/RenderStateShard$ShaderStateShard
+accessible class net/minecraft/client/renderer/RenderStateShard$TextureStateShard
+accessible class net/minecraft/client/renderer/RenderType$CompositeState
+accessible class net/minecraft/client/renderer/RenderType$CompositeState$CompositeStateBuilder

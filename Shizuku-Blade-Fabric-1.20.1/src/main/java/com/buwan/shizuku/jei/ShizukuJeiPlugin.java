@@ -19,7 +19,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -44,12 +43,8 @@ public class ShizukuJeiPlugin implements IModPlugin {
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
         ClientLevel world = Minecraft.getInstance().level;
         if (world != null) {
-            List<RecipeHolder<ITierCraftingRecipe>> holders = world.getRecipeManager()
+            List<ITierCraftingRecipe> recipes = world.getRecipeManager()
                     .getAllRecipesFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get());
-            List<ITierCraftingRecipe> recipes = new ArrayList<>();
-            for (RecipeHolder<ITierCraftingRecipe> holder : holders) {
-                recipes.add(holder.value());
-            }
             registration.addRecipes(ShizukuCraftingTableCategory.RECIPE_TYPE, recipes);
         }
     }

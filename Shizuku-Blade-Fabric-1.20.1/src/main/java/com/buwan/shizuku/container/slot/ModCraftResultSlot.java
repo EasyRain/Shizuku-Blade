@@ -68,7 +68,7 @@ public class ModCraftResultSlot extends Slot {
         this.checkTakeAchievements(stack);
         NonNullList<ItemStack> remaining = player.level()
                 .getRecipeManager()
-                .getRemainingItemsFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get(), this.craftSlots.asCraftInput(), player.level());
+                .getRemainingItemsFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get(), this.craftSlots, player.level());
 
         for (int i = 0; i < remaining.size(); i++) {
             ItemStack slotStack = this.craftSlots.getItem(i);
