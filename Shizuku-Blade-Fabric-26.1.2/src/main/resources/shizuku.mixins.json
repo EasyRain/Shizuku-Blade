@@ -11,7 +11,8 @@
   ],
   "client": [
     "AbstractContainerScreenAccessor",
-    "AbstractContainerScreenTooltipMixin"
+    "AbstractContainerScreenTooltipMixin",
+    "GuiGraphicsExtractorAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

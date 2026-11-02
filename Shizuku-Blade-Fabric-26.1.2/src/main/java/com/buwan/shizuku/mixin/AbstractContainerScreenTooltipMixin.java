@@ -16,9 +16,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * 自定义 tooltip（容器界面路径）。
  *
  * <p>26.1 的容器界面走 {@code AbstractContainerScreen#extractTooltip(GuiGraphicsExtractor, int, int)}，
- * 它最终调用 {@code setTooltipForNextFrame(Font, List, Optional, ...)} —— 那里已经没有 ItemStack，
- * 所以挂在 {@code setTooltipForNextFrame(Font, ItemStack, int, int)} 上的 mixin 永远不会触发
- * （该方法在 26.1 里没有调用者）。这里从 {@code hoveredSlot} 取当前物品，自行绘制并取消原版渲染。</p>
+ * 它最终调用不带 ItemStack 的 {@code setTooltipForNextFrame} 重载，所以挂在带 ItemStack 重载上的
+ * mixin 不会触发。这里从 {@code hoveredSlot} 取物品自行绘制。</p>
+ *
+ * <p><b>关键</b>：原版 tooltip 是延迟到帧末绘制的（{@code setTooltipForNextFrame} 只存一个 Runnable），
+ * 因此不受容器界面残留 scissor 的影响；我们如果在 HEAD 里立即绘制，面板/边框会被容器裁剪区切掉
+ * （表现为边框缺一半、四角不一致）。所以这里同样把绘制动作塞进 {@code deferredTooltip}。</p>
  */
 @Mixin(AbstractContainerScreen.class)
 public abstract class AbstractContainerScreenTooltipMixin {
@@ -36,9 +39,13 @@ public abstract class AbstractContainerScreenTooltipMixin {
         }
         ItemStack stack = hovered.getItem();
         var font = Minecraft.getInstance().font;
-        if (TooltipEventHandler.tryRender(graphics, stack, font, mouseX, mouseY)
-                || ShizukuTooltipRenderer.renderYmbladeTooltip(graphics, stack, font, mouseX, mouseY)) {
-            ci.cancel();
+        if (!TooltipEventHandler.handles(stack)) {
+            return;
         }
+        ((GuiGraphicsExtractorAccessor) graphics).shizuku$setDeferredTooltip(() -> {
+            TooltipEventHandler.tryRender(graphics, stack, font, mouseX, mouseY);
+            ShizukuTooltipRenderer.renderYmbladeTooltip(graphics, stack, font, mouseX, mouseY);
+        });
+        ci.cancel();
     }
 }

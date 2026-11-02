@@ -54,8 +54,18 @@ public abstract class JeiRenderHelperMixin {
         }
     }
 
+    /**
+     * 与容器路径一致：把绘制延迟到帧末（{@code deferredTooltip}），
+     * 避免被 JEI 当时的 scissor 裁剪。
+     */
     private static boolean shizuku$tryRender(GuiGraphicsExtractor graphics, ItemStack stack, Font font, int x, int y) {
-        return TooltipEventHandler.tryRender(graphics, stack, font, x, y)
-                || ShizukuTooltipRenderer.renderYmbladeTooltip(graphics, stack, font, x, y);
+        if (!TooltipEventHandler.handles(stack)) {
+            return false;
+        }
+        ((com.buwan.shizuku.mixin.GuiGraphicsExtractorAccessor) graphics).shizuku$setDeferredTooltip(() -> {
+            TooltipEventHandler.tryRender(graphics, stack, font, x, y);
+            ShizukuTooltipRenderer.renderYmbladeTooltip(graphics, stack, font, x, y);
+        });
+        return true;
     }
 }

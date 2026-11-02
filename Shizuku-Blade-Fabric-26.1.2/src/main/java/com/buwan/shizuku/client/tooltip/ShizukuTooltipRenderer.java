@@ -53,7 +53,8 @@ public class ShizukuTooltipRenderer {
         return true;
     }
 
-    private static boolean isShizukuNamedBlade(ItemStack stack) {
+    /** 是否为「有名」命名刀（需要自定义信息框）。 */
+    public static boolean isShizukuNamedBlade(ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
         }

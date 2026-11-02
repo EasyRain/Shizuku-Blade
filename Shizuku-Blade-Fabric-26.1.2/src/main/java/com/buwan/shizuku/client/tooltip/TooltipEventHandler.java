@@ -20,6 +20,20 @@ import java.util.List;
 public class TooltipEventHandler {
     
     /** 由 mixin 在 GuiGraphicsExtractor.renderTooltip(Font, ItemStack, int, int) HEAD 调用；返回 true 表示已自行绘制。 */
+    /** 该物品是否有自定义 tooltip（不绘制，只判断）。 */
+    public static boolean handles(ItemStack stack) {
+        return tryRenderProbe(stack);
+    }
+
+    private static boolean tryRenderProbe(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+        return stack.getItem() instanceof ICustomTooltip
+                || isShizukuNamedBlade(stack)
+                || ShizukuTooltipRenderer.isShizukuNamedBlade(stack);
+    }
+
     public static boolean tryRender(GuiGraphicsExtractor graphics, ItemStack stack, Font font, int x, int y) {
         if (stack.isEmpty()) {
             return false;
