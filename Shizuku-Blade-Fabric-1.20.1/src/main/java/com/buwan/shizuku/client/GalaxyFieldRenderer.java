@@ -1,14 +1,20 @@
 package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.client.shader.CosmicShaders;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.Vec3;
 
 
@@ -68,7 +74,6 @@ public final class GalaxyFieldRenderer {
                         if (mc.level != null && mc.player != null) {
                             Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
                             PoseStack poseStack = event.getPoseStack();
-                            MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 
                             for (Map.Entry<UUID, ZoneData> entry : activeZones.entrySet()) {
                                 Player owner = mc.level.getPlayerByUUID(entry.getKey());
@@ -76,17 +81,70 @@ public final class GalaxyFieldRenderer {
                                     ZoneData zone = entry.getValue();
                                     poseStack.pushPose();
                                     poseStack.translate(owner.getX() - cam.x, owner.getY() - cam.y, owner.getZ() - cam.z);
-                                    drawDisk(buffers, zone, poseStack.last().pose(), false);
+                                    // 立即绘制（与时停/囚牢球一致）：缓冲源的几何可能被引擎在别的时刻冲刷，
+                                    // 那时矩阵/状态不是我们写入时的，圆盘会错位、被斜切、甚至“飞上天”。
+                                    drawDiskImmediate(poseStack.last().pose(), zone);
                                     poseStack.popPose();
                                 }
                             }
-
-                            buffers.endBatch(CosmicShaders.COSMIC_RENDER_TYPE);
                         }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * 世界阶段立即绘制圆盘。
+     * 状态照抄 {@link CosmicShaders#COSMIC_RENDER_TYPE}：加色混合、不剔除、不写深度、绑方块图集。
+     */
+    private static void drawDiskImmediate(Matrix4f mat, ZoneData zone) {
+        float alpha = Math.min(1.0F, (float) zone.ageTicks / 4.0F) * 0.75F;
+        if (alpha <= 0.01F) {
+            return;
+        }
+        if (!CosmicShaders.prepareCosmicRender(alpha, false)) {
+            return;
+        }
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
+        RenderSystem.disableCull();
+        RenderSystem.depthMask(false);
+        RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
+        RenderSystem.setShaderTexture(1, InventoryMenu.BLOCK_ATLAS);
+        RenderSystem.setShader(() -> CosmicShaders.COSMIC_SHADER);
+
+        BufferBuilder builder = com.buwan.shizuku.compat.TesselatorCompat.begin(
+                VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.NEW_ENTITY);
+        float radius = zone.radius;
+        float y = 0.05F;
+        int segments = 48;
+        for (int i = 0; i < segments; i++) {
+            double a0 = (Math.PI * 2) * (double) i / (double) segments;
+            double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
+            float x0 = (float) (Math.cos(a0) * (double) radius);
+            float z0 = (float) (Math.sin(a0) * (double) radius);
+            float x1 = (float) (Math.cos(a1) * (double) radius);
+            float z1 = (float) (Math.sin(a1) * (double) radius);
+            vertex(builder, mat, x0, y, z0, alpha);
+            vertex(builder, mat, x1, y, z1, alpha);
+            vertex(builder, mat, 0.0F, y, 0.0F, alpha);
+        }
+        BufferUploader.drawWithShader(builder.end());
+
+        RenderSystem.depthMask(true);
+        RenderSystem.enableCull();
+        RenderSystem.disableBlend();
+    }
+
+    private static void vertex(BufferBuilder builder, Matrix4f mat, float x, float y, float z, float alpha) {
+        builder.vertex(mat, x, y, z)
+                .color(1.0F, 1.0F, 1.0F, alpha)
+                .uv(0.0F, 0.0F)
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(15728880)
+                .normal(0.0F, 1.0F, 0.0F)
+                .endVertex();
     }
 
     /**
