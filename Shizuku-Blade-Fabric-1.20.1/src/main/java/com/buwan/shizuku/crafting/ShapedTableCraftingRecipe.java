@@ -129,6 +129,11 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return this.height;
     }
 
+    /** 配方 JSON 的 {@code blade} 字段（不指定则为 null）。JEI 等展示场景需要它来解析真实产物。 */
+    public ResourceLocation getOutputBlade() {
+        return this.outputBlade;
+    }
+
     @Override
     @NotNull
     public ItemStack getResultItem(@NotNull RegistryAccess access) {

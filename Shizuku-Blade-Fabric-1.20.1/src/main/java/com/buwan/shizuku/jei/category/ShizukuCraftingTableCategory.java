@@ -25,6 +25,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -93,7 +95,23 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         }
 
         builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X, OUTPUT_Y)
-                .addItemStack(recipe.getResultItem(access));
+                .addItemStack(resolveOutput(recipe, access));
+    }
+
+    /**
+     * 解析配方产物。
+     * 只调 {@code getResultItem()} 在 JEI 里会拿到未加载命名刀的占位栈（显示为"无铭"、伤害数值溢出），
+     * 所以带 {@code blade} 字段的配方直接按 id 从命名刀注册表取完整刀。
+     */
+    private static ItemStack resolveOutput(ITierCraftingRecipe recipe, RegistryAccess access) {
+        if (recipe instanceof ShapedTableCraftingRecipe shaped && shaped.getOutputBlade() != null) {
+            SlashBladeDefinition def = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)
+                    .get(shaped.getOutputBlade());
+            if (def != null) {
+                return def.getBlade();
+            }
+        }
+        return recipe.getResultItem(access);
     }
 
     /**
@@ -115,29 +133,39 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     private static ItemStack resolveNamedBlade(Ingredient ingredient, RegistryAccess access) {
-        ItemStack[] items = ingredient.getItems();
-        ItemStack plain = items.length > 0 ? items[0] : ItemStack.EMPTY;
-        if (plain.getItem() instanceof ItemSlashBlade) {
+        // 关键：CustomIngredient（slashblade:blade）的栈只能从 getMatchingStacks() 拿，
+        // ingredient.getItems() 对自定义配料常常是空的 —— 那样就匹配不到命名刀，退回"无铭"占位刀。
+        List<ItemStack> candidates = new ArrayList<>();
+        if (ingredient.getCustomIngredient() != null) {
+            candidates.addAll(ingredient.getCustomIngredient().getMatchingStacks());
+        }
+        Collections.addAll(candidates, ingredient.getItems());
+
+        for (ItemStack plain : candidates) {
+            if (!(plain.getItem() instanceof ItemSlashBlade)) {
+                continue;
+            }
             String key = CapabilitySlashBlade.BLADESTATE.maybeGet(plain).map(ISlashBladeState::getTranslationKey).orElse("");
-            if (!key.isBlank()) {
-                for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
-                    ItemStack defStack = def.getBlade();
-                    String defKey = CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
-                    if (key.equals(defKey)) {
-                        // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
-                        // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
-                        ItemStack display = plain.copy();
-                        CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).ifPresent(defState ->
-                                CapabilitySlashBlade.BLADESTATE.maybeGet(display).ifPresent(displayState -> {
-                                    defState.getModel().ifPresent(displayState::setModel);
-                                    defState.getTexture().ifPresent(displayState::setTexture);
-                                }));
-                        return display;
-                    }
+            if (key.isBlank()) {
+                continue;
+            }
+            for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
+                ItemStack defStack = def.getBlade();
+                String defKey = CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
+                if (key.equals(defKey)) {
+                    // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
+                    // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
+                    ItemStack display = plain.copy();
+                    CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).ifPresent(defState ->
+                            CapabilitySlashBlade.BLADESTATE.maybeGet(display).ifPresent(displayState -> {
+                                defState.getModel().ifPresent(displayState::setModel);
+                                defState.getTexture().ifPresent(displayState::setTexture);
+                            }));
+                    return display;
                 }
             }
         }
-        return plain;
+        return ItemStack.EMPTY;
     }
 
     @Override
