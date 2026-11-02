@@ -1,0 +1,83 @@
+plugins {
+    id 'fabric-loom' version '1.11.8'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    mixin {
+        defaultRefmapName = "shizuku.refmap.json"
+    }
+}
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dir 'libs'
+    }
+    // forgeconfigapiport（Refabricated 也依赖它；SlashBladeConfig 用到 ModConfigSpec）
+    maven {
+        name = "Fuzs Mod Resources"
+        url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+    }
+    // Cardinal Components（1.20.1 用 dev.onyxstudios 组）
+    maven {
+        name = "Ladysnake Mods"
+        url = 'https://maven.ladysnake.org/releases'
+    }
+    // JEI
+    maven { url = 'https://maven.blamejared.com' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // 与 Refabricated 一致使用 Mojang 官方映射
+    mappings loom.layered() {
+        officialMojangMappings()
+    }
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // 前置：社区 Fabric 版拔刀剑（SlashBlade: Refabricated 1.20.1）
+    modCompileOnly files("libs/SlashBlade-Refabricated-${slashblade_version}.jar")
+    // Refabricated 的配置依赖
+    modCompileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:8.0.2"
+    // Refabricated 的能力系统（1.20.1：CCA 5.x，dev.onyxstudios 组）
+    modCompileOnly "dev.onyxstudios.cardinal-components-api:cardinal-components-base:5.2.3"
+    modCompileOnly "dev.onyxstudios.cardinal-components-api:cardinal-components-entity:5.2.3"
+    // JEI（1.20.1 Fabric 版，compileOnly）
+    modCompileOnly "mezz.jei:jei-1.20.1-fabric-api:15.20.0.105"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+def targetJavaVersion = 17
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release.set(targetJavaVersion)
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+    archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.minecraft_version}-fabric.jar"
+}
