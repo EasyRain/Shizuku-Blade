@@ -1,133 +1,57 @@
 package com.buwan.shizuku.client.shader;
 
 import com.buwan.shizuku.shizuku;
-import com.mojang.blaze3d.shaders.AbstractUniform;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 
 import java.util.function.Function;
 
 /**
- * 宇宙刀着色器（Fabric 版）。
+ * 宇宙刀着色器（26.1 降级实现）。
  *
- * 与 NeoForge 版的差异：Fabric 没有 {@code RegisterShadersEvent}，
- * 这里用公开构造器 {@code ShaderInstance(ResourceProvider, id, format)} 懒创建，
- * 图集 sprite 也在首次使用时从 BLOCK_ATLAS 懒取。
+ * <p>1.21.1 用 {@code ShaderInstance} + {@code RenderStateShard} 做自定义星空纹理动画；
+ * 26.1 移除了这套 API（改由 {@code RenderPipeline} + 资源文件定义），
+ * 这里改用现成的 {@link RenderTypes}（图集半透明），宇宙刀仍可正常渲染，
+ * 仅失去星空流动特效。</p>
  */
 public final class CosmicShaders {
 
-    /** 10 个星图 sprite 的 UV 矩阵（每个 mat2 两列：u0/v0, u1/v1） */
+    /** 10 个星图 sprite 的 UV 矩阵（保留字段以兼容调用方）。 */
     public static final float[] COSMIC_UVS = new float[40];
     public static final TextureAtlasSprite[] COSMIC_SPRITES = new TextureAtlasSprite[10];
-    public static ShaderInstance COSMIC_SHADER;
-    public static AbstractUniform cosmicTime;
-    public static AbstractUniform cosmicYaw;
-    public static AbstractUniform cosmicPitch;
-    public static AbstractUniform cosmicExternalScale;
-    public static AbstractUniform cosmicOpacity;
-    public static AbstractUniform cosmicUVs;
+    /** 26.1 无 ShaderInstance，保留非空占位让调用方的 null 检查通过。 */
+    public static final Object COSMIC_SHADER = new Object();
     public static boolean inventoryRender = false;
     public static final String COSMIC_BLADE_KEY = "item.shizuku.mosmicblade";
 
+    /** 宇宙刀使用图集半透明类型（原自定义着色器管线已不可用）。 */
+    public static final RenderType COSMIC_RENDER_TYPE =
+            RenderTypes.entityTranslucent(TextureAtlas.LOCATION_BLOCKS);
+
+    /** 星河领域圆盘使用无贴图彩色四边形（原 no-depth 自定义类型已不可用）。 */
+    public static final RenderType COSMIC_RENDER_TYPE_NO_DEPTH =
+            RenderTypes.debugQuads();
+
     private static boolean spritesLoaded = false;
-
-    private static final RenderStateShard.EmptyTextureStateShard COSMIC_TEXTURE_ISOLATED =
-            new RenderStateShard.EmptyTextureStateShard(() -> {
-                RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
-                RenderSystem.setShaderTexture(1, InventoryMenu.BLOCK_ATLAS);
-            }, () -> {
-            });
-
-    public static final RenderType COSMIC_RENDER_TYPE = RenderType.create(
-            "shizuku_cosmic",
-            DefaultVertexFormat.POSITION_TEX,
-            VertexFormat.Mode.TRIANGLES,
-            4096,
-            false,
-            false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(new RenderStateShard.ShaderStateShard(CosmicShaders::ensureShader))
-                    .setDepthTestState(RenderStateShard.LEQUAL_DEPTH_TEST)
-                    .setTransparencyState(RenderStateShard.LIGHTNING_TRANSPARENCY)
-                    .setCullState(RenderStateShard.NO_CULL)
-                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-                    .setTextureState(COSMIC_TEXTURE_ISOLATED)
-                    .createCompositeState(false)
-    );
-
-    public static final RenderType COSMIC_RENDER_TYPE_NO_DEPTH = RenderType.create(
-            "shizuku_cosmic_no_depth",
-            DefaultVertexFormat.POSITION_TEX,
-            VertexFormat.Mode.TRIANGLES,
-            4096,
-            false,
-            false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(new RenderStateShard.ShaderStateShard(CosmicShaders::ensureShader))
-                    .setDepthTestState(RenderStateShard.NO_DEPTH_TEST)
-                    .setTransparencyState(RenderStateShard.LIGHTNING_TRANSPARENCY)
-                    .setCullState(RenderStateShard.NO_CULL)
-                    .setWriteMaskState(RenderStateShard.COLOR_WRITE)
-                    .setTextureState(COSMIC_TEXTURE_ISOLATED)
-                    .createCompositeState(false)
-    );
 
     private CosmicShaders() {
     }
 
-    /** 懒创建着色器；失败返回 null（调用方据此跳过渲染）。 */
-    public static ShaderInstance ensureShader() {
-        if (COSMIC_SHADER == null) {
-            try {
-                Minecraft mc = Minecraft.getInstance();
-                if (mc == null || mc.getResourceManager() == null) {
-                    return null;
-                }
-                COSMIC_SHADER = new ShaderInstance(mc.getResourceManager(),
-                        shizuku.prefix("cosmic").toString(), DefaultVertexFormat.POSITION_TEX);
-                cosmicTime = COSMIC_SHADER.safeGetUniform("time");
-                cosmicYaw = COSMIC_SHADER.safeGetUniform("yaw");
-                cosmicPitch = COSMIC_SHADER.safeGetUniform("pitch");
-                cosmicExternalScale = COSMIC_SHADER.safeGetUniform("externalScale");
-                cosmicOpacity = COSMIC_SHADER.safeGetUniform("opacity");
-                cosmicUVs = COSMIC_SHADER.safeGetUniform("cosmicuvs");
-            } catch (Exception e) {
-                return null;
-            }
-        }
+    /** 26.1 无需在代码里创建 ShaderInstance，保留方法供调用方兼容。 */
+    public static Object ensureShader() {
         return COSMIC_SHADER;
     }
 
-    /** 首次使用时从方块图集取 cosmic_0..9 的 UV。 */
+    /** 26.1 移除了 Minecraft#getTextureAtlas，星空 UV 不再参与渲染，这里仅置标记。 */
     private static void ensureSprites() {
-        if (spritesLoaded) {
-            return;
-        }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc == null) {
-            return;
-        }
-        Function<Identifier, TextureAtlasSprite> atlas = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS);
-        for (int i = 0; i < COSMIC_SPRITES.length; i++) {
-            TextureAtlasSprite sprite = atlas.apply(shizuku.prefix("item/misc/cosmic_" + i));
-            COSMIC_SPRITES[i] = sprite;
-            COSMIC_UVS[i * 4] = sprite.getU0();
-            COSMIC_UVS[i * 4 + 1] = sprite.getV0();
-            COSMIC_UVS[i * 4 + 2] = sprite.getU1();
-            COSMIC_UVS[i * 4 + 3] = sprite.getV1();
-        }
         spritesLoaded = true;
     }
 
@@ -136,42 +60,14 @@ public final class CosmicShaders {
     }
 
     /**
-     * @param fixedView true=GUI 固定视角（yaw/pitch 归零、scale 100）；false=跟随玩家视角（世界特效）
+     * @param fixedView true=GUI 固定视角；false=跟随玩家视角（世界特效）
      */
     public static boolean prepareCosmicRender(float opacity, boolean fixedView) {
-        if (ensureShader() == null) {
-            return false;
-        }
-        ensureSprites();
-        if (cosmicTime == null || cosmicYaw == null || cosmicPitch == null
-                || cosmicExternalScale == null || cosmicOpacity == null) {
-            return false;
-        }
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) {
             return false;
         }
-        float yaw;
-        float pitch;
-        float scale;
-        if (fixedView) {
-            scale = 100.0F;
-            yaw = 0.0F;
-            pitch = 0.0F;
-        } else {
-            scale = 1.0F;
-            yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
-            pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
-        }
-
-        cosmicTime.set((float) (mc.level.getGameTime() % 2147483647L));
-        cosmicYaw.set(yaw);
-        cosmicPitch.set(pitch);
-        cosmicExternalScale.set(scale);
-        cosmicOpacity.set(opacity);
-        if (cosmicUVs != null) {
-            cosmicUVs.set(COSMIC_UVS);
-        }
+        ensureSprites();
         return true;
     }
 
