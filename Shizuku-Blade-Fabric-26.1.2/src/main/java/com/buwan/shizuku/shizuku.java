@@ -38,7 +38,9 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -63,12 +65,15 @@ public class shizuku {
 
     /** 喵石（击杀敌对生物 1% 掉落）。 */
     public static final DeferredHolder<Item, Item> MEOW_STONE = ITEMS.register("meow_stone",
-            () -> new MeowStoneItem(new Item.Properties()));
+            // 26.1 起 Item.Properties 同样要求构造前绑定 id（写法参照前置 mod 的 SBItems）
+            () -> new MeowStoneItem(new Item.Properties()
+                    .setId(ResourceKey.create(Registries.ITEM, prefix("meow_stone")))));
 
     /** 雫工作台物品。 */
     public static final DeferredHolder<Item, Item> SHIZUKU_CRAFTING_TABLE_ITEM = ITEMS.register(
             "shizuku_crafting_table",
-            () -> new BlockItem(ModBlocks.SHIZUKU_CRAFTING_TABLE.get(), new Item.Properties()));
+            () -> new BlockItem(ModBlocks.SHIZUKU_CRAFTING_TABLE.get(), new Item.Properties()
+                    .setId(ResourceKey.create(Registries.ITEM, prefix("shizuku_crafting_table")))));
 
     public static final DeferredHolder<SoundEvent, SoundEvent> LEISA_SOUND1 = registerSound("leisa_sound1");
     public static final DeferredHolder<SoundEvent, SoundEvent> LEISA_SOUND2 = registerSound("leisa_sound2");
