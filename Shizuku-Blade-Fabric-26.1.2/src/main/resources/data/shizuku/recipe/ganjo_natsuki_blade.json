@@ -3,21 +3,12 @@
   "blade": "shizuku:ganjo_natsuki_blade",
   "category": "equipment",
   "key": {
-    "A": {
-      "item": "minecraft:netherite_block"
-    },
-    "B": {
-      "item": "minecraft:diamond_block"
-    },
-    "C": {
-      "item": "minecraft:netherite_block"
-    },
-    "D": {
-      "item": "minecraft:netherite_block"
-    },
+    "A": "minecraft:netherite_block",
+    "B": "minecraft:diamond_block",
+    "C": "minecraft:netherite_block",
+    "D": "minecraft:netherite_block",
     "S": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 1000,
         "proud_soul": 5000,
@@ -28,18 +19,10 @@
         "slashblade:slashblade"
       ]
     },
-    "E": {
-      "item": "minecraft:netherite_block"
-    },
-    "F": {
-      "item": "minecraft:netherite_block"
-    },
-    "G": {
-      "item": "minecraft:diamond_block"
-    },
-    "H": {
-      "item": "minecraft:netherite_block"
-    }
+    "E": "minecraft:netherite_block",
+    "F": "minecraft:netherite_block",
+    "G": "minecraft:diamond_block",
+    "H": "minecraft:netherite_block"
   },
   "pattern": [
     "ABC",

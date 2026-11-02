@@ -5,7 +5,6 @@
   "key": {
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 800,
         "proud_soul": 3500,
@@ -16,30 +15,14 @@
         "slashblade:slashblade"
       ]
     },
-    "A": {
-      "item": "minecraft:clock"
-    },
-    "B": {
-      "item": "shizuku:meow_stone"
-    },
-    "C": {
-      "item": "minecraft:redstone_block"
-    },
-    "D": {
-      "item": "minecraft:gold_block"
-    },
-    "G": {
-      "item": "minecraft:nether_star"
-    },
-    "H": {
-      "item": "minecraft:netherite_ingot"
-    },
-    "K": {
-      "item": "minecraft:end_crystal"
-    },
-    "F": {
-      "item": "minecraft:yellow_wool"
-    }
+    "A": "minecraft:clock",
+    "B": "shizuku:meow_stone",
+    "C": "minecraft:redstone_block",
+    "D": "minecraft:gold_block",
+    "G": "minecraft:nether_star",
+    "H": "minecraft:netherite_ingot",
+    "K": "minecraft:end_crystal",
+    "F": "minecraft:yellow_wool"
   },
   "pattern": [
     "ABH",

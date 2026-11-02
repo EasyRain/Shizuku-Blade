@@ -5,7 +5,6 @@
   "key": {
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 850,
         "proud_soul": 3800,
@@ -16,30 +15,14 @@
         "slashblade:slashblade"
       ]
     },
-    "A": {
-      "item": "minecraft:obsidian"
-    },
-    "B": {
-      "item": "shizuku:meow_stone"
-    },
-    "C": {
-      "item": "minecraft:crying_obsidian"
-    },
-    "D": {
-      "item": "minecraft:gold_block"
-    },
-    "G": {
-      "item": "minecraft:end_stone"
-    },
-    "H": {
-      "item": "minecraft:netherite_ingot"
-    },
-    "K": {
-      "item": "minecraft:dragon_breath"
-    },
-    "F": {
-      "item": "minecraft:black_wool"
-    }
+    "A": "minecraft:obsidian",
+    "B": "shizuku:meow_stone",
+    "C": "minecraft:crying_obsidian",
+    "D": "minecraft:gold_block",
+    "G": "minecraft:end_stone",
+    "H": "minecraft:netherite_ingot",
+    "K": "minecraft:dragon_breath",
+    "F": "minecraft:black_wool"
   },
   "pattern": [
     "ABH",

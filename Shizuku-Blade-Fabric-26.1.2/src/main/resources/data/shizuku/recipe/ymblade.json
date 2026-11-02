@@ -16,7 +16,6 @@
   "key": {
     "A": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -26,7 +25,6 @@
     },
     "B": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -36,7 +34,6 @@
     },
     "C": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -46,7 +43,6 @@
     },
     "D": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -56,7 +52,6 @@
     },
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -66,7 +61,6 @@
     },
     "F": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -76,7 +70,6 @@
     },
     "G": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -86,7 +79,6 @@
     },
     "H": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -96,7 +88,6 @@
     },
     "I": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -106,7 +97,6 @@
     },
     "J": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -116,7 +106,6 @@
     },
     "S": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
@@ -124,15 +113,9 @@
         "name": "shizuku:shizuku"
       }
     },
-    "M": {
-      "item": "minecraft:diamond_block"
-    },
-    "N": {
-      "item": "minecraft:netherite_block"
-    },
-    "X": {
-      "item": "minecraft:dragon_egg"
-    }
+    "M": "minecraft:diamond_block",
+    "N": "minecraft:netherite_block",
+    "X": "minecraft:dragon_egg"
   },
   "result": {
     "id": "slashblade:slashblade",

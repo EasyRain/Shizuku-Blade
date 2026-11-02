@@ -5,7 +5,6 @@
   "key": {
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 1000,
         "proud_soul": 5000,
@@ -16,30 +15,14 @@
         "slashblade:slashblade"
       ]
     },
-    "A": {
-      "item": "minecraft:diamond_block"
-    },
-    "B": {
-      "item": "shizuku:meow_stone"
-    },
-    "C": {
-      "item": "minecraft:coal_block"
-    },
-    "D": {
-      "item": "minecraft:gold_block"
-    },
-    "G": {
-      "item": "minecraft:blue_orchid"
-    },
-    "H": {
-      "item": "minecraft:netherite_ingot"
-    },
-    "K": {
-      "item": "minecraft:cod_bucket"
-    },
-    "F": {
-      "item": "minecraft:white_wool"
-    }
+    "A": "minecraft:diamond_block",
+    "B": "shizuku:meow_stone",
+    "C": "minecraft:coal_block",
+    "D": "minecraft:gold_block",
+    "G": "minecraft:blue_orchid",
+    "H": "minecraft:netherite_ingot",
+    "K": "minecraft:cod_bucket",
+    "F": "minecraft:white_wool"
   },
   "pattern": [
     "ABH",

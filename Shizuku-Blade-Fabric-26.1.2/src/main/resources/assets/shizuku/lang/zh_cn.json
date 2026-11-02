@@ -1,4 +1,5 @@
-{"item.shizuku.shizuku": "拔刀剑「§b猫羽雫§r」",
+{
+  "item.shizuku.shizuku": "拔刀剑「§b猫羽雫§r」",
   "item.shizuku.yeying": "夜樱·「胧月」",
   "item.shizuku.mosmicblade": "§d星河之刃§r·Cosmic",
   "item.shizuku.engulfing_lightning": "「§c薙草之稻光§r」",
@@ -39,4 +40,6 @@
   "block.shizuku.shizuku_crafting_table": "雫工作台",
   "jei.category.shizuku.shizuku_crafting_table": "雫合成",
   "death.attack.ymsa_kill": "%1$s 被审判抹除了",
-  "death.attack.ymsa_kill.player": "%1$s 被 %2$s 的审判抹除了"}
+  "death.attack.ymsa_kill.player": "%1$s 被 %2$s 的审判抹除了",
+  "item.shizuku.shizuku_crafting_table": "雫工作台"
+}

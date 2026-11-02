@@ -5,7 +5,6 @@
   "key": {
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 800,
         "proud_soul": 3000,
@@ -16,21 +15,11 @@
         "slashblade:slashblade"
       ]
     },
-    "A": {
-      "item": "minecraft:nether_star"
-    },
-    "B": {
-      "item": "minecraft:echo_shard"
-    },
-    "C": {
-      "item": "minecraft:hay_block"
-    },
-    "D": {
-      "item": "minecraft:ghast_tear"
-    },
-    "F": {
-      "item": "minecraft:heart_of_the_sea"
-    }
+    "A": "minecraft:nether_star",
+    "B": "minecraft:echo_shard",
+    "C": "minecraft:hay_block",
+    "D": "minecraft:ghast_tear",
+    "F": "minecraft:heart_of_the_sea"
   },
   "pattern": [
     "AFA",

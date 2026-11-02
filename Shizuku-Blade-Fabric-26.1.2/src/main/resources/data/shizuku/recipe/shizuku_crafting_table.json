@@ -6,15 +6,9 @@
     " C "
   ],
   "key": {
-    "S": {
-      "item": "minecraft:nether_star"
-    },
-    "M": {
-      "item": "shizuku:meow_stone"
-    },
-    "C": {
-      "item": "minecraft:crafting_table"
-    }
+    "S": "minecraft:nether_star",
+    "M": "shizuku:meow_stone",
+    "C": "minecraft:crafting_table"
   },
   "result": {
     "id": "shizuku:shizuku_crafting_table",

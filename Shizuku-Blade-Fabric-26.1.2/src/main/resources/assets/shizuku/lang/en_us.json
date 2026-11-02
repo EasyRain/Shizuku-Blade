@@ -1,4 +1,5 @@
-{"item.shizuku.shizuku": "SlashBlade「§bNekoha Shizuku§r」",
+{
+  "item.shizuku.shizuku": "SlashBlade「§bNekoha Shizuku§r」",
   "item.shizuku.yeying": "Night Sakura·「Hazy Moon」",
   "item.shizuku.mosmicblade": "§dGalaxy Blade§r·Cosmic",
   "item.shizuku.engulfing_lightning": "「§cEngulfing Lightning§r」",
@@ -39,4 +40,6 @@
   "block.shizuku.shizuku_crafting_table": "Shizuku Crafting Table",
   "jei.category.shizuku.shizuku_crafting_table": "Shizuku Craft",
   "death.attack.ymsa_kill": "%1$s was erased by judgment",
-  "death.attack.ymsa_kill.player": "%1$s was erased by %2$s's judgment"}
+  "death.attack.ymsa_kill.player": "%1$s was erased by %2$s's judgment",
+  "item.shizuku.shizuku_crafting_table": "Shizuku Crafting Table"
+}

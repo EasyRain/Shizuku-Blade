@@ -5,7 +5,6 @@
   "key": {
     "E": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "request": {
         "kill": 650,
         "proud_soul": 2800,
@@ -16,30 +15,14 @@
         "slashblade:slashblade"
       ]
     },
-    "A": {
-      "item": "minecraft:diamond"
-    },
-    "B": {
-      "item": "shizuku:meow_stone"
-    },
-    "C": {
-      "item": "minecraft:diamond"
-    },
-    "D": {
-      "item": "shizuku:meow_stone"
-    },
-    "G": {
-      "item": "minecraft:diamond"
-    },
-    "H": {
-      "item": "minecraft:lapis_block"
-    },
-    "K": {
-      "item": "shizuku:meow_stone"
-    },
-    "F": {
-      "item": "minecraft:diamond"
-    }
+    "A": "minecraft:diamond",
+    "B": "shizuku:meow_stone",
+    "C": "minecraft:diamond",
+    "D": "shizuku:meow_stone",
+    "G": "minecraft:diamond",
+    "H": "minecraft:lapis_block",
+    "K": "shizuku:meow_stone",
+    "F": "minecraft:diamond"
   },
   "pattern": [
     "ABH",

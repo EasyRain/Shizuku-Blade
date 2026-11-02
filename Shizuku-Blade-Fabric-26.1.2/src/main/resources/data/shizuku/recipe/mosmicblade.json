@@ -14,12 +14,9 @@
     "MMMMMMMMM"
   ],
   "key": {
-    "M": {
-      "item": "shizuku:meow_stone"
-    },
+    "M": "shizuku:meow_stone",
     "S": {
       "fabric:type": "slashblade:blade",
-      "type": "slashblade:blade",
       "items": [
         "slashblade:slashblade"
       ],
