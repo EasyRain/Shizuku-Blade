@@ -109,7 +109,7 @@ public class Shizukusa {
         }
 
         for (Entity entity : founds) {
-            ((LivingEntity) entity).addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 8));
+            ((LivingEntity) entity).addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 30, 8));
 
             EntityJudgementCut judgementCut = new EntityJudgementCut(SBEntityTypes.JUDGEMENT_CUT, level);
             judgementCut.setPos(entity.getX(), entity.getY(), entity.getZ());

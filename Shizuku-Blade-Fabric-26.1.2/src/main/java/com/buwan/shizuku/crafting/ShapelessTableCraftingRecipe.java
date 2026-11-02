@@ -54,7 +54,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
 
     @Override
     public RecipeSerializer<? extends Recipe<RecipeInput>> getSerializer() {
-        return ModRecipeSerializers.SHAPELESS_CRAFT_SERIALIZER.get();
+        return ModRecipeSerializers.SHAPELESS_CRAFT_SERIALIZER;
     }
 
     @Override

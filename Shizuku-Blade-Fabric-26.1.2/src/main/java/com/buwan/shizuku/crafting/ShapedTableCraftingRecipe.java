@@ -161,7 +161,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     @Override
     public RecipeSerializer<? extends Recipe<RecipeInput>> getSerializer() {
-        return ModRecipeSerializers.SHAPED_CRAFT_SERIALIZER.get();
+        return ModRecipeSerializers.SHAPED_CRAFT_SERIALIZER;
     }
 
     @Override

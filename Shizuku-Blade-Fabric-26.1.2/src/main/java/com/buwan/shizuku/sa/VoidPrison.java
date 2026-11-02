@@ -51,7 +51,7 @@ public class VoidPrison {
                     List<EntitySlashEffect> walls = createPrisonWalls(player, center, PRISON_COLOR, level);
 
                     for (LivingEntity prisoner : prisoners) {
-                        prisoner.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, PRISON_DURATION, 10, false, false));
+                        prisoner.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, PRISON_DURATION, 10, false, false));
                         prisoner.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, PRISON_DURATION, 5, false, false));
                     }
 

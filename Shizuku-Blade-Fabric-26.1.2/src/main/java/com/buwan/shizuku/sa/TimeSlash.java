@@ -38,14 +38,14 @@ public class TimeSlash {
                 List<LivingEntity> targets = findTargetsInRange(entity, level);
                 if (!targets.isEmpty()) {
                     for (LivingEntity target : targets) {
-                        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, FREEZE_DURATION, 255, false, false));
+                        target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, FREEZE_DURATION, 255, false, false));
                         target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, FREEZE_DURATION, 10, false, false));
-                        target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, FREEZE_DURATION, 255, false, false));
+                        target.addEffect(new MobEffectInstance(MobEffects.MINING_FATIGUE, FREEZE_DURATION, 255, false, false));
                         target.setDeltaMovement(Vec3.ZERO);
                     }
 
-                    player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, FREEZE_DURATION, 255, false, false));
-                    player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, FREEZE_DURATION, 255, false, false));
+                    player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, FREEZE_DURATION, 255, false, false));
+                    player.addEffect(new MobEffectInstance(MobEffects.MINING_FATIGUE, FREEZE_DURATION, 255, false, false));
                     player.setDeltaMovement(Vec3.ZERO);
                     level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 2.0F, 0.5F);
                     TimeFreezeData freezeData = new TimeFreezeData(targets);
@@ -91,8 +91,8 @@ public class TimeSlash {
             if (freezeData.tickCounter >= FREEZE_DURATION) {
                 releaseAllDamage(player, freezeData);
                 activeFreezes.remove(uuid);
-                player.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-                player.removeEffect(MobEffects.DIG_SLOWDOWN);
+                player.removeEffect(MobEffects.SLOWNESS);
+                player.removeEffect(MobEffects.MINING_FATIGUE);
                 if (player instanceof ServerPlayer serverPlayer) {
                     TimeStopPacket removePacket = new TimeStopPacket(uuid);
                     PacketHandler.sendToNearby(removePacket, serverPlayer, 64.0);

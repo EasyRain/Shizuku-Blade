@@ -84,7 +84,7 @@ public class shizuku {
         ModTileEntities.BLOCK_ENTITIES.registerAll();
         ModMenus.MENUS.registerAll();
         ModRecipeTypes.RECIPES.registerAll();
-        ModRecipeSerializers.SERIALIZERS.registerAll();
+        ModRecipeSerializers.registerAll();
         ITEMS.registerAll();
         SOUND_EVENTS.registerAll();
 
