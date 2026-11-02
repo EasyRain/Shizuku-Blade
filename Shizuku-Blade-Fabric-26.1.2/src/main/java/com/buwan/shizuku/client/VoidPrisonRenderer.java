@@ -41,7 +41,7 @@ public class VoidPrisonRenderer {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             if (!activeZones.isEmpty()) {
                 Minecraft mc = Minecraft.getInstance();
-                Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+                Vec3 cameraPos = mc.gameRenderer.getMainCamera().position();
                 PoseStack poseStack = event.getPoseStack();
                 activeZones.forEach((uuid, zone) -> {
                     if (!zone.isExpired()) {
@@ -55,11 +55,11 @@ public class VoidPrisonRenderer {
     private void renderPrisonSphere(PoseStack poseStack, Vec3 cameraPos, PrisonZoneData zone) {
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.depthMask(false);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        
+        
+        
+        
+        
         Matrix4f matrix = poseStack.last().pose();
         float baseAlpha = zone.getAlpha() * 0.25F;
         float pulse = zone.getPulse();
@@ -73,9 +73,9 @@ public class VoidPrisonRenderer {
         poseStack.scale(1.1052631F, 1.1052631F, 1.1052631F);
         matrix = poseStack.last().pose();
         this.drawLatitudeRings(matrix, zone.radius, r * 1.3F, g * 2.0F, b * 2.0F, baseAlpha * 2.0F);
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        
+        
+        
         poseStack.popPose();
     }
 
@@ -112,7 +112,7 @@ public class VoidPrisonRenderer {
             }
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
     }
 
     private void drawLatitudeRings(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
@@ -148,7 +148,7 @@ public class VoidPrisonRenderer {
             }
         }
 
-        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(lineBuffer.buildOrThrow());
     }
 
     public static void addPrisonZone(UUID playerId, Vec3 center, double radius, int duration) {

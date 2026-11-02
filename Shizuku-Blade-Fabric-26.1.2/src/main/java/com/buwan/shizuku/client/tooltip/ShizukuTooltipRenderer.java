@@ -151,9 +151,9 @@ public class ShizukuTooltipRenderer {
 
     private static void renderShizukuBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
         RenderSystem.setShaderTexture(0, SHIZUKU_BACKGROUND);
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        
+        
+        
         long time = System.currentTimeMillis();
         float baseAngle = (float) (time % 6000L) / 6000.0F * 360.0F;
         float angle2 = baseAngle + 120.0F;
@@ -179,10 +179,10 @@ public class ShizukuTooltipRenderer {
         poseStack.translate(offset3X, offset3Y, 0.0F);
         graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
         poseStack.popPose();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        
         graphics.blit(SHIZUKU_BACKGROUND, x, y, 0.0F, 0.0F, width, height, width, height);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.disableBlend();
+        
+        
     }
 
     private static void renderTooltipBackground(GuiGraphicsExtractor graphics, int x, int y, int width, int height, List<Integer> borderColors) {
@@ -248,9 +248,9 @@ public class ShizukuTooltipRenderer {
     private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
         PoseStack poseStack = graphics.pose();
         Matrix4f matrix = poseStack.last().pose();
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        
+        
+        
         Tesselator tesselator = Tesselator.getInstance();
         BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         int centerX = x + width / 2;
@@ -262,8 +262,8 @@ public class ShizukuTooltipRenderer {
         addGradientVertex(buffer, matrix, (float) (x + width), (float) y, 16744512);
         addGradientVertex(buffer, matrix, (float) (x + width), (float) (y + 2), 16744512);
         addGradientVertex(buffer, matrix, (float) centerX, (float) (y + 2), SEPARATOR_COLOR);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        RenderSystem.disableBlend();
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+        
     }
 
     private static void renderRainbowText(GuiGraphicsExtractor graphics, Component component, int x, int y, Font font) {

@@ -66,7 +66,7 @@ public final class GalaxyFieldRenderer {
                     if (CosmicShaders.COSMIC_SHADER != null) {
                         Minecraft mc = Minecraft.getInstance();
                         if (mc.level != null && mc.player != null) {
-                            Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
+                            Vec3 cam = mc.gameRenderer.getMainCamera().position();
                             PoseStack poseStack = event.getPoseStack();
                             MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 

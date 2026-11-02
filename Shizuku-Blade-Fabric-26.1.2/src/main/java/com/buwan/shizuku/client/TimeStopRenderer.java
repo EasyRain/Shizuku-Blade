@@ -41,7 +41,7 @@ public class TimeStopRenderer {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             if (!activeZones.isEmpty()) {
                 Minecraft mc = Minecraft.getInstance();
-                Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+                Vec3 cameraPos = mc.gameRenderer.getMainCamera().position();
                 PoseStack poseStack = event.getPoseStack();
                 activeZones.forEach((uuid, zone) -> {
                     if (!zone.isExpired()) {
@@ -55,11 +55,11 @@ public class TimeStopRenderer {
     private void renderTimeStopSphere(PoseStack poseStack, Vec3 cameraPos, TimeStopZoneData zone) {
         poseStack.pushPose();
         poseStack.translate(zone.center.x - cameraPos.x, zone.center.y - cameraPos.y, zone.center.z - cameraPos.z);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.disableCull();
-        RenderSystem.depthMask(false);
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        
+        
+        
+        
+        
         Matrix4f matrix = poseStack.last().pose();
         float baseAlpha = zone.getAlpha() * 0.3F;
         this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
@@ -67,9 +67,9 @@ public class TimeStopRenderer {
         matrix = poseStack.last().pose();
         this.drawSphere(matrix, zone.radius, 20, 15, 1.0F, 0.95F, 0.4F, baseAlpha * 0.5F);
         this.drawLatitudeRings(matrix, zone.radius, 1.0F, 1.0F, 0.6F, baseAlpha * 1.5F);
-        RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.disableBlend();
+        
+        
+        
         poseStack.popPose();
     }
 
@@ -106,7 +106,7 @@ public class TimeStopRenderer {
             }
         }
 
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
     }
 
     private void drawLatitudeRings(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
@@ -142,7 +142,7 @@ public class TimeStopRenderer {
             }
         }
 
-        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(lineBuffer.buildOrThrow());
     }
 
     public static void addTimeStopZone(UUID playerId, Vec3 center, double radius, int duration) {

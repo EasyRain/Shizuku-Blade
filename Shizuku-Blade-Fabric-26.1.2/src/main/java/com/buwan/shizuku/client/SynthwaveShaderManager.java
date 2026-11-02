@@ -69,8 +69,8 @@ public class SynthwaveShaderManager {
                     LOGGER.debug("Rendering Synthwave shader...");
                     RenderSystem.backupProjectionMatrix();
                     RenderSystem.disableDepthTest();
-                    RenderSystem.depthMask(false);
-                    RenderSystem.enableBlend();
+                    
+                    
                     RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
                     int depthTextureId = -1;
                     int currentFBO = GL30.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
@@ -109,7 +109,7 @@ public class SynthwaveShaderManager {
                         synthwave.getUniform("U_InverseViewMatrix").set(inverseModelView);
                     }
 
-                    Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
+                    Vec3 cameraPos = mc.gameRenderer.getMainCamera().position();
                     if (synthwave.getUniform("U_CameraPosition") != null) {
                         synthwave.getUniform("U_CameraPosition").set((float) cameraPos.x, (float) cameraPos.y, (float) cameraPos.z);
                     }
@@ -135,7 +135,7 @@ public class SynthwaveShaderManager {
                     synthwave.apply();
                     RenderSystem.restoreProjectionMatrix();
                     RenderSystem.enableDepthTest();
-                    RenderSystem.depthMask(true);
+                    
                 }
             }
         }
