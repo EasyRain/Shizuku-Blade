@@ -35,15 +35,11 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     public static final RecipeType<ITierCraftingRecipe> RECIPE_TYPE =
             RecipeType.create("shizuku", "shizuku_crafting_table_recipe", ITierCraftingRecipe.class);
 
-    public static final Identifier GUI_TEXTURE =
-            Identifier.fromNamespaceAndPath("shizuku", "textures/gui/jei/shizuku_crafting_jei.png");
-
     private static final int GUI_WIDTH = 189;
     private static final int GUI_HEIGHT = 163;
     private static final int OUTPUT_X = 167;
     private static final int OUTPUT_Y = 74;
 
-    private final IDrawable background;
     private final IDrawable icon;
 
     public ShizukuCraftingTableCategory(IGuiHelper guiHelper) {
@@ -54,17 +50,10 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                                 Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))
                                 .orElseThrow().value())),
                 GUI_WIDTH, GUI_HEIGHT);
-        this.background = guiHelper.createDrawable(GUI_TEXTURE, 0, 0, GUI_WIDTH, GUI_HEIGHT);
         this.icon = guiHelper.createDrawableItemStack(new ItemStack(
                 net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
                         Identifier.fromNamespaceAndPath("shizuku", "shizuku_crafting_table"))
                         .orElseThrow().value()));
-    }
-
-    // 26.1 的 IRecipeCategory 移除了 getBackground()（背景改由 createRecipeExtras 提供）
-    @NotNull
-    public IDrawable getBackground() {
-        return this.background;
     }
 
     @Override
