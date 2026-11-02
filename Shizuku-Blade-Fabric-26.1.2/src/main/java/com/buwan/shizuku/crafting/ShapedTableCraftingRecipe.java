@@ -50,6 +50,9 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     private final int tier;
     @Nullable
     private final Identifier outputBlade;
+    /** 与 inputs 同索引：该格要求的命名刀（无要求则为 null）。26.1 的 Ingredient 已不携带该信息。 */
+    private final java.util.List<mods.flammpfeil.slashblade.recipe.RequestDefinition> slotRequests =
+            new java.util.ArrayList<>();
 
     public ShapedTableCraftingRecipe(int width, int height, java.util.List<java.util.Optional<Ingredient>> inputs,
                                      ItemStack output, int tier, @Nullable Identifier outputBlade) {
@@ -107,7 +110,30 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                 }
             }
         }
-        return new ShapedTableCraftingRecipe(width, height, inputs, output, tier, outputBlade);
+        java.util.List<mods.flammpfeil.slashblade.recipe.RequestDefinition> requests =
+                new java.util.ArrayList<>(java.util.Collections.nCopies(width * height, null));
+        for (int i = 0; i < height; i++) {
+            String row = rows.get(i);
+            for (int j = 0; j < row.length(); j++) {
+                char c = row.charAt(j);
+                if (c != ' ') {
+                    var request = data.requests().get(String.valueOf(c));
+                    if (request != null) {
+                        requests.set(j + width * i, request);
+                    }
+                }
+            }
+        }
+        ShapedTableCraftingRecipe recipe =
+                new ShapedTableCraftingRecipe(width, height, inputs, output, tier, outputBlade);
+        recipe.slotRequests.clear();
+        recipe.slotRequests.addAll(requests);
+        return recipe;
+    }
+
+    /** 该格要求的命名刀（可能为 null）。 */
+    public mods.flammpfeil.slashblade.recipe.RequestDefinition requestAt(int index) {
+        return index >= 0 && index < this.slotRequests.size() ? this.slotRequests.get(index) : null;
     }
 
     public int getWidth() {
@@ -242,15 +268,59 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return true;
     }
 
-    public record PatternData(List<String> rows, Map<String, Ingredient> key) {
+    public record PatternData(List<String> rows, Map<String, Ingredient> key,
+                              Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition> requests) {
+
+        /**
+         * 26.1 的 {@code Ingredient} 不再携带自定义配料数据（{@code SlashBladeIngredient} 的
+         * request 在解析时就被丢弃），因此从同一段 {@code key} JSON 里再解析一遍 request，
+         * 供 JEI 展示「带默认属性的命名刀」而不是封刀。
+         */
+        public static final com.mojang.serialization.Codec<Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition>>
+                REQUEST_MAP_CODEC = new com.mojang.serialization.Codec<>() {
+                    @Override
+                    public <T> com.mojang.serialization.DataResult<com.mojang.datafixers.util.Pair<
+                            Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition>, T>> decode(
+                            com.mojang.serialization.DynamicOps<T> ops, T input) {
+                        Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition> out = new java.util.HashMap<>();
+                        ops.getMap(input).result().ifPresent(map ->
+                                map.entries().forEach(pair -> {
+                                    String symbol = ops.getStringValue(pair.getFirst()).result().orElse(null);
+                                    if (symbol == null) {
+                                        return;
+                                    }
+                                    ops.getMap(pair.getSecond()).result().ifPresent(entry ->
+                                            entry.entries().forEach(kv -> {
+                                                String field = ops.getStringValue(kv.getFirst()).result().orElse("");
+                                                if ("request".equals(field)) {
+                                                    mods.flammpfeil.slashblade.recipe.RequestDefinition.CODEC
+                                                            .parse(ops, kv.getSecond()).result()
+                                                            .ifPresent(r -> out.put(symbol, r));
+                                                }
+                                            }));
+                                }));
+                        return com.mojang.serialization.DataResult.success(
+                                com.mojang.datafixers.util.Pair.of(out, input));
+                    }
+
+                    @Override
+                    public <T> com.mojang.serialization.DataResult<T> encode(
+                            Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition> input,
+                            com.mojang.serialization.DynamicOps<T> ops, T prefix) {
+                        return com.mojang.serialization.DataResult.success(prefix);
+                    }
+                };
         public static final MapCodec<PatternData> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
                 net.minecraft.util.ExtraCodecs.nonEmptyList(CodecHolder.STRING_LIST).fieldOf("pattern").forGetter(PatternData::rows),
-                CodecHolder.STRING_INGREDIENT_MAP.fieldOf("key").forGetter(PatternData::key)
+                CodecHolder.STRING_INGREDIENT_MAP.fieldOf("key").forGetter(PatternData::key),
+                REQUEST_MAP_CODEC.optionalFieldOf("key", Map.of()).forGetter(PatternData::requests)
         ).apply(inst, PatternData::new));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, PatternData> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), PatternData::rows,
                 ByteBufCodecs.map(java.util.HashMap::new, ByteBufCodecs.STRING_UTF8, Ingredient.CONTENTS_STREAM_CODEC), PatternData::key,
+                StreamCodec.<RegistryFriendlyByteBuf, Map<String, mods.flammpfeil.slashblade.recipe.RequestDefinition>>unit(Map.of()),
+                PatternData::requests,
                 PatternData::new
         );
     }
@@ -266,7 +336,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     public static final class Serializer {
 
         public static final MapCodec<ShapedTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r))),
+                PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r), java.util.Map.of())),
                 // 26.1：配方产物要用 ItemStackTemplate 解析（模板不校验物品 components）；
                 // 直接用 ItemStack.CODEC 会在数据包加载期抛 "Item ... does not have components yet"
                 net.minecraft.world.item.ItemStackTemplate.CODEC

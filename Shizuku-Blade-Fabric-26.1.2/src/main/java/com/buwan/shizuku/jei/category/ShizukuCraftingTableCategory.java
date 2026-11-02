@@ -62,17 +62,6 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     // 26.1 的 IRecipeCategory 移除了 getBackground()（背景改由 createRecipeExtras 提供）
-    /**
-     * 26.1 的 {@code IRecipeCategory} 删掉了 {@code getBackground()}，背景必须在
-     * {@code createRecipeExtras} 里作为 drawable 加进去 —— 否则整张九宫格框线都不会绘制
-     * （表现为"物品浮在 JEI 默认边框上、没有格子"）。
-     */
-    @Override
-    public void createRecipeExtras(@NotNull mezz.jei.api.gui.widgets.IRecipeExtrasBuilder builder,
-                                   @NotNull ITierCraftingRecipe recipe, @NotNull IFocusGroup focuses) {
-        builder.addDrawable(this.background, 0, 0);
-    }
-
     @NotNull
     public IDrawable getBackground() {
         return this.background;
@@ -90,9 +79,16 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 for (int j = 0; j < width; j++) {
                     Ingredient ingredient = slots.get(j + i * width).orElse(null);
                     if (ingredient != null) {
-                        builder.addSlot(RecipeIngredientRole.INPUT,
+                        var slotBuilder = builder.addSlot(RecipeIngredientRole.INPUT,
                                         18 * (j + offset) + 1, 18 * (i + offset) + 1)
-                                .addIngredients(ingredient);
+                                .setStandardSlotBackground();
+                        // 26.1 的 Ingredient 不携带 request，这里用配方解析时另存的 request 还原命名刀
+                        ItemStack blade = resolveBlade(shaped.requestAt(j + i * width));
+                        if (blade.isEmpty()) {
+                            slotBuilder.addIngredients(ingredient);
+                        } else {
+                            slotBuilder.addItemStack(blade);
+                        }
                     }
                 }
             }
@@ -102,6 +98,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 if (slot.isPresent()) {
                     builder.addSlot(RecipeIngredientRole.INPUT,
                                     18 * (index % 9) + 1, 18 * (index / 9) + 1)
+                            .setStandardSlotBackground()
                             .addIngredients(slot.get());
                     index++;
                 }
@@ -117,12 +114,31 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             result = ItemStack.EMPTY;
         }
         builder.addSlot(RecipeIngredientRole.OUTPUT, OUTPUT_X, OUTPUT_Y)
+                .setOutputSlotBackground()
                 .addItemStack(result);
     }
 
     /**
      * 26.1 移除了 Ingredient#getItems()/getCustomIngredient()，命名刀的展示交给 JEI 的配料渲染。
      */
+
+    /** 按定义注册表键取完整命名刀；取不到返回 EMPTY（此时退回原始配料）。 */
+    private static ItemStack resolveBlade(mods.flammpfeil.slashblade.recipe.RequestDefinition request) {
+        if (request == null || request.getName() == null) {
+            return ItemStack.EMPTY;
+        }
+        var level = net.minecraft.client.Minecraft.getInstance().level;
+        if (level == null) {
+            return ItemStack.EMPTY;
+        }
+        return level.registryAccess().lookupOrThrow(
+                        mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition.REGISTRY_KEY)
+                .get(net.minecraft.resources.ResourceKey.create(
+                        mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition.REGISTRY_KEY,
+                        request.getName()))
+                .map(holder -> holder.value().getBlade())
+                .orElse(ItemStack.EMPTY);
+    }
 
     @Override
     public void draw(ITierCraftingRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor guiGraphics,
