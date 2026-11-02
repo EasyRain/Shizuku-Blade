@@ -18,6 +18,26 @@ import java.util.Random;
  */
 public class FallingPetalRenderer {
 
+    /** 贴图真实尺寸（读 PNG IHDR 得到）——26.1 的 blit 需要显式传源尺寸。 */
+    private static final java.util.Map<Identifier, int[]> TEX_SIZES = new java.util.HashMap<>();
+
+    private static int[] sizeOf(Identifier id) {
+        int[] size = TEX_SIZES.get(id);
+        return size != null ? size : new int[]{16, 16};
+    }
+
+    private static void cacheSize(Identifier id) {
+        try (var in = Minecraft.getInstance().getResourceManager().getResource(id).orElseThrow().open()) {
+            byte[] head = in.readNBytes(24);
+            if (head.length >= 24 && head[0] == (byte) 0x89 && head[1] == 'P') {
+                int w = ((head[16] & 0xFF) << 24) | ((head[17] & 0xFF) << 16) | ((head[18] & 0xFF) << 8) | (head[19] & 0xFF);
+                int h = ((head[20] & 0xFF) << 24) | ((head[21] & 0xFF) << 16) | ((head[22] & 0xFF) << 8) | (head[23] & 0xFF);
+                TEX_SIZES.put(id, new int[]{w, h});
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
     private static final Random RNG = new Random();
     private static final List<Particle> PARTICLES = new ArrayList<>();
     private static final List<Identifier> TEXTURES = new ArrayList<>();
@@ -35,6 +55,7 @@ public class FallingPetalRenderer {
             Identifier loc = shizuku.prefix("textures/gui/falling/petal_" + i + ".png");
             if (manager.getResource(loc).isPresent()) {
                 TEXTURES.add(loc);
+                cacheSize(loc);
             }
         }
 
@@ -78,13 +99,13 @@ public class FallingPetalRenderer {
             }
             alpha *= p.alpha;
             if (alpha >= 0.01F) {
-                renderPetal(guiGraphics, renderX, renderY, (int) p.size, p.rot, p.color, alpha);
+                renderPetal(guiGraphics, renderX, renderY, (int) p.size, p.rot, p.color, alpha, p.texIndex);
             }
         }
     }
 
     private static void renderPetal(GuiGraphicsExtractor guiGraphics, double x, double y, int size, float rot,
-                                    int color, float alpha) {
+                                    int color, float alpha, int texIndex) {
         int a = (int) (alpha * 255.0F) & 0xFF;
         int argb = a << 24 | color & 16777215;
         Matrix3x2fStack pose = guiGraphics.pose();
@@ -92,7 +113,15 @@ public class FallingPetalRenderer {
         pose.translate((float) x, (float) y);
         pose.rotate(rot);
         int half = size / 2;
-        guiGraphics.fill(-half, -half, half, half, argb);
+        Identifier tex = TEXTURES.isEmpty() ? null : TEXTURES.get(Math.floorMod(texIndex, TEXTURES.size()));
+        if (tex != null) {
+            int[] dim = sizeOf(tex);
+            // 26.1：blit 需要显式源尺寸（x, y, u, v, w, h, uW, vH, texW, texH）
+            guiGraphics.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, tex,
+                    -half, -half, 0.0F, 0.0F, size, size, dim[0], dim[1], dim[0], dim[1]);
+        } else {
+            guiGraphics.fill(-half, -half, half, half, argb);
+        }
         pose.popMatrix();
     }
 

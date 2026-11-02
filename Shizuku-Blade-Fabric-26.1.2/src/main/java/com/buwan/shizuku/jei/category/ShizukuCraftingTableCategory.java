@@ -62,6 +62,17 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     }
 
     // 26.1 的 IRecipeCategory 移除了 getBackground()（背景改由 createRecipeExtras 提供）
+    /**
+     * 26.1 的 {@code IRecipeCategory} 删掉了 {@code getBackground()}，背景必须在
+     * {@code createRecipeExtras} 里作为 drawable 加进去 —— 否则整张九宫格框线都不会绘制
+     * （表现为"物品浮在 JEI 默认边框上、没有格子"）。
+     */
+    @Override
+    public void createRecipeExtras(@NotNull mezz.jei.api.gui.widgets.IRecipeExtrasBuilder builder,
+                                   @NotNull ITierCraftingRecipe recipe, @NotNull IFocusGroup focuses) {
+        builder.addDrawable(this.background, 0, 0);
+    }
+
     @NotNull
     public IDrawable getBackground() {
         return this.background;

@@ -1,7 +1,7 @@
 {
   "type": "shizuku:shaped_table",
   "tier": 4,
-  "blade": "shizuku:ym",
+  "blade": "shizuku:ymblade",
   "pattern": [
     "MNMNXMNMN",
     "NMNMIMNMN",

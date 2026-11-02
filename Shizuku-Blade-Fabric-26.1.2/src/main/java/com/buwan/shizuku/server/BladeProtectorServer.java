@@ -23,8 +23,8 @@ public class BladeProtectorServer {
 
     private static final Set<Identifier> PROTECTED_BLADES = Set.of(
             Identifier.fromNamespaceAndPath("shizuku", "shizuku"),
-            Identifier.fromNamespaceAndPath("shizuku", "el"),
-            Identifier.fromNamespaceAndPath("shizuku", "ym")
+            Identifier.fromNamespaceAndPath("shizuku", "engulfing_lightning"),
+            Identifier.fromNamespaceAndPath("shizuku", "ymblade")
     );
 
     public static boolean isProtectedBlade(ItemStack stack) {

@@ -23,8 +23,8 @@ public class BladeProtectorServer {
 
     private static final Set<ResourceLocation> PROTECTED_BLADES = Set.of(
             new ResourceLocation("shizuku", "shizuku"),
-            new ResourceLocation("shizuku", "el"),
-            new ResourceLocation("shizuku", "ym")
+            new ResourceLocation("shizuku", "engulfing_lightning"),
+            new ResourceLocation("shizuku", "ymblade")
     );
 
     public static boolean isProtectedBlade(ItemStack stack) {

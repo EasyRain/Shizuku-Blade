@@ -22,8 +22,8 @@ public class BladeProtectorServer {
 
     private static final Set<ResourceLocation> PROTECTED_BLADES = Set.of(
             ResourceLocation.fromNamespaceAndPath("shizuku", "shizuku"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "el"),
-            ResourceLocation.fromNamespaceAndPath("shizuku", "ym")
+            ResourceLocation.fromNamespaceAndPath("shizuku", "engulfing_lightning"),
+            ResourceLocation.fromNamespaceAndPath("shizuku", "ymblade")
     );
 
     public static boolean isProtectedBlade(ItemStack stack) {
