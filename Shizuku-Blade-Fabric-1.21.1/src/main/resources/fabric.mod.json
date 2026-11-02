@@ -10,7 +10,8 @@
   "license": "LGPL-3.0",
   "environment": "*",
   "mixins": [
-    "shizuku.mixins.json"
+    "shizuku.mixins.json",
+    "shizuku.jei.mixins.json"
   ],
   "entrypoints": {
     "main": [

@@ -76,6 +76,8 @@ java {
 }
 
 jar {
+    // 编译期占位类（骗过 mixin AP 的目标校验），运行时由 JEI 本体提供
+    exclude 'mezz/jei/**'
     from("LICENSE") {
         rename { "${it}_${project.archives_base_name}" }
     }
