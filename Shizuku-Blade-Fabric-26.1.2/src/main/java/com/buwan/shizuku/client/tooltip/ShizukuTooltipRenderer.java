@@ -245,28 +245,13 @@ public class ShizukuTooltipRenderer {
     }
 
     private static void renderSeparatorLine(GuiGraphicsExtractor graphics, int x, int y, int width) {
-        org.joml.Matrix3x2fStack poseStack = graphics.pose();
-        Matrix4f matrix = poseStack.last().pose();
-        
-        
-        
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         int centerX = x + width / 2;
-        addGradientVertex(buffer, matrix, (float) x, (float) y, 16744512);
-        addGradientVertex(buffer, matrix, (float) centerX, (float) y, SEPARATOR_COLOR);
-        addGradientVertex(buffer, matrix, (float) centerX, (float) (y + 2), SEPARATOR_COLOR);
-        addGradientVertex(buffer, matrix, (float) x, (float) (y + 2), 16744512);
-        addGradientVertex(buffer, matrix, (float) centerX, (float) y, SEPARATOR_COLOR);
-        addGradientVertex(buffer, matrix, (float) (x + width), (float) y, 16744512);
-        addGradientVertex(buffer, matrix, (float) (x + width), (float) (y + 2), 16744512);
-        addGradientVertex(buffer, matrix, (float) centerX, (float) (y + 2), SEPARATOR_COLOR);
-        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
-        
+        graphics.fillGradient(x, y, centerX, y + 2, 16744512, SEPARATOR_COLOR);
+        graphics.fillGradient(centerX, y, x + width, y + 2, SEPARATOR_COLOR, 16744512);
     }
 
     private static void renderRainbowText(GuiGraphicsExtractor graphics, Component component, int x, int y, Font font) {
-        graphics.drawString(font, component, x, y, -1642241, false);
+        graphics.text(font, component, x, y, -1642241, false);
     }
 
     private static void addGradientVertex(BufferBuilder buffer, Matrix4f matrix, float x, float y, int color) {
