@@ -40,7 +40,7 @@ public class SynthwaveShaderManager {
                     return null;
                 }
                 synthwave = new ShaderInstance(mc.getResourceManager(),
-                        new ResourceLocation("shizuku", "synthwave").toString(),
+                        "synthwave",
                         DefaultVertexFormat.POSITION_TEX);
                 LOGGER.info("Synthwave shader created");
             } catch (Exception e) {
