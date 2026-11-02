@@ -44,7 +44,6 @@ public abstract class DeferredTooltipMixin {
         }
         GuiGraphicsExtractor self = (GuiGraphicsExtractor) (Object) this;
         Font font = mc.font;
-                + ") stack=" + stack.getItem());
         GuiGraphicsExtractorAccessor accessor = (GuiGraphicsExtractorAccessor) self;
         Runnable vanilla = accessor.shizuku$getDeferredTooltip();
         accessor.shizuku$setDeferredTooltip(() -> {
