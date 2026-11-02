@@ -15,27 +15,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = EntityAbstractSummonedSword.class, remap = false)
 public abstract class EntityAbstractSummonedSwordMixin {
 
-    @Inject(
-            method = "setHitEntity",
-            at = @At("HEAD"),
-            cancellable = true
-    )
+    /**
+     * 命中后静默消失。
+     *
+     * <p>注意必须用 TAIL 而不是 HEAD+cancel：本体的 {@code onHitBlock} 会写 {@code inBlockState}，
+     * 而 {@code tick} 里会直接对它调 {@code equals}（没有空判断）；在 HEAD 取消会让该字段保持 null，
+     * 下一次 tick 直接 NPE 崩服。</p>
+     */
+    @Inject(method = "setHitEntity", at = @At("TAIL"))
     private void shizuku$disappearOnHit(Entity hitEntity, CallbackInfo ci) {
         if (isMosmicDrive((EntityAbstractSummonedSword) (Object) this)) {
-            ci.cancel();
-            ((Entity) (Object) this).discard();
+            Entity self = (Entity) (Object) this;
+            if (self.isAlive()) {
+                self.discard();
+            }
         }
     }
 
-    @Inject(
-            method = "burst",
-            at = @At("HEAD"),
-            cancellable = true
-    )
+    @Inject(method = "burst", at = @At("TAIL"))
     private void shizuku$silentRemove(CallbackInfo ci) {
         if (isMosmicDrive((EntityAbstractSummonedSword) (Object) this)) {
-            ci.cancel();
-            ((Entity) (Object) this).discard();
+            Entity self = (Entity) (Object) this;
+            if (self.isAlive()) {
+                self.discard();
+            }
         }
     }
 
