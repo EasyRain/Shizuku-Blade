@@ -66,9 +66,17 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         return this.output;
     }
 
-    @Override
-    public NonNullList<Ingredient> getIngredients() {
+    private NonNullList<Ingredient> inputs() {
         return this.inputs;
+    }
+
+    @Override
+    public java.util.List<java.util.Optional<Ingredient>> ingredientSlots() {
+        java.util.List<java.util.Optional<Ingredient>> slots = new java.util.ArrayList<>(this.inputs.size());
+        for (Ingredient ingredient : this.inputs) {
+            slots.add(java.util.Optional.of(ingredient));
+        }
+        return slots;
     }
 
     @Override
@@ -140,7 +148,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
     public static final class Serializer {
 
         public static final MapCodec<ShapelessTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                Ingredient.CODEC.listOf().fieldOf("ingredients").forGetter(ShapelessTableCraftingRecipe::getIngredients),
+                Ingredient.CODEC.listOf().fieldOf("ingredients").forGetter(ShapelessTableCraftingRecipe::inputs),
                 // 26.1：配方产物要用 ItemStackTemplate 解析（模板不校验物品 components）；
                 // 直接用 ItemStack.CODEC 会在数据包加载期抛 "Item ... does not have components yet"
                 net.minecraft.world.item.ItemStackTemplate.CODEC
@@ -155,7 +163,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         }));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapelessTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.CONTENTS_STREAM_CODEC), ShapelessTableCraftingRecipe::getIngredients,
+                ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.CONTENTS_STREAM_CODEC), ShapelessTableCraftingRecipe::inputs,
                 ItemStack.STREAM_CODEC, r -> r.output,
                 ByteBufCodecs.VAR_INT, r -> r.tier,
                 ShapelessTableCraftingRecipe::new

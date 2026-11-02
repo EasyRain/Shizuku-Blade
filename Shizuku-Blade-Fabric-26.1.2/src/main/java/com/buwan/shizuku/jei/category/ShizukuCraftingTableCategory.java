@@ -69,7 +69,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
 
     @Override
     public void setRecipe(@NotNull IRecipeLayoutBuilder builder, @NotNull ITierCraftingRecipe recipe, @NotNull IFocusGroup focuses) {
-        List<Ingredient> inputs = recipe.getIngredients();
+        List<java.util.Optional<Ingredient>> slots = recipe.ingredientSlots();
 
         if (recipe instanceof ShapedTableCraftingRecipe shaped) {
             int width = shaped.getWidth();
@@ -77,8 +77,8 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             int offset = Math.floorDiv(9 - width, 2);
             for (int i = 0; i < height; i++) {
                 for (int j = 0; j < width; j++) {
-                    Ingredient ingredient = inputs.get(j + i * width);
-                    if (!ingredient.isEmpty()) {
+                    Ingredient ingredient = slots.get(j + i * width).orElse(null);
+                    if (ingredient != null) {
                         builder.addSlot(RecipeIngredientRole.INPUT,
                                         18 * (j + offset) + 1, 18 * (i + offset) + 1)
                                 .addIngredients(ingredient);
@@ -87,11 +87,11 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             }
         } else if (recipe instanceof ShapelessTableCraftingRecipe) {
             int index = 0;
-            for (Ingredient ingredient : inputs) {
-                if (!ingredient.isEmpty()) {
+            for (java.util.Optional<Ingredient> slot : slots) {
+                if (slot.isPresent()) {
                     builder.addSlot(RecipeIngredientRole.INPUT,
                                     18 * (index % 9) + 1, 18 * (index / 9) + 1)
-                            .addIngredients(ingredient);
+                            .addIngredients(slot.get());
                     index++;
                 }
             }

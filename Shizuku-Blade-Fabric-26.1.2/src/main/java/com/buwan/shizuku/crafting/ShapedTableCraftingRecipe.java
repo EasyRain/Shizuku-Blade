@@ -41,7 +41,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShapedTableCraftingRecipe.class);
 
-    private final NonNullList<Ingredient> inputs;
+    private final NonNullList<java.util.Optional<Ingredient>> inputs;
     private final ItemStack output;
     /** 从 JSON 解析时用模板暂存产物 —— 数据包加载期物品 components 尚未绑定，不能造 ItemStack。 */
     private final net.minecraft.world.item.ItemStackTemplate outputTemplate;
@@ -51,9 +51,10 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     @Nullable
     private final Identifier outputBlade;
 
-    public ShapedTableCraftingRecipe(int width, int height, NonNullList<Ingredient> inputs, ItemStack output,
-                                     int tier, @Nullable Identifier outputBlade) {
-        this.inputs = inputs;
+    public ShapedTableCraftingRecipe(int width, int height, java.util.List<java.util.Optional<Ingredient>> inputs,
+                                     ItemStack output, int tier, @Nullable Identifier outputBlade) {
+        this.inputs = NonNullList.createWithCapacity(inputs.size());
+        this.inputs.addAll(inputs);
         this.output = output;
         this.width = width;
         this.height = height;
@@ -62,12 +63,13 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         this.outputTemplate = null;
     }
 
-    private ShapedTableCraftingRecipe(int width, int height, NonNullList<Ingredient> inputs,
+    private ShapedTableCraftingRecipe(int width, int height, java.util.List<java.util.Optional<Ingredient>> inputs,
                                       net.minecraft.world.item.ItemStackTemplate outputTemplate,
                                       int tier, @Nullable Identifier outputBlade) {
         this.width = width;
         this.height = height;
-        this.inputs = inputs;
+        this.inputs = NonNullList.createWithCapacity(inputs.size());
+        this.inputs.addAll(inputs);
         this.output = ItemStack.EMPTY;
         this.tier = tier;
         this.outputBlade = outputBlade;
@@ -90,7 +92,8 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         List<String> rows = data.rows();
         int width = rows.isEmpty() ? 0 : rows.get(0).length();
         int height = rows.size();
-        NonNullList<Ingredient> inputs = NonNullList.withSize(width * height, ITierCraftingRecipe.EMPTY);
+        NonNullList<java.util.Optional<Ingredient>> inputs =
+                NonNullList.withSize(width * height, java.util.Optional.empty());
         for (int i = 0; i < height; i++) {
             String row = rows.get(i);
             for (int j = 0; j < row.length(); j++) {
@@ -100,7 +103,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                     if (ingredient == null) {
                         throw new IllegalStateException("Pattern references symbol '" + c + "' but it's not defined in the key; parsed keys=" + data.key().keySet() + ", rows=" + rows);
                     }
-                    inputs.set(j + width * i, ingredient);
+                    inputs.set(j + width * i, java.util.Optional.of(ingredient));
                 }
             }
         }
@@ -157,7 +160,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     @Override
     public PlacementInfo placementInfo() {
-        return PlacementInfo.create(this.inputs);
+        return PlacementInfo.createFromOptionals(this.inputs);
     }
 
     @Override
@@ -180,7 +183,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public NonNullList<Ingredient> getIngredients() {
+    public java.util.List<java.util.Optional<Ingredient>> ingredientSlots() {
         return this.inputs;
     }
 
@@ -223,13 +226,15 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
             for (int j = 0; j < size; j++) {
                 int k = i - x;
                 int l = j - y;
-                Ingredient ingredient = ITierCraftingRecipe.EMPTY;
+                ItemStack stack = inventory.getItem(i + j * size);
+                java.util.Optional<Ingredient> ingredient = java.util.Optional.empty();
                 if (k >= 0 && l >= 0 && k < this.width && l < this.height) {
                     ingredient = mirror
                             ? this.inputs.get(this.width - k - 1 + l * this.width)
                             : this.inputs.get(k + l * this.width);
                 }
-                if (!ingredient.test(inventory.getItem(i + j * size))) {
+                // 空槽：网格里对应位置必须是空的
+                if (!ingredient.map(ing -> ing.test(stack)).orElse(stack.isEmpty())) {
                     return false;
                 }
             }
@@ -274,7 +279,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getWidth,
                 ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getHeight,
-                ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.CONTENTS_STREAM_CODEC), ShapedTableCraftingRecipe::getIngredients,
+                ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.OPTIONAL_CONTENTS_STREAM_CODEC), ShapedTableCraftingRecipe::ingredientSlots,
                 ItemStack.STREAM_CODEC, r -> r.output,
                 ByteBufCodecs.VAR_INT, r -> r.tier,
                 ByteBufCodecs.optional(Identifier.STREAM_CODEC), r -> Optional.ofNullable(r.outputBlade),

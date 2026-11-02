@@ -3,7 +3,6 @@ package com.buwan.shizuku.crafting;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeInput;
-import net.minecraft.world.level.ItemLike;
 
 /**
  * 雫工作台自定义配方：带阶（tier）约束。
@@ -11,13 +10,15 @@ import net.minecraft.world.level.ItemLike;
  */
 public interface ITierCraftingRecipe extends Recipe<RecipeInput> {
 
-    /** 26.1 移除了 {@code ITierCraftingRecipe.EMPTY}，用空数组构造一个空配料。 */
-    Ingredient EMPTY = Ingredient.of(new ItemLike[0]);
+    /**
+     * 26.1 起 {@link Ingredient} 不允许为空（也不能含空气），空槽必须用 {@link java.util.Optional} 表示，
+     * 对应原版 {@code PlacementInfo.createFromOptionals(...)} 的做法。
+     */
 
     int getTier();
 
     boolean hasRequiredTier();
 
-    /** 26.1 的 Recipe 接口不再暴露 getIngredients，这里自己声明。 */
-    net.minecraft.core.NonNullList<Ingredient> getIngredients();
+    /** 26.1 的 Recipe 接口改用 placementInfo(); 这里保留一个按格位的只读视图给 JEI 用。 */
+    java.util.List<java.util.Optional<Ingredient>> ingredientSlots();
 }
