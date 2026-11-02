@@ -25,6 +25,11 @@ public class PacketHandler {
         server = s;
     }
 
+    /** 26.1 的 Recipe#assemble 不再接收 RegistryAccess，这里由服务端实例兜底提供。 */
+    public static net.minecraft.core.RegistryAccess registryAccess() {
+        return server != null ? server.registryAccess() : null;
+    }
+
     public static void register() {
         PayloadTypeRegistry.playS2C().register(TimeStopPacket.TYPE, TimeStopPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);

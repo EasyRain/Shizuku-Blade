@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -15,6 +16,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.PlacementInfo;
+import net.minecraft.world.item.crafting.RecipeBookCategories;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
 import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -60,7 +64,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         List<String> rows = data.rows();
         int width = rows.isEmpty() ? 0 : rows.get(0).length();
         int height = rows.size();
-        NonNullList<Ingredient> inputs = NonNullList.withSize(width * height, Ingredient.EMPTY);
+        NonNullList<Ingredient> inputs = NonNullList.withSize(width * height, ITierCraftingRecipe.EMPTY);
         for (int i = 0; i < height; i++) {
             String row = rows.get(i);
             for (int j = 0; j < row.length(); j++) {
@@ -85,8 +89,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return this.height;
     }
 
-    @Override
-    public ItemStack getResultItem(HolderLookup.Provider access) {
+    public ItemStack buildResult(RegistryAccess access) {
         if (this.outputBlade != null) {
             try {
                 SlashBladeDefinition definition = access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY)
@@ -96,7 +99,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                     return definition.getBlade();
                 }
                 LOGGER.error("[ShizukuCraft] Blade definition '{}' not found in registry {}", this.outputBlade,
-                        SlashBladeDefinition.REGISTRY_KEY.location());
+                        SlashBladeDefinition.REGISTRY_KEY.identifier());
             } catch (Exception e) {
                 LOGGER.error("[ShizukuCraft] Failed to create output blade '{}'", this.outputBlade, e);
             }
@@ -106,8 +109,29 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public ItemStack assemble(RecipeInput input, HolderLookup.Provider access) {
-        return this.getResultItem(access).copy();
+    public ItemStack assemble(RecipeInput input) {
+        RegistryAccess access = com.buwan.shizuku.network.PacketHandler.registryAccess();
+        return (access != null ? this.buildResult(access) : this.output).copy();
+    }
+
+    @Override
+    public String group() {
+        return "";
+    }
+
+    @Override
+    public boolean showNotification() {
+        return true;
+    }
+
+    @Override
+    public RecipeBookCategory recipeBookCategory() {
+        return RecipeBookCategories.CRAFTING_MISC;
+    }
+
+    @Override
+    public PlacementInfo placementInfo() {
+        return PlacementInfo.create(this.inputs);
     }
 
     @Override
@@ -135,12 +159,12 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public RecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<? extends Recipe<RecipeInput>> getSerializer() {
         return ModRecipeSerializers.SHAPED_CRAFT_SERIALIZER.get();
     }
 
     @Override
-    public RecipeType<?> getType() {
+    public RecipeType<? extends Recipe<RecipeInput>> getType() {
         return ModRecipeTypes.CRAFTING_TABLE_RECIPE.get();
     }
 
@@ -174,7 +198,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
             for (int j = 0; j < size; j++) {
                 int k = i - x;
                 int l = j - y;
-                Ingredient ingredient = Ingredient.EMPTY;
+                Ingredient ingredient = ITierCraftingRecipe.EMPTY;
                 if (k >= 0 && l >= 0 && k < this.width && l < this.height) {
                     ingredient = mirror
                             ? this.inputs.get(this.width - k - 1 + l * this.width)
@@ -209,7 +233,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                 net.minecraft.util.ExtraCodecs.strictUnboundedMap(com.mojang.serialization.Codec.STRING, Ingredient.CODEC_NONEMPTY);
     }
 
-    public static class Serializer implements RecipeSerializer<ShapedTableCraftingRecipe> {
+    public static final class Serializer {
 
         public static final MapCodec<ShapedTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
                 PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r))),
@@ -228,16 +252,6 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                 (width, height, inputs, output, tier, blade) ->
                         new ShapedTableCraftingRecipe(width, height, inputs, output, tier, blade.orElse(null))
         );
-
-        @Override
-        public MapCodec<ShapedTableCraftingRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
     }
 
     private static List<String> rowsOf(ShapedTableCraftingRecipe r) {
