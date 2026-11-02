@@ -2,7 +2,11 @@ package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.client.shader.CosmicShaders;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
@@ -78,12 +82,11 @@ public final class GalaxyFieldRenderer {
                                     ZoneData zone = entry.getValue();
                                     poseStack.pushPose();
                                     poseStack.translate(owner.getX() - cam.x, owner.getY() - cam.y, owner.getZ() - cam.z);
-                                    drawDisk(buffers, zone, poseStack.last().pose(), false);
+                                    drawDisk(zone, poseStack.last().pose());
                                     poseStack.popPose();
                                 }
                             }
 
-                            buffers.endBatch(CosmicShaders.COSMIC_RENDER_TYPE);
                         }
                     }
                 }
@@ -123,21 +126,21 @@ public final class GalaxyFieldRenderer {
                         .translate((float) (owner.getX() - worldCameraPos.x),
                                 (float) (owner.getY() - worldCameraPos.y),
                                 (float) (owner.getZ() - worldCameraPos.z));
-                drawDisk(buffers, zone, mat, true);
+                drawDisk(zone, mat);
             }
         }
 
-        buffers.endBatch(CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH);
     }
 
-    private static void drawDisk(MultiBufferSource.BufferSource buffers, ZoneData zone, Matrix4f mat, boolean noDepth) {
+    private static void drawDisk(ZoneData zone, Matrix4f mat) {
         float alpha = Math.min(1.0F, (float) zone.ageTicks / 4.0F) * 0.75F;
         if (!(alpha <= 0.01F)) {
             // 光影 GUI 阶段沿用玩家视角（世界特效朝向），不冻结 yaw/pitch
             if (CosmicShaders.prepareCosmicRender(alpha, false)) {
-                VertexConsumer vb = buffers.getBuffer(noDepth
-                        ? CosmicShaders.COSMIC_RENDER_TYPE_NO_DEPTH
-                        : CosmicShaders.COSMIC_RENDER_TYPE);
+                // 26.1：自定义 RenderType + BufferSource 组合不再可靠（贴图/格式不匹配会被画成透明），
+                // 改用与 TimeStopRenderer 相同的立即绘制：POSITION_COLOR + debugQuads。
+                BufferBuilder vb = Tesselator.getInstance().begin(
+                        VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
                 float radius = zone.radius;
                 float y = 0.05F;
                 int segments = 48;
@@ -149,25 +152,11 @@ public final class GalaxyFieldRenderer {
                     float z0 = (float) (Math.sin(a0) * (double) radius);
                     float x1 = (float) (Math.cos(a1) * (double) radius);
                     float z1 = (float) (Math.sin(a1) * (double) radius);
-                    vb.addVertex(mat, x0, y, z0)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
-                    vb.addVertex(mat, x1, y, z1)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
-                    vb.addVertex(mat, 0.0F, y, 0.0F)
-                            .setColor(1.0F, 1.0F, 1.0F, alpha)
-                            .setUv(0.0F, 0.0F)
-                            .setOverlay(OverlayTexture.NO_OVERLAY)
-                            .setLight(15728880)
-                            .setNormal(0.0F, 1.0F, 0.0F);
+                    vb.addVertex(mat, x0, y, z0).setColor(1.0F, 1.0F, 1.0F, alpha);
+                    vb.addVertex(mat, x1, y, z1).setColor(1.0F, 1.0F, 1.0F, alpha);
+                    vb.addVertex(mat, 0.0F, y, 0.0F).setColor(1.0F, 1.0F, 1.0F, alpha);
                 }
+                net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(vb.buildOrThrow());
             }
         }
     }
