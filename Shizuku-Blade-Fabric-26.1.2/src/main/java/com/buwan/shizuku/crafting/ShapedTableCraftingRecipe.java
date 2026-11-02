@@ -59,6 +59,11 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         this.outputBlade = outputBlade;
     }
 
+    /** ItemStackTemplate -> ItemStack（模板不依赖物品 components 是否就绪）。 */
+    private static ItemStack toStack(net.minecraft.world.item.ItemStackTemplate template) {
+        return new ItemStack(template.item(), template.count(), template.components());
+    }
+
     /** 由 pattern/key JSON 数据溶解出 1.21.1 配方实例。 */
     public static ShapedTableCraftingRecipe fromPatternData(PatternData data, ItemStack output,
                                                             int tier, @Nullable Identifier outputBlade) {
@@ -237,10 +242,14 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
         public static final MapCodec<ShapedTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
                 PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r))),
-                ItemStack.CODEC.fieldOf("result").forGetter(r -> r.output),
+                // 26.1：配方产物要用 ItemStackTemplate 解析（模板不校验物品 components）；
+                // 直接用 ItemStack.CODEC 会在数据包加载期抛 "Item ... does not have components yet"
+                net.minecraft.world.item.ItemStackTemplate.CODEC
+                        .fieldOf("result")
+                        .forGetter(r -> net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(r.output)),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier),
                 Identifier.CODEC.optionalFieldOf("blade").forGetter(r -> Optional.ofNullable(r.outputBlade))
-        ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, output, tier, blade.orElse(null))));
+        ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, toStack(output), tier, blade.orElse(null))));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getWidth,

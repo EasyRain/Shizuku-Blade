@@ -122,12 +122,17 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
 
         public static final MapCodec<ShapelessTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
                 Ingredient.CODEC.listOf().fieldOf("ingredients").forGetter(ShapelessTableCraftingRecipe::getIngredients),
-                ItemStack.CODEC.fieldOf("result").forGetter(r -> r.output),
+                // 26.1：配方产物要用 ItemStackTemplate 解析（模板不校验物品 components）；
+                // 直接用 ItemStack.CODEC 会在数据包加载期抛 "Item ... does not have components yet"
+                net.minecraft.world.item.ItemStackTemplate.CODEC
+                        .fieldOf("result")
+                        .forGetter(r -> net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(r.output)),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier)
         ).apply(inst, (inputs, output, tier) -> {
+            ItemStack stack = new ItemStack(output.item(), output.count(), output.components());
             NonNullList<Ingredient> list = NonNullList.create();
             list.addAll(inputs);
-            return new ShapelessTableCraftingRecipe(list, output, tier);
+            return new ShapelessTableCraftingRecipe(list, stack, tier);
         }));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapelessTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
