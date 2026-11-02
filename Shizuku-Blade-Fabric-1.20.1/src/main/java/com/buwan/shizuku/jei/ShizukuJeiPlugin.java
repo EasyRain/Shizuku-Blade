@@ -15,6 +15,7 @@ import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import mezz.jei.api.registration.IRecipeTransferRegistration;
+import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
@@ -32,6 +33,17 @@ public class ShizukuJeiPlugin implements IModPlugin {
     @Override
     public @NotNull ResourceLocation getPluginUid() {
         return UID;
+    }
+
+    @Override
+    public void registerItemSubtypes(mezz.jei.api.registration.ISubtypeRegistration registration) {
+        // JEI 会把「同名物品」按 subtype 去重。slashblade:slashblade 的每一把刀都靠 BLADESTATE 区分，
+        // 不注册 subtype interpreter 的话，所有刀会被合并成同一个条目，只显示默认的无名占位刀
+        // ——这就是合成表里输入刀全是"无名"的根因（普通工作台与自定义合成台都一样）。
+        registration.registerSubtypeInterpreter(mods.flammpfeil.slashblade.init.SBItems.SLASHBLADE,
+                (stack, context) -> CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
+                        .map(state -> state.getTranslationKey())
+                        .orElse(""));
     }
 
     @Override
