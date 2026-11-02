@@ -25,8 +25,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -132,37 +130,19 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         slot.addIngredients(ingredient);
     }
 
+    /**
+     * 把「拔刀剑配料」解析成一把真实的命名刀用于展示。
+     *
+     * <p>不能按 translationKey 去比：配料栈里的刀名与定义注册表里刀的名字不一定同一形式，
+     * 而且 {@code ingredient.getItems()} 对自定义配料常是空的。这里反过来做 ——
+     * 遍历命名刀定义，用配料**自己的匹配逻辑**（{@link Ingredient#test}）判断哪把刀满足要求，
+     * 命中即返回完整定义栈（含模型与贴图）。</p>
+     */
     private static ItemStack resolveNamedBlade(Ingredient ingredient, RegistryAccess access) {
-        // 关键：CustomIngredient（slashblade:blade）的栈只能从 getMatchingStacks() 拿，
-        // ingredient.getItems() 对自定义配料常常是空的 —— 那样就匹配不到命名刀，退回"无铭"占位刀。
-        List<ItemStack> candidates = new ArrayList<>();
-        if (ingredient.getCustomIngredient() != null) {
-            candidates.addAll(ingredient.getCustomIngredient().getMatchingStacks());
-        }
-        Collections.addAll(candidates, ingredient.getItems());
-
-        for (ItemStack plain : candidates) {
-            if (!(plain.getItem() instanceof ItemSlashBlade)) {
-                continue;
-            }
-            String key = CapabilitySlashBlade.BLADESTATE.maybeGet(plain).map(ISlashBladeState::getTranslationKey).orElse("");
-            if (key.isBlank()) {
-                continue;
-            }
-            for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
-                ItemStack defStack = def.getBlade();
-                String defKey = CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).map(ISlashBladeState::getTranslationKey).orElse("");
-                if (key.equals(defKey)) {
-                    // 配方实际只要求刀名：展示栈 = 配料栈（仅名字）+ 定义中的模型/材质，
-                    // 不附加定义的附魔/属性，避免 JEI 暗示存在属性要求。
-                    ItemStack display = plain.copy();
-                    CapabilitySlashBlade.BLADESTATE.maybeGet(defStack).ifPresent(defState ->
-                            CapabilitySlashBlade.BLADESTATE.maybeGet(display).ifPresent(displayState -> {
-                                defState.getModel().ifPresent(displayState::setModel);
-                                defState.getTexture().ifPresent(displayState::setTexture);
-                            }));
-                    return display;
-                }
+        for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
+            ItemStack blade = def.getBlade();
+            if (!blade.isEmpty() && ingredient.test(blade)) {
+                return blade.copy();
             }
         }
         return ItemStack.EMPTY;
