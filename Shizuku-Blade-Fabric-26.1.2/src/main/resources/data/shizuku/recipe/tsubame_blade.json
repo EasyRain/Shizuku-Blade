@@ -1,0 +1,52 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:tsubame_blade",
+  "category": "equipment",
+  "key": {
+    "E": {
+      "type": "slashblade:blade",
+      "request": {
+        "kill": 900,
+        "proud_soul": 4000,
+        "name": "slashblade:yamato",
+        "refine": 50
+      },
+      "items": [
+        "slashblade:slashblade"
+      ]
+    },
+    "A": {
+      "item": "minecraft:diamond"
+    },
+    "B": {
+      "item": "shizuku:meow_stone"
+    },
+    "C": {
+      "item": "minecraft:lapis_block"
+    },
+    "D": {
+      "item": "minecraft:gold_ingot"
+    },
+    "G": {
+      "item": "minecraft:blue_ice"
+    },
+    "H": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "K": {
+      "item": "minecraft:trident"
+    },
+    "F": {
+      "item": "minecraft:blue_wool"
+    }
+  },
+  "pattern": [
+    "ABH",
+    "DEF",
+    "CGK"
+  ],
+  "result": {
+    "id": "slashblade:slashblade",
+    "count": 1
+  }
+}

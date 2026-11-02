@@ -25,6 +25,11 @@ public class PacketHandler {
         server = s;
     }
 
+    /** 供创造页/配方等处取数据包注册表（服务端实例存在时）。 */
+    public static net.minecraft.core.RegistryAccess registryAccess() {
+        return server != null ? server.registryAccess() : null;
+    }
+
     public static void register() {
         PayloadTypeRegistry.playS2C().register(TimeStopPacket.TYPE, TimeStopPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);

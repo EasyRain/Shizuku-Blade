@@ -1,0 +1,52 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:shizuku",
+  "category": "equipment",
+  "key": {
+    "E": {
+      "type": "slashblade:blade",
+      "request": {
+        "kill": 1000,
+        "proud_soul": 5000,
+        "name": "slashblade:yamato",
+        "refine": 50
+      },
+      "items": [
+        "slashblade:slashblade"
+      ]
+    },
+    "A": {
+      "item": "minecraft:diamond_block"
+    },
+    "B": {
+      "item": "shizuku:meow_stone"
+    },
+    "C": {
+      "item": "minecraft:coal_block"
+    },
+    "D": {
+      "item": "minecraft:gold_block"
+    },
+    "G": {
+      "item": "minecraft:blue_orchid"
+    },
+    "H": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "K": {
+      "item": "minecraft:cod_bucket"
+    },
+    "F": {
+      "item": "minecraft:white_wool"
+    }
+  },
+  "pattern": [
+    "ABH",
+    "DEF",
+    "CGK"
+  ],
+  "result": {
+    "id": "slashblade:slashblade",
+    "count": 1
+  }
+}

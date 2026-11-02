@@ -1,0 +1,38 @@
+{
+  "enchantments": [
+    {
+      "id": "minecraft:sharpness",
+      "lvl": 20
+    },
+    {
+      "id": "minecraft:unbreaking",
+      "lvl": 20
+    },
+    {
+      "id": "minecraft:power",
+      "lvl": 20
+    },
+    {
+      "id": "minecraft:looting",
+      "lvl": 5
+    }
+  ],
+  "item": "slashblade:slashblade",
+  "name": "shizuku:mosmicblade",
+  "properties": {
+    "attack_base": 61.0,
+    "max_damage": 800,
+    "root_combo": "shizuku:cosmic_standby",
+    "slash_art": "shizuku:galaxy_arc",
+    "special_effects": [],
+    "sword_type": [
+      "bewitched"
+    ]
+  },
+  "render": {
+    "carry_type": "default",
+    "model": "shizuku:model/shizuku/wdq.obj",
+    "summon_sword_color": 9055232,
+    "texture": "shizuku:model/shizuku/cosmic.png"
+  }
+}

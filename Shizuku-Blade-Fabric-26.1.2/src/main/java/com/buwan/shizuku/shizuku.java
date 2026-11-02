@@ -8,6 +8,7 @@ import com.buwan.shizuku.item.MeowStoneItem;
 import com.buwan.shizuku.network.PacketHandler;
 import com.buwan.shizuku.registry.ModBlocks;
 import com.buwan.shizuku.registry.ModMenus;
+import com.buwan.shizuku.registry.ModCreativeTabs;
 import com.buwan.shizuku.registry.ModRecipeSerializers;
 import com.buwan.shizuku.registry.ModRecipeTypes;
 import com.buwan.shizuku.registry.ModTileEntities;
@@ -87,6 +88,9 @@ public class shizuku {
         ModRecipeSerializers.registerAll();
         ITEMS.registerAll();
         SOUND_EVENTS.registerAll();
+
+        // 「猫羽雫」创造模式标签页
+        ModCreativeTabs.register();
 
         // 特殊效果（SE）注册
         SERegistry.registerAll();

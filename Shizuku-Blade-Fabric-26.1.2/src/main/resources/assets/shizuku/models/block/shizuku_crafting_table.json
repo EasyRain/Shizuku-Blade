@@ -1,0 +1,13 @@
+{
+  "render_type": "cutout",
+  "parent": "block/cube",
+  "textures": {
+    "north": "shizuku:block/shizuku_crafting_table_side",
+    "east": "shizuku:block/shizuku_crafting_table_side",
+    "south": "shizuku:block/shizuku_crafting_table_side",
+    "west": "shizuku:block/shizuku_crafting_table_side",
+    "up": "shizuku:block/shizuku_crafting_table_top",
+    "down": "shizuku:block/shizuku_crafting_table_bottom",
+    "particle": "shizuku:block/shizuku_crafting_table_top"
+  }
+}

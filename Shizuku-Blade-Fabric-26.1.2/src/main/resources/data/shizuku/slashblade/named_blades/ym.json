@@ -1,0 +1,37 @@
+{
+  "enchantments": [
+    {
+      "id": "minecraft:power",
+      "lvl": 78
+    },
+    {
+      "id": "minecraft:sharpness",
+      "lvl": 78
+    },
+    {
+      "id": "minecraft:fire_aspect",
+      "lvl": 13
+    },
+    {
+      "id": "minecraft:unbreaking",
+      "lvl": 91
+    }
+  ],
+  "item": "slashblade:slashblade",
+  "name": "shizuku:ymblade",
+  "properties": {
+    "unbreakable": true,
+    "max_damage": 100000000,
+    "attack_base": 3.4e+38,
+    "slash_art": "shizuku:ymsa",
+    "special_effects": [
+      "shizuku:worlds_favorite"
+    ],
+    "sword_type": [
+      "bewitched"
+    ]
+  },
+  "render": {
+    "carry_type": "default"
+  }
+}

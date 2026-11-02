@@ -1,0 +1,52 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:unlimited_blade",
+  "category": "equipment",
+  "key": {
+    "E": {
+      "type": "slashblade:blade",
+      "request": {
+        "kill": 1000,
+        "proud_soul": 4500,
+        "name": "slashblade:yamato",
+        "refine": 55
+      },
+      "items": [
+        "slashblade:slashblade"
+      ]
+    },
+    "A": {
+      "item": "minecraft:diamond_block"
+    },
+    "B": {
+      "item": "shizuku:meow_stone"
+    },
+    "C": {
+      "item": "minecraft:iron_block"
+    },
+    "D": {
+      "item": "minecraft:gold_block"
+    },
+    "G": {
+      "item": "minecraft:netherite_block"
+    },
+    "H": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "K": {
+      "item": "minecraft:totem_of_undying"
+    },
+    "F": {
+      "item": "minecraft:red_wool"
+    }
+  },
+  "pattern": [
+    "ABH",
+    "DEF",
+    "CGK"
+  ],
+  "result": {
+    "id": "slashblade:slashblade",
+    "count": 1
+  }
+}

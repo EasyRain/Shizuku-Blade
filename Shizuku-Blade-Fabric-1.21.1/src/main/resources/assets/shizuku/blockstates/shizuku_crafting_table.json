@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "shizuku:block/shizuku_crafting_table"
+    }
+  }
+}

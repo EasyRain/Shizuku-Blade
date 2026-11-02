@@ -1,0 +1,52 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:ganjo_natsuki_blade",
+  "category": "equipment",
+  "key": {
+    "A": {
+      "item": "minecraft:netherite_block"
+    },
+    "B": {
+      "item": "minecraft:diamond_block"
+    },
+    "C": {
+      "item": "minecraft:netherite_block"
+    },
+    "D": {
+      "item": "minecraft:netherite_block"
+    },
+    "S": {
+      "type": "slashblade:blade",
+      "request": {
+        "kill": 1000,
+        "proud_soul": 5000,
+        "name": "shizuku:shizuku",
+        "refine": 50
+      },
+      "items": [
+        "slashblade:slashblade"
+      ]
+    },
+    "E": {
+      "item": "minecraft:netherite_block"
+    },
+    "F": {
+      "item": "minecraft:netherite_block"
+    },
+    "G": {
+      "item": "minecraft:diamond_block"
+    },
+    "H": {
+      "item": "minecraft:netherite_block"
+    }
+  },
+  "pattern": [
+    "ABC",
+    "DSE",
+    "FGH"
+  ],
+  "result": {
+    "id": "slashblade:slashblade",
+    "count": 1
+  }
+}
