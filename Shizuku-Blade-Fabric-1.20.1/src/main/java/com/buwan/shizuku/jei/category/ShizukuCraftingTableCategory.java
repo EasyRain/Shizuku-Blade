@@ -154,14 +154,7 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
         Object custom = ingredient.getCustomIngredient();
         RequestDefinition request = requestedDefinition(ingredient);
-        ItemStack display = ItemStack.EMPTY;
-        if (request != null && request.getName() != null) {
-            SlashBladeDefinition def = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)
-                    .get(request.getName());
-            if (def != null) {
-                display = def.getBlade().copy();
-            }
-        }
+        ItemStack display = resolveBladeFor(request, access);
         // 解析不出来就原样交给 JEI —— 绝不能"随便挑一把"，
         // 那样所有输入槽会显示成同一把刀（之前就是这样把全部输入变成了同一把）。
         if (DIAG_COUNT.getAndIncrement() < 60) {
@@ -178,6 +171,47 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         if (request != null) {
             addRequirementTooltip(slot, request);
         }
+    }
+
+    /**
+     * 按配方要求找一把真实的命名刀用于展示。
+     *
+     * <p>两级查找，缺一不可：</p>
+     * <ol>
+     *   <li>先按 id 直接查注册表 —— 多数刀的「定义文件名」与 request 里的 name 相同；</li>
+     *   <li>再按 translationKey 比对 —— request 的 name 是刀的**显示名 id**，不一定等于注册表键。
+     *       例如稻光的定义文件是 {@code shizuku:el}，而 name 是
+     *       {@code shizuku:engulfing_lightning}（→ {@code item.shizuku.engulfing_lightning}），
+     *       只按 id 查会失败，图标就退化成默认模型（名字对、外观错）。</li>
+     * </ol>
+     */
+    private static ItemStack resolveBladeFor(RequestDefinition request, RegistryAccess access) {
+        if (request == null) {
+            return ItemStack.EMPTY;
+        }
+        var registry = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY);
+        if (request.getName() != null) {
+            SlashBladeDefinition direct = registry.get(request.getName());
+            if (direct != null) {
+                return direct.getBlade().copy();
+            }
+        }
+        String wanted = request.getTranslationKey();
+        if (wanted == null) {
+            return ItemStack.EMPTY;
+        }
+        for (SlashBladeDefinition def : registry) {
+            ItemStack blade = def.getBlade();
+            if (blade.isEmpty()) {
+                continue;
+            }
+            String key = CapabilitySlashBlade.BLADESTATE.maybeGet(blade)
+                    .map(ISlashBladeState::getTranslationKey).orElse("");
+            if (wanted.equals(key)) {
+                return blade.copy();
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
     /** 把配方对刀的要求（击杀数 / 耀魂 / 精炼 / 附魔）作为额外 tooltip 行显示出来。 */
