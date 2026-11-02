@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.buwan.shizuku.mixin.jei",
+  "compatibilityLevel": "JAVA_17",
+  "plugin": "com.buwan.shizuku.mixin.jei.JeiMixinPlugin",
+  "client": [
+    "JeiRenderHelperMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
