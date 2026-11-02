@@ -63,7 +63,9 @@ public final class GalaxyFieldRenderer {
 
             if (!ShaderPackCompat.isShaderPackActive()) {
                 if (!activeZones.isEmpty()) {
-                    if (CosmicShaders.COSMIC_SHADER != null) {
+                    // 26.1 不再有 ShaderInstance（COSMIC_SHADER 恒为 null），
+                    // 这里直接用 RenderType 绘制，不能再用它当条件。
+                    {
                         Minecraft mc = Minecraft.getInstance();
                         if (mc.level != null && mc.player != null) {
                             Vec3 cam = mc.gameRenderer.getMainCamera().position();
@@ -99,7 +101,7 @@ public final class GalaxyFieldRenderer {
         if (!ShaderPackCompat.isShaderPackActive()) {
             return;
         }
-        if (activeZones.isEmpty() || CosmicShaders.COSMIC_SHADER == null) {
+        if (activeZones.isEmpty()) {
             return;
         }
         if (worldVertexMatrix == null || worldModelView == null || worldCameraPos == null) {
