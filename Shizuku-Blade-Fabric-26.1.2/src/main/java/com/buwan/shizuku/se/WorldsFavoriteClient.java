@@ -83,7 +83,7 @@ public final class WorldsFavoriteClient {
         }
     }
 
-    private static boolean isDown(long window, int key) {
+    private static boolean isDown(com.mojang.blaze3d.platform.Window window, int key) {
         return InputConstants.isKeyDown(window, key);
     }
 }
