@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "shizuku",
+  "version": "${version}",
+  "name": "shizukublade",
+  "description": "SlashBlade: Resharped addon - Nekoha Shizuku blades (Fabric port, 1.21.1)",
+  "authors": [
+    "buwan"
+  ],
+  "license": "LGPL-3.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.buwan.shizuku.ShizukuFabric"
+    ],
+    "client": [
+      "com.buwan.shizuku.ShizukuFabricClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.17.2",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "slashblade": "*",
+    "forgeconfigapiport": "*"
+  }
+}

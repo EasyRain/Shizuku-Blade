@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.buwan.shizuku.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ItemSlashBladeMixin",
+    "ItemStackMixin",
+    "LivingEntityAccessor",
+    "EntityAbstractSummonedSwordMixin"
+  ],
+  "client": [
+    "DriveRendererMixin",
+    "SlashEffectRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

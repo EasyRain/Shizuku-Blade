@@ -1,0 +1,24 @@
+# Gradle / 构建产物
+.gradle/
+build/
+out/
+*.class
+
+# Fabric Loom / 运行目录
+loom-cache/
+run/
+run-data/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 本地档案（不进 git）
+PROJECT_MEMORY.md
+MODRINTH_DESCRIPTION.md
+
+# 杂项
+*.log
+.DS_Store
+Thumbs.db

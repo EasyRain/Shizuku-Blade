@@ -1,0 +1,52 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "shizuku:teleport_blade",
+  "category": "equipment",
+  "key": {
+    "E": {
+      "type": "slashblade:blade",
+      "request": {
+        "kill": 600,
+        "proud_soul": 2500,
+        "name": "slashblade:yamato",
+        "refine": 35
+      },
+      "items": [
+        "slashblade:slashblade"
+      ]
+    },
+    "A": {
+      "item": "minecraft:ender_pearl"
+    },
+    "B": {
+      "item": "shizuku:meow_stone"
+    },
+    "C": {
+      "item": "minecraft:amethyst_block"
+    },
+    "D": {
+      "item": "minecraft:gold_ingot"
+    },
+    "G": {
+      "item": "minecraft:ender_eye"
+    },
+    "H": {
+      "item": "minecraft:iron_ingot"
+    },
+    "K": {
+      "item": "minecraft:chorus_fruit"
+    },
+    "F": {
+      "item": "minecraft:purple_wool"
+    }
+  },
+  "pattern": [
+    "ABH",
+    "DEF",
+    "CGK"
+  ],
+  "result": {
+    "id": "slashblade:slashblade",
+    "count": 1
+  }
+}

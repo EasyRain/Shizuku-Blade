@@ -1,0 +1,65 @@
+plugins {
+    id 'fabric-loom' version '1.11.8'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dir 'libs'
+    }
+    // forgeconfigapiport（Refabricated 也依赖它；SlashBladeConfig 用到 ModConfigSpec）
+    maven {
+        name = "Fuzs Mod Resources"
+        url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/"
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // 与 Refabricated 一致使用 Mojang 官方映射
+    mappings loom.layered() {
+        officialMojangMappings()
+    }
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // 前置：社区 Fabric 版拔刀剑（SlashBlade: Refabricated）
+    modCompileOnly files("libs/SlashBlade-Refabricated-${slashblade_version}.jar")
+    // Refabricated 的配置依赖（SlashBladeConfig 使用 net.neoforged.neoforge.common.ModConfigSpec）
+    modCompileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:21.1.3"
+}
+
+processResources {
+    inputs.property "version", project.version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release.set(targetJavaVersion)
+}
+
+java {
+    withSourcesJar()
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+    archiveFileName = "${project.archives_base_name}-${project.mod_version}-${project.minecraft_version}-fabric.jar"
+}
