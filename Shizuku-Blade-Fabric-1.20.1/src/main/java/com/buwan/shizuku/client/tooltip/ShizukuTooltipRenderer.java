@@ -126,8 +126,9 @@ public class ShizukuTooltipRenderer {
             }
 
             if (!cosmic) {
-                renderShizukuBackground(graphics, x - 80, y - 140, 300, 320);
+                // 图层顺序：边框/底色 → 立绘（缩放进框内）→ 文字
                 renderTooltipBackground(graphics, x, y, maxWidth, tooltipHeight, palette);
+                renderShizukuBackground(graphics, x + 2, y + 2, maxWidth - 4, tooltipHeight - 4);
             } else {
                 renderCosmicTooltipBackground(graphics, x, y, maxWidth, tooltipHeight, palette);
             }
