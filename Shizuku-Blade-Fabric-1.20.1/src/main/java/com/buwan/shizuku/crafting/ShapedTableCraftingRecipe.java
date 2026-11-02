@@ -2,31 +2,33 @@ package com.buwan.shizuku.crafting;
 
 import com.buwan.shizuku.registry.ModRecipeSerializers;
 import com.buwan.shizuku.registry.ModRecipeTypes;
-import com.mojang.serialization.MapCodec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 
 /**
  * 雫工作台的有序配方（shizuku:shaped_table）。
@@ -36,6 +38,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ShapedTableCraftingRecipe.class);
 
+    private final ResourceLocation recipeId;
     private final NonNullList<Ingredient> inputs;
     private final ItemStack output;
     private final int width;
@@ -44,8 +47,20 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     @Nullable
     private final ResourceLocation outputBlade;
 
-    public ShapedTableCraftingRecipe(int width, int height, NonNullList<Ingredient> inputs, ItemStack output,
-                                     int tier, @Nullable ResourceLocation outputBlade) {
+    public ShapedTableCraftingRecipe(ResourceLocation recipeId, int width, int height,
+                                     NonNullList<Ingredient> inputs, ItemStack output) {
+        this(recipeId, width, height, inputs, output, 0, null);
+    }
+
+    public ShapedTableCraftingRecipe(ResourceLocation recipeId, int width, int height,
+                                     NonNullList<Ingredient> inputs, ItemStack output, int tier) {
+        this(recipeId, width, height, inputs, output, tier, null);
+    }
+
+    public ShapedTableCraftingRecipe(ResourceLocation recipeId, int width, int height,
+                                     NonNullList<Ingredient> inputs, ItemStack output, int tier,
+                                     @Nullable ResourceLocation outputBlade) {
+        this.recipeId = recipeId;
         this.inputs = inputs;
         this.output = output;
         this.width = width;
@@ -54,27 +69,56 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         this.outputBlade = outputBlade;
     }
 
-    /** 由 pattern/key JSON 数据溶解出 1.21.1 配方实例。 */
-    public static ShapedTableCraftingRecipe fromPatternData(PatternData data, ItemStack output,
-                                                            int tier, @Nullable ResourceLocation outputBlade) {
-        List<String> rows = data.rows();
-        int width = rows.isEmpty() ? 0 : rows.get(0).length();
-        int height = rows.size();
+    private static Map<Character, Ingredient> keyFromJson(JsonObject keyJson) {
+        Map<Character, Ingredient> map = Maps.newHashMap();
+        for (Map.Entry<String, JsonElement> entry : keyJson.entrySet()) {
+            if (entry.getKey().length() != 1) {
+                throw new JsonSyntaxException("Invalid key entry: '" + entry.getKey()
+                        + "' is an invalid symbol (must be 1 character only).");
+            }
+            if (" ".equals(entry.getKey())) {
+                throw new JsonSyntaxException("Invalid key entry: ' ' is a reserved symbol.");
+            }
+            map.put(entry.getKey().charAt(0), Ingredient.fromJson(entry.getValue()));
+        }
+        return map;
+    }
+
+    private static NonNullList<Ingredient> dissolvePattern(String[] pattern, Map<Character, Ingredient> key,
+                                                           int width, int height) {
         NonNullList<Ingredient> inputs = NonNullList.withSize(width * height, Ingredient.EMPTY);
-        for (int i = 0; i < height; i++) {
-            String row = rows.get(i);
-            for (int j = 0; j < row.length(); j++) {
-                char c = row.charAt(j);
-                if (c != ' ') {
-                    Ingredient ingredient = data.key().get(String.valueOf(c));
+        Set<Character> set = Sets.newHashSet(key.keySet());
+        set.remove(' ');
+        for (int i = 0; i < pattern.length; i++) {
+            for (int j = 0; j < pattern[i].length(); j++) {
+                char c0 = pattern[i].charAt(j);
+                if (c0 != ' ') {
+                    Ingredient ingredient = key.get(c0);
                     if (ingredient == null) {
-                        throw new IllegalStateException("Pattern references symbol '" + c + "' but it's not defined in the key; parsed keys=" + data.key().keySet() + ", rows=" + rows);
+                        throw new JsonSyntaxException("Pattern references symbol '" + c0
+                                + "' but it's not defined in the key");
                     }
+                    set.remove(c0);
                     inputs.set(j + width * i, ingredient);
                 }
             }
         }
-        return new ShapedTableCraftingRecipe(width, height, inputs, output, tier, outputBlade);
+        if (!set.isEmpty()) {
+            throw new JsonSyntaxException("Key defines symbols that aren't used in pattern: " + set);
+        }
+        return inputs;
+    }
+
+    private static String[] patternFromJson(JsonArray jsonArr) {
+        String[] astring = new String[jsonArr.size()];
+        for (int i = 0; i < astring.length; i++) {
+            String s = GsonHelper.getAsString(jsonArr.get(i), "pattern[" + i + "]");
+            if (i > 0 && astring[0].length() != s.length()) {
+                throw new JsonSyntaxException("Invalid pattern: each row must be the same width");
+            }
+            astring[i] = s;
+        }
+        return astring;
     }
 
     public int getWidth() {
@@ -86,17 +130,17 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public ItemStack getResultItem(HolderLookup.Provider access) {
+    @NotNull
+    public ItemStack getResultItem(@NotNull RegistryAccess access) {
         if (this.outputBlade != null) {
             try {
-                SlashBladeDefinition definition = access.lookupOrThrow(SlashBladeDefinition.REGISTRY_KEY)
-                        .getOrThrow(ResourceKey.create(SlashBladeDefinition.REGISTRY_KEY, this.outputBlade))
-                        .value();
-                if (definition != null) {
-                    return definition.getBlade();
+                Registry<SlashBladeDefinition> registry = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY);
+                SlashBladeDefinition holder = registry.get(this.outputBlade);
+                if (holder != null) {
+                    return holder.getBlade();
                 }
-                LOGGER.error("[ShizukuCraft] Blade definition '{}' not found in registry {}", this.outputBlade,
-                        SlashBladeDefinition.REGISTRY_KEY.location());
+                LOGGER.error("[ShizukuCraft] Blade definition '{}' not found in registry {}",
+                        this.outputBlade, SlashBladeDefinition.REGISTRY_KEY.location());
             } catch (Exception e) {
                 LOGGER.error("[ShizukuCraft] Failed to create output blade '{}'", this.outputBlade, e);
             }
@@ -106,16 +150,17 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
-    public ItemStack assemble(RecipeInput input, HolderLookup.Provider access) {
+    @NotNull
+    public ItemStack assemble(@NotNull Container inv, @NotNull RegistryAccess access) {
         return this.getResultItem(access).copy();
     }
 
     @Override
-    public boolean matches(RecipeInput inv, Level level) {
-        if (this.tier != 0 && this.tier != getTierFromGridSize(inv.size())) {
+    public boolean matches(@NotNull Container inv, @NotNull Level level) {
+        if (this.tier != 0 && this.tier != this.getTierFromGridSize(inv.getContainerSize())) {
             return false;
         }
-        int size = (int) Math.sqrt(inv.size());
+        int size = (int) Math.sqrt(inv.getContainerSize());
         for (int i = 0; i <= size - this.width; i++) {
             for (int j = 0; j <= size - this.height; j++) {
                 if (this.checkMatch(inv, i, j, true)) {
@@ -130,16 +175,25 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
     }
 
     @Override
+    @NotNull
     public NonNullList<Ingredient> getIngredients() {
         return this.inputs;
     }
 
     @Override
+    @NotNull
+    public ResourceLocation getId() {
+        return this.recipeId;
+    }
+
+    @Override
+    @NotNull
     public RecipeSerializer<?> getSerializer() {
         return ModRecipeSerializers.SHAPED_CRAFT_SERIALIZER.get();
     }
 
     @Override
+    @NotNull
     public RecipeType<?> getType() {
         return ModRecipeTypes.CRAFTING_TABLE_RECIPE.get();
     }
@@ -168,8 +222,8 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return slots < 10 ? 1 : (slots < 26 ? 2 : (slots < 50 ? 3 : 4));
     }
 
-    private boolean checkMatch(RecipeInput inventory, int x, int y, boolean mirror) {
-        int size = (int) Math.sqrt(inventory.size());
+    private boolean checkMatch(Container inventory, int x, int y, boolean mirror) {
+        int size = (int) Math.sqrt(inventory.getContainerSize());
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 int k = i - x;
@@ -188,71 +242,55 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return true;
     }
 
-    public record PatternData(List<String> rows, Map<String, Ingredient> key) {
-        public static final MapCodec<PatternData> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                net.minecraft.util.ExtraCodecs.nonEmptyList(CodecHolder.STRING_LIST).fieldOf("pattern").forGetter(PatternData::rows),
-                CodecHolder.STRING_INGREDIENT_MAP.fieldOf("key").forGetter(PatternData::key)
-        ).apply(inst, PatternData::new));
-
-        public static final StreamCodec<RegistryFriendlyByteBuf, PatternData> STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), PatternData::rows,
-                ByteBufCodecs.map(java.util.HashMap::new, ByteBufCodecs.STRING_UTF8, Ingredient.CONTENTS_STREAM_CODEC), PatternData::key,
-                PatternData::new
-        );
-    }
-
-    /** 避免直接引用 Codec/StreamCodec 静态字段的初始化顺序问题的小容器。 */
-    static final class CodecHolder {
-        static final com.mojang.serialization.Codec<java.util.List<String>> STRING_LIST =
-                com.mojang.serialization.Codec.STRING.listOf();
-        static final com.mojang.serialization.Codec<Map<String, Ingredient>> STRING_INGREDIENT_MAP =
-                net.minecraft.util.ExtraCodecs.strictUnboundedMap(com.mojang.serialization.Codec.STRING, Ingredient.CODEC_NONEMPTY);
-    }
-
     public static class Serializer implements RecipeSerializer<ShapedTableCraftingRecipe> {
-
-        public static final MapCodec<ShapedTableCraftingRecipe> CODEC = RecordCodecBuilder.mapCodec(inst -> inst.group(
-                PatternData.CODEC.forGetter(r -> new PatternData(rowsOf(r), keyOf(r))),
-                ItemStack.CODEC.fieldOf("result").forGetter(r -> r.output),
-                com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier),
-                ResourceLocation.CODEC.optionalFieldOf("blade").forGetter(r -> Optional.ofNullable(r.outputBlade))
-        ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, output, tier, blade.orElse(null))));
-
-        public static final StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getWidth,
-                ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getHeight,
-                ByteBufCodecs.collection(NonNullList::createWithCapacity, Ingredient.CONTENTS_STREAM_CODEC), ShapedTableCraftingRecipe::getIngredients,
-                ItemStack.STREAM_CODEC, r -> r.output,
-                ByteBufCodecs.VAR_INT, r -> r.tier,
-                ByteBufCodecs.optional(ResourceLocation.STREAM_CODEC), r -> Optional.ofNullable(r.outputBlade),
-                (width, height, inputs, output, tier, blade) ->
-                        new ShapedTableCraftingRecipe(width, height, inputs, output, tier, blade.orElse(null))
-        );
-
         @Override
-        public MapCodec<ShapedTableCraftingRecipe> codec() {
-            return CODEC;
-        }
-
-        @Override
-        public StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> streamCodec() {
-            return STREAM_CODEC;
-        }
-    }
-
-    private static List<String> rowsOf(ShapedTableCraftingRecipe r) {
-        List<String> rows = new ArrayList<>();
-        for (int i = 0; i < r.height; i++) {
-            StringBuilder sb = new StringBuilder();
-            for (int j = 0; j < r.width; j++) {
-                sb.append(' ');
+        @NotNull
+        public ShapedTableCraftingRecipe fromJson(@NotNull ResourceLocation recipeId, @NotNull JsonObject json) {
+            Map<Character, Ingredient> map = ShapedTableCraftingRecipe.keyFromJson(GsonHelper.getAsJsonObject(json, "key"));
+            String[] pattern = ShapedTableCraftingRecipe.patternFromJson(GsonHelper.getAsJsonArray(json, "pattern"));
+            int width = pattern[0].length();
+            int height = pattern.length;
+            NonNullList<Ingredient> inputs = ShapedTableCraftingRecipe.dissolvePattern(pattern, map, width, height);
+            ItemStack output = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
+            int tier = GsonHelper.getAsInt(json, "tier", 0);
+            int size = tier * 2 + 1;
+            if (tier == 0 || width <= size && height <= size) {
+                ResourceLocation outputBlade = json.has("blade")
+                        ? new ResourceLocation(GsonHelper.getAsString(json, "blade"))
+                        : null;
+                return new ShapedTableCraftingRecipe(recipeId, width, height, inputs, output, tier, outputBlade);
             }
-            rows.add(sb.toString());
+            throw new JsonSyntaxException("The pattern size is larger than the specified tier can support");
         }
-        return rows;
-    }
 
-    private static Map<String, Ingredient> keyOf(ShapedTableCraftingRecipe r) {
-        return Map.of();
+        @Override
+        public ShapedTableCraftingRecipe fromNetwork(@NotNull ResourceLocation recipeId, FriendlyByteBuf buffer) {
+            int width = buffer.readVarInt();
+            int height = buffer.readVarInt();
+            NonNullList<Ingredient> inputs = NonNullList.withSize(width * height, Ingredient.EMPTY);
+            inputs.replaceAll(ignored -> Ingredient.fromNetwork(buffer));
+            ItemStack output = buffer.readItem();
+            int tier = buffer.readVarInt();
+            ResourceLocation outputBlade = null;
+            if (buffer.readBoolean()) {
+                outputBlade = buffer.readResourceLocation();
+            }
+            return new ShapedTableCraftingRecipe(recipeId, width, height, inputs, output, tier, outputBlade);
+        }
+
+        @Override
+        public void toNetwork(FriendlyByteBuf buffer, ShapedTableCraftingRecipe recipe) {
+            buffer.writeVarInt(recipe.width);
+            buffer.writeVarInt(recipe.height);
+            for (Ingredient ingredient : recipe.inputs) {
+                Ingredient.toNetwork(buffer, ingredient);
+            }
+            buffer.writeItem(recipe.output);
+            buffer.writeVarInt(recipe.tier);
+            buffer.writeBoolean(recipe.outputBlade != null);
+            if (recipe.outputBlade != null) {
+                buffer.writeResourceLocation(recipe.outputBlade);
+            }
+        }
     }
 }
