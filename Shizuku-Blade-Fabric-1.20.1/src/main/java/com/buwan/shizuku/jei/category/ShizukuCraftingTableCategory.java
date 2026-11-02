@@ -16,6 +16,7 @@ import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.recipe.RequestDefinition;
 import mods.flammpfeil.slashblade.recipe.SlashBladeIngredient;
+import mods.flammpfeil.slashblade.registry.slashblade.EnchantmentDefinition;
 import mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -28,6 +29,7 @@ import net.minecraft.world.item.crafting.Ingredient;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -133,40 +135,68 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
      * 拔刀剑配料（slashblade:blade）的 getItems() 只带名字与属性、不带模型/材质，
      * 这里按 translationKey 匹配 SlashBladeDefinition，取完整命名刀（含模型与贴图）用于展示。
      */
+    /** 临时诊断：定位配料刀为何仍显示为"无名"。定位完删掉。 */
+    private static final java.util.concurrent.atomic.AtomicInteger DIAG_COUNT =
+            new java.util.concurrent.atomic.AtomicInteger();
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku-jei");
+
     private static void addIngredientSlot(IRecipeLayoutBuilder builder, Ingredient ingredient,
                                           int x, int y, RegistryAccess access) {
         var slot = builder.addSlot(RecipeIngredientRole.INPUT, x, y);
-        if (ingredient.getCustomIngredient() != null) {
-            ItemStack display = resolveNamedBlade(ingredient, access);
-            if (!display.isEmpty()) {
-                slot.addItemStack(display);
-                return;
+        Object custom = ingredient.getCustomIngredient();
+        RequestDefinition request = requestedDefinition(ingredient);
+        ItemStack display = ItemStack.EMPTY;
+        if (request != null && request.getName() != null) {
+            SlashBladeDefinition def = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)
+                    .get(request.getName());
+            if (def != null) {
+                display = def.getBlade().copy();
             }
         }
-        slot.addIngredients(ingredient);
+        if (display.isEmpty()) {
+            display = resolveFallbackBlade(ingredient, access);
+        }
+        if (DIAG_COUNT.getAndIncrement() < 60) {
+            LOGGER.info("[shizuku-jei] custom={} requestName={} display={}",
+                    custom == null ? "null" : custom.getClass().getSimpleName(),
+                    request == null ? "null" : String.valueOf(request.getName()),
+                    display.isEmpty() ? "EMPTY" : display.getItem());
+        }
+        if (display.isEmpty()) {
+            slot.addIngredients(ingredient);
+            return;
+        }
+        slot.addItemStack(display);
+        if (request != null) {
+            addRequirementTooltip(slot, request);
+        }
     }
 
-    /**
-     * 把「拔刀剑配料」解析成一把真实的命名刀用于展示。
-     *
-     * <p>配料是 Fabric 的 {@code CustomIngredient}（{@code SlashBladeIngredient}），它内部持有
-     * {@code RequestDefinition}，里面有配方要求的**刀 id**。但该字段没有 getter，
-     * 只能反射取（拿不到就退回下面的兜底逻辑，不影响主流程）。</p>
-     *
-     * <p>不能用 {@code ingredient.test(def.getBlade())} 判断：配方常常带门槛
-     * （如 {@code kill:700 / proud_soul:3000 / refine:40}），而定义里的刀是全新状态，必然不匹配。
-     * 也不要用 {@code getMatchingStacks()}：那只是 {@code new ItemStack(item)} + 填请求状态，
-     * 没有模型/贴图，显示出来就是"无名"占位刀。</p>
-     */
-    private static ItemStack resolveNamedBlade(Ingredient ingredient, RegistryAccess access) {
-        ResourceLocation requested = requestedBladeId(ingredient);
-        if (requested != null) {
-            SlashBladeDefinition def = access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY).get(requested);
-            if (def != null) {
-                return def.getBlade().copy();
-            }
+    /** 把配方对刀的要求（击杀数 / 耀魂 / 精炼 / 附魔）作为额外 tooltip 行显示出来。 */
+    private static void addRequirementTooltip(mezz.jei.api.gui.builder.IRecipeSlotBuilder slot,
+                                              RequestDefinition request) {
+        List<Component> lines = new ArrayList<>();
+        if (request.getKillCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.kill", request.getKillCount()));
         }
-        // 兜底：没有刀名要求时，找第一把能被该配料接受的刀
+        if (request.getProudSoulCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.proud_soul", request.getProudSoulCount()));
+        }
+        if (request.getRefineCount() > 0) {
+            lines.add(Component.translatable("jei.shizuku.requirement.refine", request.getRefineCount()));
+        }
+        for (EnchantmentDefinition enchantment : request.getEnchantments()) {
+            lines.add(Component.translatable("jei.shizuku.requirement.enchant",
+                    enchantment.getEnchantmentID().toString(), enchantment.getEnchantmentLevel()));
+        }
+        if (lines.isEmpty()) {
+            return;
+        }
+        slot.addRichTooltipCallback((view, tooltip) -> tooltip.addAll(lines));
+    }
+
+    /** 兜底：找第一把能被该配料接受的刀（无刀名要求时使用）。 */
+    private static ItemStack resolveFallbackBlade(Ingredient ingredient, RegistryAccess access) {
         for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
             ItemStack blade = def.getBlade();
             if (!blade.isEmpty() && ingredient.test(blade)) {
@@ -176,21 +206,18 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
         return ItemStack.EMPTY;
     }
 
-    /** 从 {@code SlashBladeIngredient.request.getName()} 取配方要求的刀 id。 */
-    private static ResourceLocation requestedBladeId(Ingredient ingredient) {
+    /** 取配料的 {@code RequestDefinition}（{@code SlashBladeIngredient.request} 私有、无 getter）。 */
+    private static RequestDefinition requestedDefinition(Ingredient ingredient) {
         Object custom = ingredient.getCustomIngredient();
         if (custom == null || REQUEST_FIELD == null) {
             return null;
         }
         try {
             Object request = REQUEST_FIELD.get(custom);
-            if (request instanceof RequestDefinition definition) {
-                return definition.getName();
-            }
+            return request instanceof RequestDefinition definition ? definition : null;
         } catch (Throwable ignored) {
-            // 反射失败时走兜底
+            return null;
         }
-        return null;
     }
 
     @Override
