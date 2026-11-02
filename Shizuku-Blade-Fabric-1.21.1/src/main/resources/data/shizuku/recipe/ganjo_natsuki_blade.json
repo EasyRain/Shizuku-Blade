@@ -16,6 +16,7 @@
       "item": "minecraft:netherite_block"
     },
     "S": {
+      "fabric:type": "slashblade:blade",
       "type": "slashblade:blade",
       "request": {
         "kill": 1000,

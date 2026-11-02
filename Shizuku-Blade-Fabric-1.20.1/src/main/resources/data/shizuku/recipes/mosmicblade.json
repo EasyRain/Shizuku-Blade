@@ -18,6 +18,7 @@
       "item": "shizuku:meow_stone"
     },
     "S": {
+      "fabric:type": "slashblade:blade",
       "type": "slashblade:blade",
       "item": "slashblade:slashblade",
       "request": {

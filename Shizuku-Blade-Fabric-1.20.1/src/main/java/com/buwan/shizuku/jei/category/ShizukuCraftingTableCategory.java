@@ -47,13 +47,22 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
     private static final Field REQUEST_FIELD = findRequestField();
 
     private static Field findRequestField() {
-        try {
-            Field field = SlashBladeIngredient.class.getDeclaredField("request");
-            field.setAccessible(true);
-            return field;
-        } catch (Throwable t) {
-            return null;
+        // 按「字段类型」找，而不是按名字找 —— 万一上游改了字段名也不受影响
+        Class<?> type = SlashBladeIngredient.class;
+        while (type != null && type != Object.class) {
+            for (Field field : type.getDeclaredFields()) {
+                if (RequestDefinition.class.isAssignableFrom(field.getType())) {
+                    try {
+                        field.setAccessible(true);
+                        return field;
+                    } catch (Throwable ignored) {
+                        return null;
+                    }
+                }
+            }
+            type = type.getSuperclass();
         }
+        return null;
     }
 
     private static final int GUI_WIDTH = 189;
@@ -153,9 +162,8 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
                 display = def.getBlade().copy();
             }
         }
-        if (display.isEmpty()) {
-            display = resolveFallbackBlade(ingredient, access);
-        }
+        // 解析不出来就原样交给 JEI —— 绝不能"随便挑一把"，
+        // 那样所有输入槽会显示成同一把刀（之前就是这样把全部输入变成了同一把）。
         if (DIAG_COUNT.getAndIncrement() < 60) {
             LOGGER.info("[shizuku-jei] custom={} requestName={} display={}",
                     custom == null ? "null" : custom.getClass().getSimpleName(),
@@ -193,17 +201,6 @@ public class ShizukuCraftingTableCategory extends AbstractRecipeCategory<ITierCr
             return;
         }
         slot.addRichTooltipCallback((view, tooltip) -> tooltip.addAll(lines));
-    }
-
-    /** 兜底：找第一把能被该配料接受的刀（无刀名要求时使用）。 */
-    private static ItemStack resolveFallbackBlade(Ingredient ingredient, RegistryAccess access) {
-        for (SlashBladeDefinition def : access.registryOrThrow(SlashBladeDefinition.REGISTRY_KEY)) {
-            ItemStack blade = def.getBlade();
-            if (!blade.isEmpty() && ingredient.test(blade)) {
-                return blade.copy();
-            }
-        }
-        return ItemStack.EMPTY;
     }
 
     /** 取配料的 {@code RequestDefinition}（{@code SlashBladeIngredient.request} 私有、无 getter）。 */
