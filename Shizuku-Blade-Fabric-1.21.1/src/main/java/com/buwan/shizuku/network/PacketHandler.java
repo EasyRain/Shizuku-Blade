@@ -9,6 +9,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.jetbrains.annotations.Nullable;
 
+import com.buwan.shizuku.sa.GalaxyField;
+import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
+import mods.flammpfeil.slashblade.item.ItemSlashBlade;
+
 /**
  * Fabric 网络层：payload 注册 + 发送。
  * 客户端接收处理（渲染器）在 client 包移植后接入。
@@ -26,7 +30,22 @@ public class PacketHandler {
         PayloadTypeRegistry.playS2C().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
-        // 其余（SynthwaveShaderPacket / YmsaForceRemovePacket / FieldActivatePacket）随对应功能移植后再接入
+        PayloadTypeRegistry.playS2C().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
+
+        // C2S：Shift+X 切换星河领域（服务端校验手持 mosmicblade）
+        ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (player == null) {
+                        return;
+                    }
+                    boolean mosmic = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
+                            .map(s -> "item.shizuku.mosmicblade".equals(s.getTranslationKey())).orElse(false);
+                    if (mosmic && player.getMainHandItem().getItem() instanceof ItemSlashBlade) {
+                        GalaxyField.toggleField(player);
+                    }
+                }));
     }
 
     public static void sendToServer(CustomPacketPayload packet) {

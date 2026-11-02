@@ -11,6 +11,8 @@ import com.buwan.shizuku.registry.ModMenus;
 import com.buwan.shizuku.registry.ModRecipeSerializers;
 import com.buwan.shizuku.registry.ModRecipeTypes;
 import com.buwan.shizuku.registry.ModTileEntities;
+import com.buwan.shizuku.registry.SAComboRegistry;
+import com.buwan.shizuku.registry.SASlashArtRegistry;
 import com.buwan.shizuku.sa.GalaxyField;
 import com.buwan.shizuku.sa.MoonlightSlash;
 import com.buwan.shizuku.sa.SummerSlash;
@@ -21,15 +23,20 @@ import com.buwan.shizuku.sa.TsubameGaeshi;
 import com.buwan.shizuku.sa.UnlimitedBladeWorks;
 import com.buwan.shizuku.sa.VoidPrison;
 import com.buwan.shizuku.sa.Yingsa;
+import com.buwan.shizuku.sa.Ymsa;
 import com.buwan.shizuku.se.Jingxin;
 import com.buwan.shizuku.se.Leise;
 import com.buwan.shizuku.se.SERegistry;
 import com.buwan.shizuku.se.WorldsFavorite;
 import mods.flammpfeil.slashblade.event.SlashBladeEvent;
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.BlockItem;
@@ -82,6 +89,21 @@ public class shizuku {
         // 特殊效果（SE）注册
         SERegistry.registerAll();
 
+        // 剑技注册表（自定义 Registry：SlashArts / ComboState）
+        SASlashArtRegistry.SLASH_ARTS.registerAll();
+        SAComboRegistry.COMBO_STATES.registerAll();
+
+        // 抹除（Ymsa）系统事件
+        ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (world instanceof ServerLevel) {
+                Ymsa.onEntityJoin(entity);
+            }
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                Ymsa.onPlayerLoggedOut(handler.getPlayer()));
+        ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) ->
+                Ymsa.onPlayerChangedDimension(player));
+
         // 网络 payload 注册 + 服务器实例捕获（sendToAll 用）
         PacketHandler.register();
         ServerLifecycleEvents.SERVER_STARTED.register(PacketHandler::setServer);
@@ -99,6 +121,7 @@ public class shizuku {
             ServerTickEvent.Post serverEvent = new ServerTickEvent.Post();
             GalaxyField.onServerTick(serverEvent);
             Yingsa.onServerTick(serverEvent);
+            Ymsa.onServerTick(server);
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 PlayerTickEvent.Post playerEvent = new PlayerTickEvent.Post(player);
                 MoonlightSlash.onPlayerTick(playerEvent);

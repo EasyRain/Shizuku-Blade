@@ -1,16 +1,21 @@
 package com.buwan.shizuku;
 
+import com.buwan.shizuku.client.FieldActivateInput;
 import com.buwan.shizuku.client.GalaxyFieldRenderer;
 import com.buwan.shizuku.client.TimeStopRenderer;
 import com.buwan.shizuku.client.VoidPrisonRenderer;
+import com.buwan.shizuku.client.YmsaChargeHandler;
+import com.buwan.shizuku.client.YmsaClientReceiver;
 import com.buwan.shizuku.client.screen.ShizukuCraftScreen;
 import com.buwan.shizuku.compat.ClientTickEvent;
 import com.buwan.shizuku.compat.RenderGuiEvent;
 import com.buwan.shizuku.compat.RenderLevelStageEvent;
+import com.buwan.shizuku.network.YmsaForceRemovePacket;
 import com.buwan.shizuku.registry.ModMenus;
 import com.buwan.shizuku.se.WorldsFavoriteClient;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.gui.screens.MenuScreens;
@@ -31,7 +36,13 @@ public class ShizukuFabricClient implements ClientModInitializer {
             GalaxyFieldRenderer.onClientTick(event);
             TimeStopRenderer.getInstance().onClientTick(event);
             VoidPrisonRenderer.getInstance().onClientTick(event);
+            YmsaChargeHandler.onClientTick(event);
+            FieldActivateInput.tick(client);
         });
+
+        // S2C：抹除广播
+        ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.TYPE, (payload, context) ->
+                context.client().execute(() -> YmsaClientReceiver.handle(payload)));
 
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             if (context.matrixStack() == null) {
