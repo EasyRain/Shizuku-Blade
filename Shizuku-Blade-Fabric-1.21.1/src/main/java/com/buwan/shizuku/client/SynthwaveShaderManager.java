@@ -10,6 +10,7 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.phys.Vec3;
 
 
@@ -30,6 +31,26 @@ public class SynthwaveShaderManager {
     private static final long FADE_DELAY_MS = 200L;
     private static final long FADE_MS = 100L;
 
+    /** Fabric：懒创建合成波着色器（NeoForge 有 RegisterShadersEvent，Fabric 没有）。 */
+    public static ShaderInstance ensureShader() {
+        if (synthwave == null) {
+            try {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc == null || mc.getResourceManager() == null) {
+                    return null;
+                }
+                synthwave = new ShaderInstance(mc.getResourceManager(),
+                        ResourceLocation.fromNamespaceAndPath("shizuku", "synthwave").toString(),
+                        DefaultVertexFormat.POSITION_TEX);
+                LOGGER.info("Synthwave shader created");
+            } catch (Exception e) {
+                LOGGER.error("Failed to create Synthwave shader", e);
+                return null;
+            }
+        }
+        return synthwave;
+    }
+
     public static void render(PoseStack poseStack, Matrix4f projectionMatrix) {
         if (isSynthwaveEnabled) {
             if (ShaderPackCompat.isShaderPackActive()) {
@@ -41,6 +62,7 @@ public class SynthwaveShaderManager {
             }
             Minecraft mc = Minecraft.getInstance();
             if (mc.level != null && mc.player != null) {
+                ensureShader();
                 if (synthwave == null) {
                     LOGGER.warn("Synthwave shader is null!");
                 } else {
