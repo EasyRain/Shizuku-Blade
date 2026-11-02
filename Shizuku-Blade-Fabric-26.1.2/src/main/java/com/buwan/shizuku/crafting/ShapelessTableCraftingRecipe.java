@@ -62,7 +62,6 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
         return ModRecipeTypes.CRAFTING_TABLE_RECIPE.get();
     }
 
-    @Override
     public boolean canCraftInDimensions(int width, int height) {
         return width * height >= this.inputs.size();
     }

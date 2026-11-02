@@ -66,7 +66,7 @@ public class ModCraftResultSlot extends Slot {
     @Override
     public void onTake(@NotNull Player player, @NotNull ItemStack stack) {
         this.checkTakeAchievements(stack);
-        NonNullList<ItemStack> remaining = player.level()
+        NonNullList<ItemStack> remaining = player.level().getServer()
                 .getRecipeManager()
                 .getRemainingItemsFor(ModRecipeTypes.CRAFTING_TABLE_RECIPE.get(), this.craftSlots.asCraftInput(), player.level());
 

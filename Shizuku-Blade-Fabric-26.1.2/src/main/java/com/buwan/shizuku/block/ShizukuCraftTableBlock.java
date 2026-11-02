@@ -41,7 +41,9 @@ public class ShizukuCraftTableBlock extends Block implements EntityBlock {
                     Containers.dropItemStack(realLevel, pos.getX(), pos.getY(), pos.getZ(), stack);
                 }
             }
-            level.updateNeighbourForOutputSignal(pos, this);
+            if (level instanceof Level realLevel) {
+                realLevel.updateNeighbourForOutputSignal(pos, this);
+            }
         }
         super.destroy(level, pos, state);
     }

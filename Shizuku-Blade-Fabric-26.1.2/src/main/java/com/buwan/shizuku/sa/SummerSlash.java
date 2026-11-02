@@ -96,7 +96,7 @@ public class SummerSlash {
 
     private static void playGlassBreakSound(LivingEntity player, Level level) {
         if (!level.isClientSide()) {
-            SoundEvent glassBreakSound = BuiltInRegistries.SOUND_EVENT.get(GLASS_BREAK_SOUND.getId());
+            SoundEvent glassBreakSound = BuiltInRegistries.SOUND_EVENT.get(GLASS_BREAK_SOUND.getId()).map(net.minecraft.core.Holder.Reference::value).orElse(null);
             if (glassBreakSound != null) {
                 level.playSound(null, player.getX(), player.getY(), player.getZ(), glassBreakSound, SoundSource.PLAYERS, 1.0F, 1.0F);
             }

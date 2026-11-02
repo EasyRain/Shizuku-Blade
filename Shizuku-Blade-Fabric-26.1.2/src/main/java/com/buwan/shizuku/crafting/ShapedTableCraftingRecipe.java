@@ -169,7 +169,6 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         return ModRecipeTypes.CRAFTING_TABLE_RECIPE.get();
     }
 
-    @Override
     public boolean canCraftInDimensions(int width, int height) {
         return width >= this.width && height >= this.height;
     }
