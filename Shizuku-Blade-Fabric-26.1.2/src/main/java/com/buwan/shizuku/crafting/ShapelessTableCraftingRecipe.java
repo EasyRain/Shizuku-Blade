@@ -31,12 +31,31 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
 
     private final NonNullList<Ingredient> inputs;
     private final ItemStack output;
+    /** 从 JSON 解析时用模板暂存（加载期不能造 ItemStack）。 */
+    private final net.minecraft.world.item.ItemStackTemplate outputTemplate;
     private final int tier;
 
     public ShapelessTableCraftingRecipe(NonNullList<Ingredient> inputs, ItemStack output, int tier) {
         this.inputs = inputs;
         this.output = output;
         this.tier = tier;
+        this.outputTemplate = null;
+    }
+
+    private ShapelessTableCraftingRecipe(NonNullList<Ingredient> inputs,
+                                          net.minecraft.world.item.ItemStackTemplate outputTemplate, int tier) {
+        this.inputs = inputs;
+        this.output = ItemStack.EMPTY;
+        this.tier = tier;
+        this.outputTemplate = outputTemplate;
+    }
+
+    private ItemStack outputStack() {
+        if (this.outputTemplate != null) {
+            return new ItemStack(this.outputTemplate.item(), this.outputTemplate.count(),
+                    this.outputTemplate.components());
+        }
+        return this.outputStack();
     }
 
     private static int getTierFromSize(int size) {
@@ -68,7 +87,7 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
 
     @Override
     public ItemStack assemble(RecipeInput input) {
-        return this.output.copy();
+        return this.outputStack().copy();
     }
 
     @Override
@@ -129,10 +148,10 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
                         .forGetter(r -> net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(r.output)),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier)
         ).apply(inst, (inputs, output, tier) -> {
-            ItemStack stack = new ItemStack(output.item(), output.count(), output.components());
+
             NonNullList<Ingredient> list = NonNullList.create();
             list.addAll(inputs);
-            return new ShapelessTableCraftingRecipe(list, stack, tier);
+            return new ShapelessTableCraftingRecipe(list, output, tier);
         }));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapelessTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(

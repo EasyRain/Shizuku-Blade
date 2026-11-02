@@ -43,6 +43,8 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
 
     private final NonNullList<Ingredient> inputs;
     private final ItemStack output;
+    /** 从 JSON 解析时用模板暂存产物 —— 数据包加载期物品 components 尚未绑定，不能造 ItemStack。 */
+    private final net.minecraft.world.item.ItemStackTemplate outputTemplate;
     private final int width;
     private final int height;
     private final int tier;
@@ -57,15 +59,33 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
         this.height = height;
         this.tier = tier;
         this.outputBlade = outputBlade;
+        this.outputTemplate = null;
     }
 
-    /** ItemStackTemplate -> ItemStack（模板不依赖物品 components 是否就绪）。 */
-    private static ItemStack toStack(net.minecraft.world.item.ItemStackTemplate template) {
-        return new ItemStack(template.item(), template.count(), template.components());
+    private ShapedTableCraftingRecipe(int width, int height, NonNullList<Ingredient> inputs,
+                                      net.minecraft.world.item.ItemStackTemplate outputTemplate,
+                                      int tier, @Nullable Identifier outputBlade) {
+        this.width = width;
+        this.height = height;
+        this.inputs = inputs;
+        this.output = ItemStack.EMPTY;
+        this.tier = tier;
+        this.outputBlade = outputBlade;
+        this.outputTemplate = outputTemplate;
+    }
+
+    /** 产物栈：有模板就现造（此时 components 已就绪），否则用直存的栈。 */
+    private ItemStack outputStack() {
+        if (this.outputTemplate != null) {
+            return new ItemStack(this.outputTemplate.item(), this.outputTemplate.count(),
+                    this.outputTemplate.components());
+        }
+        return this.output;
     }
 
     /** 由 pattern/key JSON 数据溶解出 1.21.1 配方实例。 */
-    public static ShapedTableCraftingRecipe fromPatternData(PatternData data, ItemStack output,
+    public static ShapedTableCraftingRecipe fromPatternData(PatternData data,
+                                                            net.minecraft.world.item.ItemStackTemplate output,
                                                             int tier, @Nullable Identifier outputBlade) {
         List<String> rows = data.rows();
         int width = rows.isEmpty() ? 0 : rows.get(0).length();
@@ -109,15 +129,15 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
             } catch (Exception e) {
                 LOGGER.error("[ShizukuCraft] Failed to create output blade '{}'", this.outputBlade, e);
             }
-            return this.output.copy();
+            return this.outputStack().copy();
         }
-        return this.output;
+        return this.outputStack();
     }
 
     @Override
     public ItemStack assemble(RecipeInput input) {
         RegistryAccess access = com.buwan.shizuku.network.PacketHandler.registryAccess();
-        return (access != null ? this.buildResult(access) : this.output).copy();
+        return (access != null ? this.buildResult(access) : this.outputStack()).copy();
     }
 
     @Override
@@ -249,7 +269,7 @@ public class ShapedTableCraftingRecipe implements ITierCraftingRecipe {
                         .forGetter(r -> net.minecraft.world.item.ItemStackTemplate.fromNonEmptyStack(r.output)),
                 com.mojang.serialization.Codec.INT.optionalFieldOf("tier", 0).forGetter(r -> r.tier),
                 Identifier.CODEC.optionalFieldOf("blade").forGetter(r -> Optional.ofNullable(r.outputBlade))
-        ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, toStack(output), tier, blade.orElse(null))));
+        ).apply(inst, (data, output, tier, blade) -> fromPatternData(data, output, tier, blade.orElse(null))));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ShapedTableCraftingRecipe> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_INT, ShapedTableCraftingRecipe::getWidth,
