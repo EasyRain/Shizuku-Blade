@@ -4,6 +4,8 @@
 
 #moj_import <minecraft:dynamictransforms.glsl>
 
+uniform sampler2D Sampler0;
+
 in vec4 cosmicParams;
 in vec3 viewPos;
 in vec4 vertexColor;
@@ -77,11 +79,17 @@ void main() {
         col += vec3(0.75, 0.88, 1.0) * star * depthFade * 0.9;
     }
 
-    // 叠加层：只输出「星点 + 很淡的星云」，alpha 控制叠加强度，
-    // 本体材质由原版渲染负责，因此白天能透过效果看到刀贴图。
-    vec3 starOnly = col - vec3(0.12, 0.05, 0.24);   // 去掉星云底色，只留星点增量
-    starOnly = max(starOnly, vec3(0.0));
-    float intensity = clamp(dot(starOnly, vec3(0.4, 0.5, 0.8)), 0.0, 1.0);
-    float alpha = clamp(intensity * 1.6, 0.0, 1.0) * clamp(vertexColor.a * opacity, 0.0, 1.0);
-    fragColor = vec4(starOnly * 1.2, alpha);
+    // 本体贴图（按自发光处理：不乘光照图，夜里同样明亮）
+    vec4 base = texture(Sampler0, texCoord0);
+    if (base.a < 0.02) {
+        discard;
+    }
+
+    // 星点增量（去掉星云底色，只保留闪烁星点）
+    vec3 starOnly = max(col - vec3(0.12, 0.05, 0.24), vec3(0.0));
+
+    // 贴图本身也是星空图案：再叠一点点冷色辉光让它更“宇宙”
+    vec3 rgb = base.rgb * vertexColor.rgb * 1.15 + starOnly * 1.1;
+    float alpha = clamp(base.a * opacity, 0.0, 1.0);
+    fragColor = vec4(rgb, alpha);
 }

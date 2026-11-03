@@ -36,8 +36,9 @@ public final class CosmicBladeRenderer {
         if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
-        // 不取消本体渲染：原版是在刀自身材质之上叠加一层「自发光星空」，
-        // 所以白天能透过效果看到贴图，夜里靠这层发光。
+        // 接管 *_luminous 层：本体的发光层需要由我们绘制
+        //（着色器会采样刀贴图并按自发光处理，因此夜里也是亮的）。
+        event.setCanceled(true);
 
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
