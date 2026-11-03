@@ -1,6 +1,8 @@
 package com.buwan.shizuku.client.shader;
 
 import com.buwan.shizuku.shizuku;
+import com.mojang.blaze3d.pipeline.BlendFunction;
+import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -78,8 +80,12 @@ public final class CosmicShaders {
                 .withLocation(PIPELINE_ID)
                 .withVertexShader(SHADER_ID)
                 .withFragmentShader(SHADER_ID)
-                // 原版 RenderStateShard 是 NO_CULL
-                .withCull(false);
+                // 原版 RenderStateShard：NO_CULL + LIGHTNING_TRANSPARENCY（f_110136_）。
+                // 26.1 直系继任 = BlendFunction.LIGHTNING（srcColor/ONE 加法混合）：
+                // 暗星云自乘后≈0.01-0.09 = 原版「低透明度紫」观感的真正来源；
+                // 亮星星符号照常突出。alpha 通道在闪电混合下不参与（同原版）。
+                .withCull(false)
+                .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING));
         for (int i = 0; i < 10; i++) {
             builder.withShaderDefine("CUV" + i + "_U0", COSMIC_UVS[i * 4]);
             builder.withShaderDefine("CUV" + i + "_V0", COSMIC_UVS[i * 4 + 1]);
