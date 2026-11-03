@@ -28,21 +28,21 @@ public final class CosmicBladeRenderer {
 
     private static void onRenderOverride(RenderOverrideEvent event) {
         String target = event.getTarget();
-        if (target == null || !target.endsWith("_luminous")) {
-            return;
-        }
         // 只处理「宇宙刀」：其它刀同样带 *_luminous 分组，若不加这个判定，
         // 所有刀都会套上这层着色器（会把非宇宙刀也渲染成星空）。
         var texture = event.getTexture();
-        if (texture == null || !texture.getPath().contains("cosmic")) {
+        if (target == null || texture == null || !texture.getPath().contains("cosmic")) {
             return;
         }
 
-        // 宇宙刀没有刀鞘：前置会为 sheath / sheath_luminous 各触发一次事件，
-        // 让它画出来就会多一截「碎刀鞘」（模型里 sheath 分组没有对应贴图）。
-        // 这里直接取消且不绘制。
+        // 注意顺序：刀鞘的 target 是 "sheath"（不带 _luminous 后缀），
+        // 必须先于下面的 _luminous 判断，否则会被提前 return 掉、前置照样画碎刀鞘。
         if (target.startsWith("sheath")) {
             event.setCanceled(true);
+            return;
+        }
+
+        if (!target.endsWith("_luminous")) {
             return;
         }
         WavefrontObject model = event.getModel();
