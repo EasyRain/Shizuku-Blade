@@ -85,11 +85,14 @@ public final class CosmicBladeRenderer {
                     PoseStack local = new PoseStack();
                     local.last().pose().set(pose.pose());
                     local.last().normal().set(pose.normal());
-                    // 原版行为：整把刀都参与（含 item_* 平面，原版图标也会随视角闪），
-                    // 只排除刀鞘分组（宇宙刀没有刀鞘，且画上去会错位）。
+                    // 覆盖整把刀，但排除两类不该出现的东西：
+                    //   sheath*  —— 宇宙刀没有刀鞘，画出来会多一截
+                    //   item_*   —— 物品栏用的平面图标（会随视角闪、叠在手持模型上）
                     model.tessellateAllExcept(
                             new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay, "sheath", "sheath_luminous");
+                            local, light, overlay,
+                            "sheath", "sheath_luminous",
+                            "item_blade", "item_damaged", "item_bladens");
                 });
     }
 
