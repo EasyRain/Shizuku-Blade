@@ -22,7 +22,7 @@
                     {
                         "name": "U_FadeIn",
                         "type": "float",
-                        "value": [ 0.8 ]
+                        "value": 0.8
                     }
                 ]
             },
