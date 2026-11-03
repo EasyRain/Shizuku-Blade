@@ -91,11 +91,28 @@ public final class CosmicBladeRenderer {
 
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
-            PoseStack local = new PoseStack();
-            local.last().pose().set(pose.pose());
-            local.last().normal().set(pose.normal());
-            model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
-                    local, 15728880, 0, groups.toArray(new String[0]));
+            // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
+            // alphaOverrideYZZ（按 Y/Z 空间改 alpha），残留时我们的 tessellation 会继承它
+            // → 部分面 alpha=0 隐形 = 细长三角形空缺。1.20.1 原版 renderCosmicLegacy 里那套
+            // setCol/setLightMap/reset* 反射调用就是干这个中和的（26.1 继任 = Face 的静态字段）。
+            java.util.function.BiFunction<org.joml.Vector4f, Integer, Integer> prevAlpha =
+                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride;
+            org.joml.Vector4f prevUv =
+                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator;
+            mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride =
+                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaNoOverride;
+            mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator =
+                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvDefaultOperator;
+            try {
+                PoseStack local = new PoseStack();
+                local.last().pose().set(pose.pose());
+                local.last().normal().set(pose.normal());
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
+                        local, 15728880, 0, groups.toArray(new String[0]));
+            } finally {
+                mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride = prevAlpha;
+                mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator = prevUv;
+            }
         });
     }
 
