@@ -88,10 +88,19 @@ float synthwaveSun(vec2 uv, float time) {
 void main() {
     float rawDepth = texture(MainDepthSampler, texCoord).r;
 
+    // 26.1：天空是**写深度的几何体**（SkyRenderer.buildSkyDisc：两张水平圆盘，视空间
+    // y=±16、半径 512），1.20.1 的 rawDepth >= 1.0 只剩 <1.79° 仰角掠出盘缘的地平线细缝。
+    // 之前天空像素全走地面分支按「距离」覆盖：圆盘命中距离 = 16/sin(仰角)，天顶 16 →
+    // 地平线 512，距离环从天顶往下盖 = 实测「黑幕从天而降」的根因（与 y 方向无关，
+    // 上一版改 -y 无效正是因为这个分支根本没运行）。
+    // 天空判定 = 远平面残留 ∪ 重建点落在 ±16 圆盘带上（±2 容差吸收深度量化误差）。
+    vec3 probePos = clipToView(texCoord, rawDepth);
+    bool isSky = (rawDepth >= 1.0) || (abs(abs(probePos.y) - 16.0) < 2.0);
+
     vec3 synthColor = vec3(0.0);
     float pixelMetricForMask = 0.0;
 
-    if (rawDepth >= 1.0) {
+    if (isSky) {
         float skyGradient = texCoord.y;
         vec3 skyTop = vec3(0.0, 0.0, 0.0);
         vec3 skyBottom = vec3(0.05, 0.0, 0.02);
@@ -162,17 +171,15 @@ void main() {
     float scanThreshold = 0.0;
     float scanSoftness = 0.0;
 
-    if (rawDepth >= 1.0) {
+    if (isSky) {
         float skyStartRad = 0.0;
         float skyEndRad = 1500.0;
         float skyProgress = smoothstep(skyStartRad, skyEndRad, mainRadius);
 
         vec3 skyViewDir = normalize(clipToView(texCoord, 1.0));
-        // ⚠️ 26.1 post 链的 uv→clip 映射相对 1.20.1 的核心着色器四边形是竖直镜像的：
-        // 深度/颜色采样与输出在同一空间、地面分支只依赖长度（对称）⇒ 全都看不出来；
-        // 唯独天幕「按屏幕方向取高度阈值」暴露了它（实测黑幕从天顶往地平线降）。
-        // 1.20.1 语义 = 覆盖低于阈值的区域（黑幕自地平线升上天顶）⇒ 这里取 -y 对齐。
-        float pixelHeightY = -skyViewDir.y;
+        // 撤销上一版的 -y：原版 screenquad（uv(0,0)→clip(-1,-1)）与投影都是标准约定，
+        // 重建方向本就正确——上一版黑幕方向没变的真因是天幕分支根本没运行（见顶部注释）。
+        float pixelHeightY = skyViewDir.y;
 
         float currentThresholdY = mix(-0.8, 1.1, skyProgress);
 
@@ -193,8 +200,8 @@ void main() {
         scanThreshold = mainRadius;
     }
 
-    float scanWidthOuter = (rawDepth >= 1.0) ? scanSoftness + 0.05 : scanSoftness + 2.0;
-    float scanWidthInner = (rawDepth >= 1.0) ? 0.02 : 1.0;
+    float scanWidthOuter = isSky ? scanSoftness + 0.05 : scanSoftness + 2.0;
+    float scanWidthInner = isSky ? 0.02 : 1.0;
 
     float scanLine = smoothstep(scanThreshold, scanThreshold + scanSoftness, scanMetric) * smoothstep(scanThreshold + scanWidthOuter, scanThreshold + scanWidthInner, scanMetric);
 
