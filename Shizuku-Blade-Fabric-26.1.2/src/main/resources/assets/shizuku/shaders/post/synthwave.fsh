@@ -168,7 +168,11 @@ void main() {
         float skyProgress = smoothstep(skyStartRad, skyEndRad, mainRadius);
 
         vec3 skyViewDir = normalize(clipToView(texCoord, 1.0));
-        float pixelHeightY = skyViewDir.y;
+        // ⚠️ 26.1 post 链的 uv→clip 映射相对 1.20.1 的核心着色器四边形是竖直镜像的：
+        // 深度/颜色采样与输出在同一空间、地面分支只依赖长度（对称）⇒ 全都看不出来；
+        // 唯独天幕「按屏幕方向取高度阈值」暴露了它（实测黑幕从天顶往地平线降）。
+        // 1.20.1 语义 = 覆盖低于阈值的区域（黑幕自地平线升上天顶）⇒ 这里取 -y 对齐。
+        float pixelHeightY = -skyViewDir.y;
 
         float currentThresholdY = mix(-0.8, 1.1, skyProgress);
 
