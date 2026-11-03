@@ -113,8 +113,15 @@ public final class CosmicShaders {
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
         float time = mc.level.getGameTime() % 2147483647L;
+        // ⚠️⚠️ 顺序必须自己定死：26.1 的自定义几何按 RenderType 分桶、**桶间顺序由
+        // RenderType 的 identity hash 决定（每次启动都可能不同）**，所以「星空层 vs 本体层
+        // 谁先画」根本不可依赖 —— 这一路「一会只见星空、一会只见刀身」就是这么来回横跳的。
+        // vanilla 所有提交都走 order(0)，这里走 order(1) ⇒ 本层永远排在本帧所有实体几何之后，
+        // 配合「不写深度」+ 加法混合 = 1.20.1 里「TAIL 再叠一层」的等价语义（三层共存，稳定）。
+        // 图标例外：GUI 的 collector 不保证支持 order，保持 0。
+        int order = icon ? 0 : 1;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
-        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+        collector.order(order).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
             // alphaOverrideYZZ（按 Y/Z 空间改 alpha）/ uvOperator，残留时我们的 tessellation
             // 会继承它们 → 部分面 alpha=0 隐形 = 细长三角形空缺。1.20.1 原版
