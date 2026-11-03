@@ -31,6 +31,14 @@ public final class CosmicBladeRenderer {
     /** 手持星光开关（26.1 忠实移植完成后开启）。 */
     public static final boolean ENABLE_COSMIC_HELD_EFFECT = true;
 
+    /**
+     * 诊断开关（临时）：让星空叠加对<b>所有刀</b>生效，不限宇宙刀。
+     * 用途 = 对照实验：拿一把上游（原版 SlashBlade）的刀套我们的 shader——
+     * 上游刀也碎 ⇒ 我们渲染路径的问题；上游刀干净 ⇒ wdq.obj 模型与 Resharped
+     * OBJ 解析器的兼容问题。测完改回 false。
+     */
+    public static final boolean DEBUG_APPLY_TO_ALL_BLADES = true;
+
     private CosmicBladeRenderer() {
     }
 
@@ -48,8 +56,12 @@ public final class CosmicBladeRenderer {
         }
         // 只处理「宇宙刀」：26.1 事件没有 getStack（渲染走 render state），
         // 宇宙刀的模型贴图 = model/shizuku/cosmic.png，按贴图名等价判定。
+        // DEBUG_APPLY_TO_ALL_BLADES=true 时对所有刀生效（对照实验用，见该常量注释）。
         var texture = event.getTexture();
-        if (texture == null || !texture.getPath().contains("cosmic")) {
+        if (texture == null) {
+            return;
+        }
+        if (!DEBUG_APPLY_TO_ALL_BLADES && !texture.getPath().contains("cosmic")) {
             return;
         }
         WavefrontObject model = event.getModel();
@@ -72,20 +84,13 @@ public final class CosmicBladeRenderer {
         float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
 
-        // 26.1 Resharped 模型（wdq.obj）把 1.20.1 单一 blade 组拆成了多个组：
-        // blade(139面)/blade_damaged(102)/blade_fragment(37)/effect(240 外壳)/handle(92)/item_*
-        // —— 忠实等价 = 画「可见刀身」= 事件对应的基础分组（blade 或 blade_damaged）+ handle 柄。
-        // 不用 effect 外壳（240 面的鞘状松散包壳，实测画出来是「破碎三角拼成的鞘」）；
-        // sheath_luminous 事件自然跳过（该模型没有 sheath 组）。
+        // ⚠️ 只画事件对应的基础分组（blade / blade_damaged）——与 1.20.1 原版逐字一致。
+        // wdq.obj 里的 handle(92面) 是「上游从不渲染的遗留组」（LayerMainBlade 的分组字符串
+        // 里没有 handle；几何位置/朝向是歪的 = 侧立长三角的来源），画它只会引入垃圾几何。
+        // 第一次尝试（只画 blade）看到的「空缺」其实是 Face 静态算子残留的 alpha 洞
+        // （下方中和器已修），当时误诊成「柄没盖到」。
         String baseTarget = target.substring(0, target.length() - "_luminous".length());
-        java.util.List<String> groups = new java.util.ArrayList<>();
-        if (hasGroup(model, baseTarget)) {
-            groups.add(baseTarget);
-        }
-        if (hasGroup(model, "handle")) {
-            groups.add("handle");
-        }
-        if (groups.isEmpty()) {
+        if (!hasGroup(model, baseTarget)) {
             return;
         }
 
@@ -108,7 +113,7 @@ public final class CosmicBladeRenderer {
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
                 model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
-                        local, 15728880, 0, groups.toArray(new String[0]));
+                        local, 15728880, 0, baseTarget);
             } finally {
                 mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride = prevAlpha;
                 mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator = prevUv;
