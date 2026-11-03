@@ -15,6 +15,7 @@ import net.minecraft.world.phys.Vec3;
 import com.buwan.shizuku.compat.ClientTickEvent;
 import com.buwan.shizuku.compat.RenderLevelStageEvent;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class VoidPrisonRenderer {
     private static final VoidPrisonRenderer INSTANCE = new VoidPrisonRenderer();
     public static final Map<UUID, PrisonZoneData> activeZones = new ConcurrentHashMap<>();
+
+    /** 线宽（像素）。原版 1.20.1 是 1px 硬件线；26.1 改为屏幕空间四边形展开，1.0px 光栅化易断续，取 2.0px 保连续。 */
+    private static final float LINE_WIDTH = 2.0F;
 
     public static VoidPrisonRenderer getInstance() {
         return INSTANCE;
@@ -60,7 +64,7 @@ public class VoidPrisonRenderer {
         
         
         Matrix4f matrix = poseStack.last().pose();
-        float baseAlpha = zone.getAlpha() * 0.3F;
+        float baseAlpha = zone.getAlpha() * 0.25F;
         float pulse = zone.getPulse();
         float r = 0.8F * pulse;
         float g = 0.15F;
@@ -68,11 +72,10 @@ public class VoidPrisonRenderer {
         this.drawSphere(matrix, zone.radius, 30, 20, r, g, b, baseAlpha);
         poseStack.scale(0.95F, 0.95F, 0.95F);
         matrix = poseStack.last().pose();
-        this.drawSphere(matrix, zone.radius, 20, 15, r * 1.2F, g * 1.5F, b * 1.5F, baseAlpha * 0.25F);
-        // 网格线框（与原版一致的经纬网观感）
-        this.drawGrid(matrix, zone.radius, r * 1.1F, g * 1.2F, b * 1.3F, baseAlpha * 1.6F);
+        this.drawSphere(matrix, zone.radius, 20, 15, r * 1.2F, g * 1.5F, b * 1.5F, baseAlpha * 0.4F);
+        // 原版：网格画在约 1.05 倍半径处（0.95 × 1.1052631），颜色 r×1.3/g×2.0/b×2.0、alpha×2.0、经线 ×0.6
         poseStack.scale(1.1052631F, 1.1052631F, 1.1052631F);
-        matrix = poseStack.last().pose();
+        this.drawGrid(poseStack, zone.radius, r * 1.3F, g * 2.0F, b * 2.0F, baseAlpha * 2.0F);
         
         
         
@@ -161,72 +164,72 @@ public class VoidPrisonRenderer {
 
 
     /**
-     * 经纬网格（用细四边形带拼出来）。
+     * 经纬网格 —— 26.1 原生细线实现（替代之前的四边形带妥协方案）。
      *
-     * <p>不能用 {@code linesTranslucent()}：26.1 下这条管线与 {@code POSITION_COLOR}
-     * 顶点格式不匹配，画线会顶点错位（表现为从球心向外发散的色块），线本身也不可见。
-     * 这里改用已验证可用的 {@code debugQuads()}，把每条网格线画成一条很窄的四边形带。</p>
+     * <p>26.1 的线管线 {@code RenderTypes.linesTranslucent()}：顶点格式
+     * {@code POSITION_COLOR_NORMAL_LINE_WIDTH}、{@code Mode.LINES}（每段两个顶点）。
+     * {@code rendertype_lines.vsh} 用 Normal（指向线段另一端的归一化方向）算屏幕方向、
+     * 用 LineWidth（像素）把每段向两侧展开成细四边形，{@code gl_VertexID % 2} 决定偏移正负；
+     * 半透明混合、无剔除、不写深度，与原版 1.20.1 的 RenderSystem 状态一致。
+     * 顶点写法照抄原版 {@code ShapeRenderer#renderShape}（两端点共用同一个归一化方向）。</p>
+     *
+     * <p>几何与配色 = 原版 1.20.1 作者参数：5 条纬线（-72°/-30°/0°/+30°/+72°）× 60 段；
+     * 16 条经线 × 30 段，经线 alpha ×0.6。</p>
      */
-    private void drawGrid(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
+    private void drawGrid(PoseStack poseStack, double radius, float r, float g, float b, float alpha) {
         BufferBuilder buffer = Tesselator.getInstance().begin(
-                VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL_LINE_WIDTH);
+        PoseStack.Pose pose = poseStack.last();
 
-        int latCount = 11;
-        int segments = 64;
-        double latHalf = Math.PI / 514.0;  // 约 0.35 度，接近线状
-
-        // 纬线：每个分段用一条窄带
-        for (int li = 1; li < latCount; li++) {
-            double lat = Math.PI * (-0.5 + (double) li / (double) latCount);
+        // 纬线
+        double[] latitudes = {-Math.PI * 2.0 / 5.0, -Math.PI / 6, 0.0, Math.PI / 6, Math.PI * 2.0 / 5.0};
+        int segments = 60;
+        for (double lat : latitudes) {
+            double y = Math.sin(lat) * radius;
+            double ringRadius = Math.cos(lat) * radius;
             for (int i = 0; i < segments; i++) {
                 double a0 = (Math.PI * 2) * (double) i / (double) segments;
                 double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
-                ringQuad(buffer, matrix, radius, lat - latHalf, lat + latHalf, a0, a1, r, g, b, alpha);
+                line(buffer, pose,
+                        Math.cos(a0) * ringRadius, y, Math.sin(a0) * ringRadius,
+                        Math.cos(a1) * ringRadius, y, Math.sin(a1) * ringRadius,
+                        r, g, b, alpha);
             }
         }
 
-        // 经线：沿经度方向的一条窄带
-        int merCount = 24;
-        int rings = 32;
-        double lngHalf = Math.PI / 514.0;
-        for (int m = 0; m < merCount; m++) {
-            double lng = (Math.PI * 2) * (double) m / (double) merCount;
+        // 经线（alpha ×0.6，与原版一致）
+        int meridians = 16;
+        int rings = 30;
+        for (int m = 0; m < meridians; m++) {
+            double lng = (Math.PI * 2) * (double) m / (double) meridians;
+            double cl = Math.cos(lng) * radius;
+            double sl = Math.sin(lng) * radius;
             for (int i = 0; i < rings; i++) {
                 double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
                 double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
-                meridianQuad(buffer, matrix, radius, lat0, lat1, lng - lngHalf, lng + lngHalf, r, g, b, alpha);
+                line(buffer, pose,
+                        cl * Math.cos(lat0), Math.sin(lat0) * radius, sl * Math.cos(lat0),
+                        cl * Math.cos(lat1), Math.sin(lat1) * radius, sl * Math.cos(lat1),
+                        r, g, b, alpha * 0.6F);
             }
         }
 
-        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(buffer.buildOrThrow());
     }
 
-    /** 纬线窄带：固定两个纬度，横跨 a0..a1 的一个四边形。 */
-    private static void ringQuad(BufferBuilder buffer, Matrix4f matrix, double radius,
-                                 double latA, double latB, double a0, double a1,
-                                 float r, float g, float b, float alpha) {
-        double yA = Math.sin(latA) * radius;
-        double yB = Math.sin(latB) * radius;
-        double rA = Math.cos(latA) * radius;
-        double rB = Math.cos(latB) * radius;
-        buffer.addVertex(matrix, (float) (Math.cos(a0) * rA), (float) yA, (float) (Math.sin(a0) * rA)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(a1) * rA), (float) yA, (float) (Math.sin(a1) * rA)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(a1) * rB), (float) yB, (float) (Math.sin(a1) * rB)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(a0) * rB), (float) yB, (float) (Math.sin(a0) * rB)).setColor(r, g, b, alpha);
-    }
-
-    /** 经线窄带：固定两个经度，沿纬度 lat0..lat1 的一个四边形。 */
-    private static void meridianQuad(BufferBuilder buffer, Matrix4f matrix, double radius,
-                                     double lat0, double lat1, double lngA, double lngB,
-                                     float r, float g, float b, float alpha) {
-        double y0 = Math.sin(lat0) * radius;
-        double y1 = Math.sin(lat1) * radius;
-        double r0 = Math.cos(lat0) * radius;
-        double r1 = Math.cos(lat1) * radius;
-        buffer.addVertex(matrix, (float) (Math.cos(lngA) * r0), (float) y0, (float) (Math.sin(lngA) * r0)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(lngB) * r0), (float) y0, (float) (Math.sin(lngB) * r0)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(lngB) * r1), (float) y1, (float) (Math.sin(lngB) * r1)).setColor(r, g, b, alpha);
-        buffer.addVertex(matrix, (float) (Math.cos(lngA) * r1), (float) y1, (float) (Math.sin(lngA) * r1)).setColor(r, g, b, alpha);
+    /** 画一条线段：两个端点共用「指向另一端」的归一化方向作为 Normal（照抄原版 ShapeRenderer 的写法）。 */
+    private static void line(BufferBuilder buffer, PoseStack.Pose pose,
+                             double x0, double y0, double z0, double x1, double y1, double z1,
+                             float r, float g, float b, float a) {
+        Vector3f dir = new Vector3f((float) (x1 - x0), (float) (y1 - y0), (float) (z1 - z0)).normalize();
+        buffer.addVertex(pose, (float) x0, (float) y0, (float) z0)
+                .setColor(r, g, b, a)
+                .setNormal(pose, dir)
+                .setLineWidth(LINE_WIDTH);
+        buffer.addVertex(pose, (float) x1, (float) y1, (float) z1)
+                .setColor(r, g, b, a)
+                .setNormal(pose, dir)
+                .setLineWidth(LINE_WIDTH);
     }
 
 }
