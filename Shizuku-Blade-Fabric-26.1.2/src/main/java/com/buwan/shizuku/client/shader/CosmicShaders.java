@@ -111,15 +111,19 @@ public final class CosmicShaders {
         // ⚠️ 物品栏/快捷栏图标也走同一个事件！上游 {@code SlashBladeTEISR.renderIcon} 把分组名
         // 拼上 "_luminous" 再发事件（字节码里是 makeConcatWithConstants(item_blade + "_luminous")），
         // 所以「item_blade_luminous」会被这里接住、把星空层叠到图标上。
-        // 1.20.1 原版是用 inventoryRender 分支解决"图标闪烁"的（= 下面的 fixed 视角：
-        // scale=100 / yaw=pitch=0 —— 此时 shader 里 v 的时间项 ×1/100 后≈0，图案完全静止），
-        // 26.1 移植时漏了，图标就会逐帧随玩家视角+时间抖动。
+        // 1.20.1 原版是用 inventoryRender 分支处理图标的（yaw/pitch 归零、scale=100）。实测对比
+        // 1.21.1 NeoForge 截图后确认：**scale 必须跟世界路径一样用 1，不能用 100**。
+        // 图标在 GUI 正交投影下 fPos 几乎不变（Δdir ≈ 16px/1000 ≈ 0.016），
+        // Δu = Δrawu*scale*externalScale：
+        //   externalScale=1   ⇒ 图标只占 16×16 星点瓦片的一小半 = 大块清晰的星云 + 游动星点（图二观感）
+        //   externalScale=100 ⇒ 跨 11~43 个瓦片 = 每像素随机 = 细碎噪点（图一「差点意思」）
+        // yaw/pitch 仍固定 0：只让 time 推动图案（星点在图标上慢慢游动），转视角不再跳。
         boolean icon = group.startsWith("item_");
         RenderType chosen = icon ? cosmicIconRenderType() : cosmicRenderType();
         if (chosen == null) {
             return false;
         }
-        float scale = icon ? 100.0F : 1.0F;
+        float scale = 1.0F;
         float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
