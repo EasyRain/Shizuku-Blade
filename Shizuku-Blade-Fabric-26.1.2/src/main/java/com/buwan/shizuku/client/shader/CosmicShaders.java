@@ -48,6 +48,14 @@ public final class CosmicShaders {
     /** 满亮度（= 1.20.1 原版 renderCosmic 里写死的 15728880）。 */
     public static final int MAX_LIGHT = 15728880;
 
+    /**
+     * 物品图标专用的 externalScale（世界的 cosmic 参数是 1.0，1.20.1 的 inventoryRender 预设是 100）。
+     * 图标在 GUI 正交投影下片段方向几乎没有变化，必须靠它放大采样密度：
+     * 1 ⇒ 条纹（放太大）、100 ⇒ 噪点（放太小），16 ⇒ 横跨约 2~6 个星点瓦片（能看出星点 + 星云）。
+     * 观感想更细就调大、更粗就调小，只影响图标。
+     */
+    public static final float ICON_EXTERNAL_SCALE = 16.0F;
+
     public static final Identifier SHADER_ID = shizuku.prefix("core/cosmic");
     public static final Identifier PIPELINE_ID = shizuku.prefix("pipeline/cosmic");
 
@@ -111,19 +119,18 @@ public final class CosmicShaders {
         // ⚠️ 物品栏/快捷栏图标也走同一个事件！上游 {@code SlashBladeTEISR.renderIcon} 把分组名
         // 拼上 "_luminous" 再发事件（字节码里是 makeConcatWithConstants(item_blade + "_luminous")），
         // 所以「item_blade_luminous」会被这里接住、把星空层叠到图标上。
-        // 1.20.1 原版是用 inventoryRender 分支处理图标的（yaw/pitch 归零、scale=100）。实测对比
-        // 1.21.1 NeoForge 截图后确认：**scale 必须跟世界路径一样用 1，不能用 100**。
-        // 图标在 GUI 正交投影下 fPos 几乎不变（Δdir ≈ 16px/1000 ≈ 0.016），
-        // Δu = Δrawu*scale*externalScale：
-        //   externalScale=1   ⇒ 图标只占 16×16 星点瓦片的一小半 = 大块清晰的星云 + 游动星点（图二观感）
-        //   externalScale=100 ⇒ 跨 11~43 个瓦片 = 每像素随机 = 细碎噪点（图一「差点意思」）
-        // yaw/pitch 仍固定 0：只让 time 推动图案（星点在图标上慢慢游动），转视角不再跳。
+        // 图标采样密度单独标定（实机三个数据点定出来的）：Δu = Δrawu * scale * externalScale，
+        // 图标在 GUI 正交下 Δdir 极小（几像素 / 1000）：
+        //   externalScale=1   ⇒ 只占一块星点精灵的一小块 ⇒ 16 层随机旋转把它拉成**单向条纹**
+        //   externalScale=100 ⇒ 跨十几~几十个瓦片（每像素随机）⇒ **细碎噪点**
+        //   externalScale≈16  ⇒ 图标横跨约 2~6 个 16×16 瓦片 ⇒ 能分辨若干星点 + 星云（目标观感）
+        // yaw/pitch 固定 0：只让 time 推动 v，星点在图标上慢慢游动，转视角不重排。
         boolean icon = group.startsWith("item_");
         RenderType chosen = icon ? cosmicIconRenderType() : cosmicRenderType();
         if (chosen == null) {
             return false;
         }
-        float scale = 1.0F;
+        float scale = icon ? ICON_EXTERNAL_SCALE : 1.0F;
         float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
