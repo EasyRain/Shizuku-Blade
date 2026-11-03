@@ -28,21 +28,13 @@ public final class CosmicBladeRenderer {
 
     private static void onRenderOverride(RenderOverrideEvent event) {
         String target = event.getTarget();
+        if (target == null || !target.endsWith("_luminous")) {
+            return;
+        }
         // 只处理「宇宙刀」：其它刀同样带 *_luminous 分组，若不加这个判定，
         // 所有刀都会套上这层着色器（会把非宇宙刀也渲染成星空）。
         var texture = event.getTexture();
-        if (target == null || texture == null || !texture.getPath().contains("cosmic")) {
-            return;
-        }
-
-        // 注意顺序：刀鞘的 target 是 "sheath"（不带 _luminous 后缀），
-        // 必须先于下面的 _luminous 判断，否则会被提前 return 掉、前置照样画碎刀鞘。
-        if (target.startsWith("sheath")) {
-            event.setCanceled(true);
-            return;
-        }
-
-        if (!target.endsWith("_luminous")) {
+        if (texture == null || !texture.getPath().contains("cosmic")) {
             return;
         }
         WavefrontObject model = event.getModel();
@@ -93,14 +85,11 @@ public final class CosmicBladeRenderer {
                     PoseStack local = new PoseStack();
                     local.last().pose().set(pose.pose());
                     local.last().normal().set(pose.normal());
-                    // 覆盖整把刀，但排除两类不该出现的东西：
-                    //   sheath*  —— 宇宙刀没有刀鞘，画出来会多一截
-                    //   item_*   —— 物品栏用的平面图标（会随视角闪、叠在手持模型上）
-                    model.tessellateAllExcept(
+                    // 只画刀身分组：既不会把 item_*（物品栏平面图标）画进来，
+                    // 也不会因为画到 sheath 等其它分组而产生错位/空洞。
+                    model.tessellateOnly(
                             new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay,
-                            "sheath", "sheath_luminous",
-                            "item_blade", "item_damaged", "item_bladens");
+                            local, light, overlay, finalGroup);
                 });
     }
 
