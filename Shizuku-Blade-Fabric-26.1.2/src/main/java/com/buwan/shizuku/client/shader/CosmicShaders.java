@@ -46,6 +46,9 @@ public final class CosmicShaders {
     private static RenderType cosmicRenderType;
     private static boolean spritesWarned;
 
+    /** AtlasManager 的 atlasById 键：图集 json id（= AtlasIds.BLOCKS），不是贴图路径。 */
+    private static final Identifier BLOCKS_ATLAS_ID = Identifier.fromNamespaceAndPath("minecraft", "blocks");
+
     private CosmicShaders() {
     }
 
@@ -54,7 +57,8 @@ public final class CosmicShaders {
         if (!collectSprites()) {
             if (!spritesWarned) {
                 spritesWarned = true;
-                LOGGER.warn("Cosmic sprites not stitched into block atlas (assets/shizuku/atlases/blocks.json?)");
+                LOGGER.warn("Cosmic sprites not stitched into block atlas (assets/shizuku/atlases/blocks.json?); first sprite rect u0={} v0={} u1={} v1={}",
+                        COSMIC_UVS[0], COSMIC_UVS[1], COSMIC_UVS[2], COSMIC_UVS[3]);
             }
             return null;
         }
@@ -102,8 +106,11 @@ public final class CosmicShaders {
         }
         TextureAtlas atlas;
         try {
-            atlas = mc.getAtlasManager().getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS);
+            // ⚠️ getAtlasOrThrow 查 atlasById 映射，键 = 图集 json id（minecraft:blocks），
+            // 不是贴图路径 textures/atlas/blocks.png（LOCATION_BLOCKS）——传错直接 IllegalArgumentException。
+            atlas = mc.getAtlasManager().getAtlasOrThrow(BLOCKS_ATLAS_ID);
         } catch (Exception e) {
+            LOGGER.error("Failed to look up block atlas by id {}", BLOCKS_ATLAS_ID, e);
             return false;
         }
         boolean allSame = true;
