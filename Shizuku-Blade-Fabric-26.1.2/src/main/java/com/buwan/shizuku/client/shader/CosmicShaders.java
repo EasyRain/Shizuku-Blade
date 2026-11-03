@@ -45,16 +45,25 @@ public final class CosmicShaders {
     /** 「宇宙刀」对应的刀翻译键（判定哪些刀需要星光效果）。 */
     public static final String COSMIC_BLADE_KEY = "item.shizuku.mosmicblade";
 
+    /** 图标版管线 id（与世界版共用源码，靠 COSMIC_ICON define 分叉，因此要独立 id）。 */
+    public static final Identifier ICON_PIPELINE_ID = shizuku.prefix("pipeline/cosmic_icon");
+
     /** 满亮度（= 1.20.1 原版 renderCosmic 里写死的 15728880）。 */
     public static final int MAX_LIGHT = 15728880;
 
     /**
      * 物品图标专用的 externalScale（世界的 cosmic 参数是 1.0，1.20.1 的 inventoryRender 预设是 100）。
-     * 图标在 GUI 正交投影下片段方向几乎没有变化，必须靠它放大采样密度：
-     * 1 ⇒ 条纹（放太大）、100 ⇒ 噪点（放太小），16 ⇒ 横跨约 2~6 个星点瓦片（能看出星点 + 星云）。
-     * 观感想更细就调大、更粗就调小，只影响图标。
+     * 图标版着色器用的是「模型空间合成射线」（见 cosmic.vsh 的 COSMIC_ICON），跨度由
+     * {@link #ICON_SPREAD} 决定，所以这个值只需要把图标横跨的星点瓦片数调到 3~5 个：
+     * u 跨度 ≈ Δrawu(0.24) × scale(≈6) × 本值 × 16 瓦片。
      */
-    public static final float ICON_EXTERNAL_SCALE = 16.0F;
+    public static final float ICON_EXTERNAL_SCALE = 0.17F;
+
+    /**
+     * 图标模型空间坐标 → 合成方向的缩放（图标平面跨度约 ±80 单位）。
+     * {@code 80 * 0.012 = 0.96} ⇒ 图标覆盖约 ±44° 的锥面，够宽、又不会压到天球两极。
+     */
+    public static final float ICON_SPREAD = 0.012F;
 
     public static final Identifier SHADER_ID = shizuku.prefix("core/cosmic");
     public static final Identifier PIPELINE_ID = shizuku.prefix("pipeline/cosmic");
@@ -63,6 +72,8 @@ public final class CosmicShaders {
     public static final float[] COSMIC_UVS = new float[40];
 
     private static RenderPipeline pipeline;
+    /** 图标版管线（同 shader 源码 + COSMIC_ICON define）。 */
+    private static RenderPipeline iconPipeline;
     private static RenderType cosmicRenderType;
     /** 物品图标专用（与 {@link #cosmicRenderType} 同管线，只是不带 layering transform）。 */
     private static RenderType cosmicIconRenderType;
@@ -171,8 +182,35 @@ public final class CosmicShaders {
     }
 
     private static void rebuild() {
+        pipeline = buildPipeline(false);
+        iconPipeline = buildPipeline(true);
+        // 世界路径：星空层与本体贴图层是同一几何、同深度 ⇒ 视图空间 Z 偏移把它微微推开
+        //（1.20.1 靠「TAIL 后绘制」稳赢，26.1 靠 order(1) 已能定序，这里保留一点余量）。
+        RenderSetup worldSetup = RenderSetup.builder(pipeline)
+                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
+                .useLightmap()
+                .useOverlay()
+                .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+                .createRenderSetup();
+        cosmicRenderType = RenderType.create("shizuku_cosmic", worldSetup);
+        // 图标路径：**不带 layering transform**（1.20.1 / 1.21.1 的 COSMIC_RENDER_TYPE 本来就没有
+        // 这个 shard）。GUI 是正交投影，VIEW_OFFSET_Z_LAYERING 在正交下会被换算成完全不同的
+        // Z 位移，容易让图标那层被 LEQUAL 挡掉 ⇒ 只剩边角一点星空（用户实测「差点意思」）。
+        RenderSetup iconSetup = RenderSetup.builder(iconPipeline)
+                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
+                .useLightmap()
+                .useOverlay()
+                .createRenderSetup();
+        cosmicIconRenderType = RenderType.create("shizuku_cosmic_icon", iconSetup);
+    }
+
+    /**
+     * 同一个着色器编出两份管线：世界版 + 图标版（图标版多两个 define，见 cosmic.vsh 的
+     * {@code #ifdef COSMIC_ICON}：把射线来源换成模型空间坐标，避免 GUI 正交下只放大一小块天球）。
+     */
+    private static RenderPipeline buildPipeline(boolean icon) {
         RenderPipeline.Builder builder = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
-                .withLocation(PIPELINE_ID)
+                .withLocation(icon ? ICON_PIPELINE_ID : PIPELINE_ID)
                 .withVertexShader(SHADER_ID)
                 .withFragmentShader(SHADER_ID)
                 // 原版 RenderStateShard：NO_CULL + LIGHTNING_TRANSPARENCY（f_110136_）。
@@ -204,25 +242,11 @@ public final class CosmicShaders {
             builder.withShaderDefine("CUV" + i + "_U1", COSMIC_UVS[i * 4 + 2]);
             builder.withShaderDefine("CUV" + i + "_V1", COSMIC_UVS[i * 4 + 3]);
         }
-        pipeline = builder.build();
-        // 世界路径：星空层与本体贴图层是同一几何、同深度 ⇒ 视图空间 Z 偏移把它微微推开
-        //（1.20.1 靠「TAIL 后绘制」稳赢，26.1 靠 order(1) 已能定序，这里保留一点余量）。
-        RenderSetup worldSetup = RenderSetup.builder(pipeline)
-                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
-                .useLightmap()
-                .useOverlay()
-                .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
-                .createRenderSetup();
-        cosmicRenderType = RenderType.create("shizuku_cosmic", worldSetup);
-        // 图标路径：**不带 layering transform**（1.20.1 / 1.21.1 的 COSMIC_RENDER_TYPE 本来就没有
-        // 这个 shard）。GUI 是正交投影，VIEW_OFFSET_Z_LAYERING 在正交下会被换算成完全不同的
-        // Z 位移，容易让图标那层被 LEQUAL 挡掉 ⇒ 只剩边角一点星空（用户实测「差点意思」）。
-        RenderSetup iconSetup = RenderSetup.builder(pipeline)
-                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
-                .useLightmap()
-                .useOverlay()
-                .createRenderSetup();
-        cosmicIconRenderType = RenderType.create("shizuku_cosmic_icon", iconSetup);
+        if (icon) {
+            builder.withShaderDefine("COSMIC_ICON", 1.0F);
+            builder.withShaderDefine("COSMIC_ICON_SPREAD", ICON_SPREAD);
+        }
+        return builder.build();
     }
 
     /**
