@@ -74,7 +74,7 @@ public class TimeStopRenderer {
 
     private void drawSphere(Matrix4f matrix, double radius, int segments, int rings, float r, float g, float b, float alpha) {
         // 1.21.1 的 build() 会结束构建状态，因此每一层都必须重新 begin，否则后续 addVertex 抛 "Not building!"
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         for (int i = 0; i < rings; i++) {
             double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
             double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
@@ -96,9 +96,8 @@ public class TimeStopRenderer {
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
                 float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F);
+                // 四边形按逆时针顺序：左下 -> 右下 -> 右上 -> 左上
                 buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
-                buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
                 buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
                 buffer.addVertex(matrix, (float) x11, (float) y1, (float) z11).setColor(r, g, b, currentAlpha).setUv(0, 0);
                 buffer.addVertex(matrix, (float) x10, (float) y1, (float) z10).setColor(r, g, b, currentAlpha).setUv(0, 0);
