@@ -45,38 +45,10 @@ public final class CosmicBladeRenderer {
         // 不取消本体渲染：取消会让前置退回平面 fallback（表现为物品栏模型叠在手持模型上）。
         // 我们的层叠在材质之上，负责夜间自发光。
 
-        int light = event.getPackedLightIn();
-        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        int timeMillis = (int) (System.currentTimeMillis() % 1_000_000_000L);
-
-        // 朝向取自玩家视角，保证星空在世界里保持稳定（原版用的是刀/相机朝向）
-        float yawRad = 0.0F;
-        float pitchRad = 0.0F;
-        var player = net.minecraft.client.Minecraft.getInstance().player;
-        if (player != null) {
-            yawRad = (float) Math.toRadians(-player.getYRot());
-            pitchRad = (float) Math.toRadians(player.getXRot());
-        }
-        int yawMilliRad = (int) (yawRad * 1000.0F);
-        int pitchMilliRad = (int) (pitchRad * 1000.0F);
-
-        var collector = event.getSubmitNodeCollector();
-        if (collector == null) {
-            return;
-        }
-        // 用 submitCustomGeometry 交给渲染管线统一提交；
-        // 直接在图层回调里 RenderType.draw(...) 不会真正输出到屏幕。
-        collector.submitCustomGeometry(poseStack, CosmicShaders.renderTypeFor(event.getTexture()),
-                (pose, consumer) -> {
-                    // 关键：延迟执行时不能再复用外层 poseStack（会被再变换一次，
-                    // 表现为效果铺满屏幕而不是贴在刀上），必须用回调给的 pose 重建。
-                    PoseStack local = new PoseStack();
-                    local.last().pose().set(pose.pose());
-                    local.last().normal().set(pose.normal());
-                    model.tessellateAll(
-                            new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay);
-                });
+        // 只替换渲染类型，让前置自己画模型。
+        // 之前用 submitCustomGeometry 额外提交了一遍几何，结果物品栏的平面图标也叠到了
+        // 手持模型上（那层是前置自己画的），改成替换 RenderType 最轻、几何也最正确。
+        event.setGetRenderType(CosmicShaders::renderTypeFor);
     }
 
     /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
