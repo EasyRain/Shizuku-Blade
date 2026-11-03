@@ -9,7 +9,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 
@@ -42,35 +41,27 @@ public final class CosmicBladeRenderer {
         if (target == null || !target.endsWith("_luminous")) {
             return;
         }
-        if (event.isCanceled()) {
-            return;
-        }
         WavefrontObject model = event.getModel();
-        if (model == null) {
+        PoseStack poseStack = event.getPoseStack();
+        if (model == null || poseStack == null) {
             return;
         }
-        event.setCanceled(true);
-
-        PoseStack poseStack = event.getPoseStack();
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-
-        // 第一遍：用本体自己的贴图 + RenderType 画出刀身，保证外观不变
-        BufferBuilder base = Tesselator.getInstance().begin(
-                VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
-        model.tessellateOnly(base, poseStack, light, overlay, target);
-        RenderType baseType = event.getGetRenderType() != null
-                ? event.getGetRenderType().apply(event.getTexture())
-                : RenderTypes.entityTranslucent(event.getTexture());
-        baseType.draw(base.buildOrThrow());
-
-        // 第二遍：叠加流动星空（UV 随时间平推）
         float scroll = (System.currentTimeMillis() % 6000L) / 6000.0F;
+
+        // 注意：这里**不接管**本体渲染，只是额外叠加一层星空。
+        // 之前取消本体重画会让 tessellateOnly 的缓冲区为空（target 不匹配），
+        // buildOrThrow 直接抛 "BufferBuilder was empty" 崩端。
         BufferBuilder stars = Tesselator.getInstance().begin(
                 VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
         model.tessellateOnly(new UvScrollConsumer(stars, scroll, 0.0F),
                 poseStack, light, overlay, target);
-        RenderTypes.entityTranslucent(STARRY_TEXTURE).draw(stars.buildOrThrow());
+        var mesh = stars.build();
+        if (mesh != null) {
+            // build() 在空缓冲区时返回 null（不会抛异常），这里直接用贴图 RenderType 画出星空层
+            RenderTypes.entityTranslucent(STARRY_TEXTURE).draw(mesh);
+        }
     }
 
     /**
