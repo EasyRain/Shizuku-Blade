@@ -4,8 +4,13 @@ import com.buwan.shizuku.shizuku;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
+import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlas;
@@ -37,6 +42,9 @@ public final class CosmicShaders {
 
     /** 「宇宙刀」对应的刀翻译键（判定哪些刀需要星光效果）。 */
     public static final String COSMIC_BLADE_KEY = "item.shizuku.mosmicblade";
+
+    /** 满亮度（= 1.20.1 原版 renderCosmic 里写死的 15728880）。 */
+    public static final int MAX_LIGHT = 15728880;
 
     public static final Identifier SHADER_ID = shizuku.prefix("core/cosmic");
     public static final Identifier PIPELINE_ID = shizuku.prefix("pipeline/cosmic");
@@ -75,6 +83,50 @@ public final class CosmicShaders {
     /** 兼容旧调用（刀身路径，当前休眠）：原版刀身也用同一个图集 RenderType，不采样本体贴图。 */
     public static RenderType renderTypeFor(Identifier texture) {
         return cosmicRenderType();
+    }
+
+    /** 模型单分组星空叠层：勾选成功返回 true（着色器/精灵/玩家都就绪）。 */
+    public static boolean submitModel(WavefrontObject model, String group, PoseStack poseStack,
+                                      SubmitNodeCollector collector, float opacity) {
+        if (model == null || group == null || poseStack == null || collector == null) {
+            return false;
+        }
+        RenderType renderType = cosmicRenderType();
+        if (renderType == null) {
+            return false;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) {
+            return false;
+        }
+        // 原版 prepareCosmicRender 非 GUI 路径的取值（圆盘/刀身/斩击/刀光共用同一视角参数）
+        float time = mc.level.getGameTime() % 2147483647L;
+        float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
+        int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
+        // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
+        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+            // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
+            // alphaOverrideYZZ（按 Y/Z 空间改 alpha）/ uvOperator，残留时我们的 tessellation
+            // 会继承它们 → 部分面 alpha=0 隐形 = 细长三角形空缺。1.20.1 原版
+            // renderCosmicLegacy 里那套 setCol/setLightMap/reset* 反射调用就是干这个中和的。
+            // 存档 → 中和 → tessellate → finally 还原（还原不是重置：外层可能还有包围圈）。
+            var prevAlpha = Face.alphaOverride;
+            var prevUv = Face.uvOperator;
+            Face.alphaOverride = Face.alphaNoOverride;
+            Face.uvOperator = Face.uvDefaultOperator;
+            try {
+                PoseStack local = new PoseStack();
+                local.last().pose().set(pose.pose());
+                local.last().normal().set(pose.normal());
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, alpha),
+                        local, MAX_LIGHT, 0, group);
+            } finally {
+                Face.alphaOverride = prevAlpha;
+                Face.uvOperator = prevUv;
+            }
+        });
+        return true;
     }
 
     private static void rebuild() {
@@ -156,5 +208,80 @@ public final class CosmicShaders {
             }
         }
         return false;
+    }
+
+    /**
+     * 参数通道 wrapper：把 cosmic 参数写进着色器不读的顶点属性
+     * （UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity），其余属性原样转发。
+     *
+     * <p>1.20.1 是 per-draw uniform，26.1 的 RenderType 路径没有 uniform 钩子 ⇒ 走闲置属性槽。
+     * opacity 是原版 {@code prepareCosmicRender(opacity)} 的等价物（刀身恒 1.0，
+     * 斩击/刀光传 {@code baseAlpha}）。</p>
+     */
+    public static final class CosmicParamsConsumer implements VertexConsumer {
+
+        private final VertexConsumer inner;
+        private final float time;
+        private final float yaw;
+        private final float pitch;
+        private final int alpha;
+
+        public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch, int alpha) {
+            this.inner = inner;
+            this.time = time;
+            this.yaw = yaw;
+            this.pitch = pitch;
+            this.alpha = alpha;
+        }
+
+        @Override
+        public VertexConsumer addVertex(float x, float y, float z) {
+            this.inner.addVertex(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int r, int g, int b, int a) {
+            this.inner.setColor(r, g, b, this.alpha);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int color) {
+            this.inner.setColor((color & 0x00FFFFFF) | (this.alpha << 24));
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            // 模型 UV 被着色器忽略（原版也不采样刀身贴图），此槽位改传 (time, yaw)
+            this.inner.setUv(this.time, this.yaw);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            this.inner.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            this.inner.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale=1.0, 0)
+            this.inner.setNormal(this.pitch, 1.0F, 0.0F);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setLineWidth(float width) {
+            this.inner.setLineWidth(width);
+            return this;
+        }
     }
 }

@@ -13,7 +13,10 @@
     "DeferredTooltipMixin",
     "GuiGraphicsExtractorAccessor",
     "AbstractContainerScreenAccessor",
-    "LevelRendererSynthwaveMixin"
+    "LevelRendererSynthwaveMixin",
+    "EntityRenderStateCosmicFlagMixin",
+    "SlashEffectRendererMixin",
+    "DriveRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

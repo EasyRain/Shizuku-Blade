@@ -2,11 +2,9 @@ package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.client.shader.CosmicShaders;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 
 /**
  * 宇宙刀的「手持星光」（26.1，1.20.1 原版忠实移植）。
@@ -22,9 +20,9 @@ import net.minecraft.client.renderer.rendertype.RenderType;
  *       pitch=-xRot 弧度、externalScale=1.0。</li>
  * </ul>
  *
- * <p>26.1 无 per-draw uniform ⇒ 参数由 {@link CosmicParamsConsumer} 写进着色器不读的
- * 顶点属性槽位（UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity），
- * 与圆盘（GalaxyFieldRenderer）共用同一管线。</p>
+ * <p>26.1 无 per-draw uniform ⇒ 参数由 {@link CosmicShaders#submitModel} 里那层 wrapper
+ * 写进着色器不读的顶点属性槽位（UV0=(time,yaw)、Normal=(pitch,externalScale,0)、
+ * Color.a=opacity），与圆盘/斩击/刀光共用同一管线。Face 静态算子的中和也在那一层。</p>
  */
 public final class CosmicBladeRenderer {
 
@@ -54,59 +52,23 @@ public final class CosmicBladeRenderer {
         }
         WavefrontObject model = event.getModel();
         PoseStack poseStack = event.getPoseStack();
-        var collector = event.getSubmitNodeCollector();
+        SubmitNodeCollector collector = event.getSubmitNodeCollector();
         if (model == null || poseStack == null || collector == null) {
             return;
         }
-        RenderType renderType = CosmicShaders.cosmicRenderType();
-        if (renderType == null) {
-            return;
-        }
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) {
-            return;
-        }
-
-        // 原版 prepareCosmicRender 非 GUI 路径的取值
-        float time = mc.level.getGameTime() % 2147483647L;
-        float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
-        float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
 
         // ⚠️ 只画事件对应的基础分组（blade / blade_damaged）——与 1.20.1 原版逐字一致。
         // wdq.obj 里的 handle(92面) 是「上游从不渲染的遗留组」（LayerMainBlade 的分组字符串
         // 里没有 handle；几何位置/朝向是歪的 = 侧立长三角的来源），画它只会引入垃圾几何。
         // 第一次尝试（只画 blade）看到的「空缺」其实是 Face 静态算子残留的 alpha 洞
-        // （下方中和器已修），当时误诊成「柄没盖到」。
+        // （中和器已修），当时误诊成「柄没盖到」。
         String baseTarget = target.substring(0, target.length() - "_luminous".length());
         if (!hasGroup(model, baseTarget)) {
             return;
         }
 
-        // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
-        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
-            // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
-            // alphaOverrideYZZ（按 Y/Z 空间改 alpha），残留时我们的 tessellation 会继承它
-            // → 部分面 alpha=0 隐形 = 细长三角形空缺。1.20.1 原版 renderCosmicLegacy 里那套
-            // setCol/setLightMap/reset* 反射调用就是干这个中和的（26.1 继任 = Face 的静态字段）。
-            java.util.function.BiFunction<org.joml.Vector4f, Integer, Integer> prevAlpha =
-                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride;
-            org.joml.Vector4f prevUv =
-                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator;
-            mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride =
-                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaNoOverride;
-            mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator =
-                    mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvDefaultOperator;
-            try {
-                PoseStack local = new PoseStack();
-                local.last().pose().set(pose.pose());
-                local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
-                        local, 15728880, 0, baseTarget);
-            } finally {
-                mods.flammpfeil.slashblade.client.renderer.model.obj.Face.alphaOverride = prevAlpha;
-                mods.flammpfeil.slashblade.client.renderer.model.obj.Face.uvOperator = prevUv;
-            }
-        });
+        // 原版 renderCosmic(model, group, pose, buffer, opacity=1.0F)
+        CosmicShaders.submitModel(model, baseTarget, poseStack, collector, 1.0F);
     }
 
     /** 模型里是否存在该分组（OBJ 的分组名列表是公开的）。 */
@@ -120,76 +82,5 @@ public final class CosmicBladeRenderer {
             }
         }
         return false;
-    }
-
-    /**
-     * 参数通道 wrapper：把宇宙刀参数写进着色器不读的顶点属性
-     * （UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity=1.0），
-     * 其余属性原样转发。与圆盘共用同一个 cosmic 管线。
-     */
-    private static final class CosmicParamsConsumer implements VertexConsumer {
-
-        private final VertexConsumer inner;
-        private final float time;
-        private final float yaw;
-        private final float pitch;
-
-        private CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch) {
-            this.inner = inner;
-            this.time = time;
-            this.yaw = yaw;
-            this.pitch = pitch;
-        }
-
-        @Override
-        public VertexConsumer addVertex(float x, float y, float z) {
-            inner.addVertex(x, y, z);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setColor(int r, int g, int b, int a) {
-            // opacity 恒 1.0（原版 renderCosmic 传 1.0F）
-            inner.setColor(r, g, b, 255);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setColor(int color) {
-            inner.setColor((color & 0x00FFFFFF) | 0xFF000000);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv(float u, float v) {
-            // 模型 UV 被着色器忽略（原版也不采样刀身贴图），此槽位改传 (time, yaw)
-            inner.setUv(time, yaw);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv1(int u, int v) {
-            inner.setUv1(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setUv2(int u, int v) {
-            inner.setUv2(u, v);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setNormal(float x, float y, float z) {
-            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale=1.0, 0)
-            inner.setNormal(pitch, 1.0F, 0.0F);
-            return this;
-        }
-
-        @Override
-        public VertexConsumer setLineWidth(float width) {
-            inner.setLineWidth(width);
-            return this;
-        }
     }
 }

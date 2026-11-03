@@ -162,7 +162,15 @@ public class Ymsa {
         if (e instanceof Player) {
             return false;
         }
-        boolean isOwnPet = e instanceof TamableAnimal ta && caster.getUUID().equals(ta.getOwnerReference().getUUID());
+        // ⚠️ 26.1：TamableAnimal 的 owner 是 EntityReference，未驯服/只是「可驯服」的生物
+        // （狼、猫、狐狸…）它恒为 null ⇒ 直接解引用会 NPE。原版 1.20.1 写法
+        // （getOwnerUUID().getUUID()）在同样的情形下其实也会炸，只是被外层 catch 吞掉、
+        // 表现为「Ymsa 整次施法被跳过、一个怪都不死」。这里补判空。
+        boolean isOwnPet = false;
+        if (e instanceof TamableAnimal ta) {
+            net.minecraft.world.entity.EntityReference<?> owner = ta.getOwnerReference();
+            isOwnPet = owner != null && caster.getUUID().equals(owner.getUUID());
+        }
         return YmsaLogic.shouldKillPure(caster.getUUID().equals(e.getUUID()), isOwnPet,
                 e.isRemoved() && e.getRemovalReason() != null, false);
     }
