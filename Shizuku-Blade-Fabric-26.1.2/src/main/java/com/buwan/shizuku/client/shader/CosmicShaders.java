@@ -53,17 +53,23 @@ public final class CosmicShaders {
 
     /**
      * 物品图标专用的 externalScale（世界的 cosmic 参数是 1.0，1.20.1 的 inventoryRender 预设是 100）。
-     * 图标版着色器用的是「模型空间合成射线」（见 cosmic.vsh 的 COSMIC_ICON），跨度由
-     * {@link #ICON_SPREAD} 决定，所以这个值只需要把图标横跨的星点瓦片数调到 3~5 个：
-     * u 跨度 ≈ Δrawu(0.24) × scale(≈6) × 本值 × 16 瓦片。
+     * 图标射线已按分组 pose 后跨度归一（锥角恒定 ⇒ Δrawu ≈ 0.25），本值是纯粹的密度旋钮：
+     * 图标横跨瓦片数 ≈ 0.25 × scale(3.25~10.75) × 本值 × 16 ⇒ **0.3 ≈ 平均 8×5 个瓦片/层**
+     * （= 实测标定过的「拼块式星空：能分辨星点 + 星云」密度；嫌粗调大、嫌细调小，不再随路径漂移）。
      */
-    public static final float ICON_EXTERNAL_SCALE = 0.17F;
+    public static final float ICON_EXTERNAL_SCALE = 0.3F;
 
     /**
-     * 图标模型空间坐标 → 合成方向的缩放（图标平面跨度约 ±80 单位）。
-     * {@code 80 * 0.012 = 0.96} ⇒ 图标覆盖约 ±44° 的锥面，够宽、又不会压到天球两极。
+     * 图标合成射线的**目标半径**：把每个分组 pose 变换后的 XY 跨度归一到 ~±1（锥角 ≈ ±45°，
+     * Δrawu ≈ 0.25）。之前用固定 spread 直接乘模型坐标，锥角被驱动方的 pose 缩放绑架——
+     * 快捷栏 PIP 与背包格 PIP 是两个不同视口缩放 ⇒ 一个星点碎片化、一个星星大到发白，
+     * ES 怎么调都随路径漂移（这就是「调不出稳定好看星空」的结构性原因）。归一化后
+     * 星点密度与驱动方/视口无关，{@link #ICON_EXTERNAL_SCALE} 才成为纯粹的密度旋钮。
      */
-    public static final float ICON_SPREAD = 0.012F;
+    public static final float ICON_RAY_TARGET = 1.0F;
+
+    /** 拿不到分组包围盒时的兜底 spread（≈ 老的 0.012：item_* 平面 ±80 的标定值）。 */
+    public static final float ICON_FALLBACK_SPREAD = 0.012F;
 
     /**
      * 图标瓦片取样内缩（0.6 = 只采样每张星点精灵的中心 60%）：星点美术画到了 16×16 画布
@@ -173,9 +179,25 @@ public final class CosmicShaders {
         // ⇒ 漏判成世界层（白横条 + 随视角闪烁）；地面掉落物发 item_* ⇒ 误判成图标（该流动的
         // 世界星点被冻住）。按阶段判与原版语义一致（世界渲染在本帧更早处完成，标志必然 false）。
         boolean icon = inGuiRender;
-        if (SUBMIT_DEBUG_LOGGED.add(group + "|" + icon)) {
-            LOGGER.info("[cosmic-submit] group={} icon={} gui={} caller={}",
-                    group, icon, inGuiRender, callerChain());
+        float spreadX = ICON_FALLBACK_SPREAD;
+        float spreadY = ICON_FALLBACK_SPREAD;
+        if (icon) {
+            float[] spreads = iconSpreads(model, group, poseStack);
+            if (spreads != null) {
+                spreadX = spreads[0];
+                spreadY = spreads[1];
+                // 去重键带上（取整后的）pose 跨度：快捷栏 / 背包格 / JEI 的视口缩放不同会各记一条
+                if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|" + Math.round(spreads[2] * 1000.0F)
+                        + "|" + Math.round(spreads[3] * 1000.0F))) {
+                    LOGGER.info("[cosmic-submit] group={} icon=true ext=[{},{}] spread=[{},{}] caller={}",
+                            group, spreads[2], spreads[3], spreadX, spreadY, callerChain());
+                }
+            } else if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|nobounds")) {
+                LOGGER.info("[cosmic-submit] group={} icon=true NO-BOUNDS(fallback) caller={}",
+                        group, callerChain());
+            }
+        } else if (SUBMIT_DEBUG_LOGGED.add(group + "|world")) {
+            LOGGER.info("[cosmic-submit] group={} icon=false caller={}", group, callerChain());
         }
         RenderType chosen = icon ? cosmicIconRenderType() : cosmicRenderType();
         if (chosen == null) {
@@ -196,6 +218,9 @@ public final class CosmicShaders {
         // 留 order(0) 的话星空层和 item_* 平面同桶、谁先画还是 identity hash 决定 ⇒
         // 一半启动被图标盖住 = 「只能看到一点效果」。
         final RenderType renderType = chosen;
+        // lambda 捕获要求 effectively final：归一化 spread 在上面条件赋值，这里定格一份
+        final float spreadXf = spreadX;
+        final float spreadYf = spreadY;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
@@ -211,7 +236,7 @@ public final class CosmicShaders {
                 PoseStack local = new PoseStack();
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha),
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha, spreadXf, spreadYf),
                         local, MAX_LIGHT, 0, group);
             } finally {
                 Face.alphaOverride = prevAlpha;
@@ -219,6 +244,71 @@ public final class CosmicShaders {
             }
         });
         return true;
+    }
+
+    /** (model, group) → 原始顶点 XY 包围盒（minX,minY,maxX,maxY）缓存；模型来自 BladeModelManager 的 LoadingCache，身份稳定。 */
+    private static final java.util.Map<WavefrontObject, java.util.Map<String, float[]>> RAW_GROUP_BOUNDS =
+            new java.util.WeakHashMap<>();
+
+    /**
+     * 图标合成射线的归一化 spread：取分组原始 XY 包围盒的 4 角，经当前 pose 变换后的跨度
+     * （两轴各自的最大绝对值），除 {@link #ICON_RAY_TARGET} ⇒ 无论驱动方把模型缩放到多小
+     * （快捷栏 PIP / 背包格 PIP / 图集烘焙各不相同），射线锥角恒定、星点密度恒定。
+     * 返回 {@code [spreadX, spreadY, extX, extY]}；找不到分组返回 null。
+     */
+    private static float[] iconSpreads(WavefrontObject model, String group, PoseStack poseStack) {
+        java.util.Map<String, float[]> byGroup = RAW_GROUP_BOUNDS.computeIfAbsent(model, m -> new java.util.HashMap<>());
+        float[] raw = byGroup.get(group);
+        if (raw == null) {
+            raw = rawGroupBounds(model, group);
+            byGroup.put(group, raw);
+        }
+        if (raw == null) {
+            return null;
+        }
+        org.joml.Matrix4f mat = poseStack.last().pose();
+        org.joml.Vector3f v = new org.joml.Vector3f();
+        float extX = 1.0E-4F;
+        float extY = 1.0E-4F;
+        for (int i = 0; i < 4; i++) {
+            mat.transformPosition(raw[i * 2], raw[i * 2 + 1], 0.0F, v);
+            extX = Math.max(extX, Math.abs(v.x));
+            extY = Math.max(extY, Math.abs(v.y));
+        }
+        return new float[]{ICON_RAY_TARGET / extX, ICON_RAY_TARGET / extY, extX, extY};
+    }
+
+    /** 分组原始顶点的 XY 包围盒（图标平面是 2D，z 不参与射线）；找不到分组返回 null。 */
+    private static float[] rawGroupBounds(WavefrontObject model, String group) {
+        if (model.groupObjects == null) {
+            return null;
+        }
+        float minX = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
+        boolean any = false;
+        for (var go : model.groupObjects) {
+            if (!group.equals(go.name) || go.faces == null) {
+                continue;
+            }
+            for (var face : go.faces) {
+                if (face == null || face.vertices == null) {
+                    continue;
+                }
+                for (var vtx : face.vertices) {
+                    if (vtx == null) {
+                        continue;
+                    }
+                    any = true;
+                    minX = Math.min(minX, vtx.x);
+                    maxX = Math.max(maxX, vtx.x);
+                    minY = Math.min(minY, vtx.y);
+                    maxY = Math.max(maxY, vtx.y);
+                }
+            }
+        }
+        return any ? new float[]{minX, minY, maxX, maxY} : null;
     }
 
     /** 诊断用：调用链头几个非本包帧（一眼看出这次提交来自 TEISR/GroundRenderer/LayerMainBlade 哪条路）。 */
@@ -304,7 +394,6 @@ public final class CosmicShaders {
         }
         if (icon) {
             builder.withShaderDefine("COSMIC_ICON", 1.0F);
-            builder.withShaderDefine("COSMIC_ICON_SPREAD", ICON_SPREAD);
             builder.withShaderDefine("COSMIC_ICON_INSET", ICON_SPRITE_CENTER);
             // 图标用「第 0 帧」子矩形（多帧动画精灵整块采样会被压成白横条）
             for (int i = 0; i < 10; i++) {
@@ -393,15 +482,20 @@ public final class CosmicShaders {
         private final float pitch;
         private final float externalScale;
         private final int alpha;
+        /** 图标分支的归一化射线张角（按位打包进 UV1；世界分支的 vsh 不读 UV1）。 */
+        private final float spreadX;
+        private final float spreadY;
 
         public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch,
-                                    float externalScale, int alpha) {
+                                    float externalScale, int alpha, float spreadX, float spreadY) {
             this.inner = inner;
             this.time = time;
             this.yaw = yaw;
             this.pitch = pitch;
             this.externalScale = externalScale;
             this.alpha = alpha;
+            this.spreadX = spreadX;
+            this.spreadY = spreadY;
         }
 
         @Override
@@ -431,7 +525,10 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setUv1(int u, int v) {
-            this.inner.setUv1(u, v);
+            // 图标分支：把归一化 spread 按位打包进着色器本来不读的 UV1（ivec2），vsh 用
+            // intBitsToFloat 解包；世界分支的 vsh 同样不读 UV1（overlay 本来就被忽略），
+            // 原值不必保留。
+            this.inner.setUv1(Float.floatToRawIntBits(this.spreadX), Float.floatToRawIntBits(this.spreadY));
             return this;
         }
 
