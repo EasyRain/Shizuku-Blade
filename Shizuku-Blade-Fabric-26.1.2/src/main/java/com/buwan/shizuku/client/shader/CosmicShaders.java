@@ -3,7 +3,9 @@ package com.buwan.shizuku.client.shader;
 import com.buwan.shizuku.shizuku;
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.Face;
@@ -146,7 +148,17 @@ public final class CosmicShaders {
                 // 圆盘正常是因为它自己 begin(TRIANGLES)）。
                 .withVertexFormat(com.mojang.blaze3d.vertex.DefaultVertexFormat.ENTITY,
                         com.mojang.blaze3d.vertex.VertexFormat.Mode.TRIANGLES)
-                .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING));
+                // ⚠️⚠️ 加法叠层必须「只写颜色、不写深度」（= 1.20.1 原版复合状态里的
+                // LEQUAL_DEPTH_TEST + WriteMaskStateShard.COLOR_WRITE）。
+                // 26.1 从 ENTITY_SNIPPET 继承来的 DepthStencilState.DEFAULT 是
+                // (LESS_THAN_OR_EQUAL, writeDepth=**true**)；而 26.1 的批提交不保序
+                // （同帧内各 RenderType 的绘制顺序由 map 决定）⇒ 星空层一旦排在本体层
+                // 前面，加上 VIEW_OFFSET_Z_LAYERING 的微偏移，本体层的每个片段都会
+                // 卡在 LEQUAL 上被丢弃 = **「只见星空、刀身模型消失」**（2026-11-03 实机）。
+                // 不写深度后谁先谁后就都无所谓了。
+                .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                .withColorTargetState(new ColorTargetState(java.util.Optional.of(BlendFunction.LIGHTNING),
+                        ColorTargetState.WRITE_COLOR));
         for (int i = 0; i < 10; i++) {
             builder.withShaderDefine("CUV" + i + "_U0", COSMIC_UVS[i * 4]);
             builder.withShaderDefine("CUV" + i + "_V0", COSMIC_UVS[i * 4 + 1]);
