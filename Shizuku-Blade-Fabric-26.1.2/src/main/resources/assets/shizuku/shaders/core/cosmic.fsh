@@ -33,7 +33,7 @@ void main() {
     float time   = cosmicParams.x;
     float yaw    = cosmicParams.y;
     float pitch  = cosmicParams.z;
-    float opacity = cosmicParams.w;
+    float opacity = 1.0;
 
     // 深邃星云底色（随时间轻微脉动）
     float pulse = mod(time, 400.0) / 400.0;
@@ -84,6 +84,10 @@ void main() {
     if (base.a < 0.02) {
         discard;
     }
+
+    // 这一层由前置的「发光层」调用，UV2 里是光照图坐标而不是我们的参数，
+    // 所以不能用它当 opacity（否则整层透明、看起来"没效果"）。
+    opacity = 1.0;
 
     // 星点增量（去掉星云底色，只保留闪烁星点）
     vec3 starOnly = max(col - vec3(0.12, 0.05, 0.24), vec3(0.0));

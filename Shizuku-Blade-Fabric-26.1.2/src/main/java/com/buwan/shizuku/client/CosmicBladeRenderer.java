@@ -45,37 +45,12 @@ public final class CosmicBladeRenderer {
         // 不取消本体渲染：取消会让前置退回平面 fallback（表现为物品栏模型叠在手持模型上）。
         // 我们的层叠在材质之上，负责夜间自发光。
 
-        // 前置并不会调用 setGetRenderType 替换后的函数（实测：换了没反应，仍是原版贴图），
-        // 所以回到已验证能出效果的「接管 + 自己提交几何」方案。
-        event.setCanceled(true);
-
-        int light = event.getPackedLightIn();
-        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        int timeMillis = (int) (System.currentTimeMillis() % 1_000_000_000L);
-
-        float yawRad = 0.0F;
-        float pitchRad = 0.0F;
-        var player = net.minecraft.client.Minecraft.getInstance().player;
-        if (player != null) {
-            yawRad = (float) Math.toRadians(-player.getYRot());
-            pitchRad = (float) Math.toRadians(player.getXRot());
-        }
-        int yawMilliRad = (int) (yawRad * 1000.0F);
-        int pitchMilliRad = (int) (pitchRad * 1000.0F);
-
-        var collector = event.getSubmitNodeCollector();
-        if (collector == null) {
-            return;
-        }
-        collector.submitCustomGeometry(poseStack, CosmicShaders.renderTypeFor(event.getTexture()),
-                (pose, consumer) -> {
-                    PoseStack local = new PoseStack();
-                    local.last().pose().set(pose.pose());
-                    local.last().normal().set(pose.normal());
-                    model.tessellateAll(
-                            new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay);
-                });
+        // 前置官方逻辑（BladeRenderState.renderOverrided）：
+        //   if (isCanceled()) { 重置 Face 状态; return; }  // 取消后它这一层就完全不画
+        //   否则用 event.getTexture() + event.getGetRenderType().apply(texture) 绘制
+        // 所以这里只替换 RenderType，由前置自己画它该画的那一层（发光层），
+        // 既不取消、也不额外提交几何，杜绝平面图标重复出现。
+        event.setGetRenderType(CosmicShaders::renderTypeFor);
     }
 
     /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
