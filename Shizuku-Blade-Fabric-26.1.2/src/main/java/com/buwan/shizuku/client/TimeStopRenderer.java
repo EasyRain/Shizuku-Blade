@@ -60,12 +60,11 @@ public class TimeStopRenderer {
         
         
         Matrix4f matrix = poseStack.last().pose();
-        float baseAlpha = zone.getAlpha() * 0.3F;
+        float baseAlpha = zone.getAlpha() * 0.12F;
         this.drawSphere(matrix, zone.radius, 30, 20, 1.0F, 0.84F, 0.0F, baseAlpha);
         poseStack.scale(0.95F, 0.95F, 0.95F);
         matrix = poseStack.last().pose();
-        this.drawSphere(matrix, zone.radius, 20, 15, 1.0F, 0.95F, 0.4F, baseAlpha * 0.5F);
-        this.drawLatitudeRings(matrix, zone.radius, 1.0F, 1.0F, 0.6F, baseAlpha * 1.5F);
+        this.drawSphere(matrix, zone.radius, 20, 15, 1.0F, 0.95F, 0.4F, baseAlpha * 0.25F);
         
         
         
@@ -95,7 +94,10 @@ public class TimeStopRenderer {
                 double x11 = Math.cos(lng1) * r1;
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
-                float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F);
+                // 纬度环纹：用 alpha 调制模拟原本的线框环（26.1 的 linesTranslucent
+                // 顶点格式与 POSITION_COLOR 不匹配，画线会产生乱飞的色块）
+                float band = 0.72F + 0.28F * (float) Math.cos(lat0 * 8.0);
+                float currentAlpha = alpha * (0.5F + edgeFactor * 0.5F) * band;
                 // 四边形按逆时针顺序：左下 -> 右下 -> 右上 -> 左上
                 buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha).setUv(0, 0);
                 buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
@@ -107,41 +109,6 @@ public class TimeStopRenderer {
         net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
     }
 
-    private void drawLatitudeRings(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
-        BufferBuilder lineBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        double[] latitudes = new double[]{-Math.PI / 3, 0.0, Math.PI / 3};
-        int segments = 60;
-
-        for (double lat : latitudes) {
-            double y = Math.sin(lat) * radius;
-            double ringRadius = Math.cos(lat) * radius;
-
-            for (int i = 0; i <= segments; i++) {
-                double angle = (Math.PI * 2) * (double) i / (double) segments;
-                double x = Math.cos(angle) * ringRadius;
-                double z = Math.sin(angle) * ringRadius;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha).setUv(0, 0);
-            }
-        }
-
-        int meridians = 12;
-        int rings = 30;
-
-        for (int m = 0; m < meridians; m++) {
-            double lng = (Math.PI * 2) * (double) m / (double) meridians;
-
-            for (int i = 0; i <= rings; i++) {
-                double lat = Math.PI * (-0.5 + (double) i / (double) rings);
-                double y = Math.sin(lat) * radius;
-                double rRing = Math.cos(lat) * radius;
-                double x = Math.cos(lng) * rRing;
-                double z = Math.sin(lng) * rRing;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha * 0.5F).setUv(0, 0);
-            }
-        }
-
-        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(lineBuffer.buildOrThrow());
-    }
 
     public static void addTimeStopZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new TimeStopZoneData(center, radius, duration));

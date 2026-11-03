@@ -60,7 +60,7 @@ public class VoidPrisonRenderer {
         
         
         Matrix4f matrix = poseStack.last().pose();
-        float baseAlpha = zone.getAlpha() * 0.25F;
+        float baseAlpha = zone.getAlpha() * 0.12F;
         float pulse = zone.getPulse();
         float r = 0.8F * pulse;
         float g = 0.15F;
@@ -68,10 +68,9 @@ public class VoidPrisonRenderer {
         this.drawSphere(matrix, zone.radius, 30, 20, r, g, b, baseAlpha);
         poseStack.scale(0.95F, 0.95F, 0.95F);
         matrix = poseStack.last().pose();
-        this.drawSphere(matrix, zone.radius, 20, 15, r * 1.2F, g * 1.5F, b * 1.5F, baseAlpha * 0.4F);
+        this.drawSphere(matrix, zone.radius, 20, 15, r * 1.2F, g * 1.5F, b * 1.5F, baseAlpha * 0.25F);
         poseStack.scale(1.1052631F, 1.1052631F, 1.1052631F);
         matrix = poseStack.last().pose();
-        this.drawLatitudeRings(matrix, zone.radius, r * 1.3F, g * 2.0F, b * 2.0F, baseAlpha * 2.0F);
         
         
         
@@ -101,7 +100,9 @@ public class VoidPrisonRenderer {
                 double x11 = Math.cos(lng1) * r1;
                 double z11 = Math.sin(lng1) * r1;
                 float edgeFactor = (float) (1.0 - Math.abs(Math.cos(lat0)));
-                float currentAlpha = alpha * (0.6F + edgeFactor * 0.4F);
+                // 纬度环纹（替代原线框层，原因同 TimeStopRenderer）
+                float band = 0.72F + 0.28F * (float) Math.cos(lat0 * 8.0);
+                float currentAlpha = alpha * (0.6F + edgeFactor * 0.4F) * band;
                 // 四边形按逆时针顺序：左下 -> 右下 -> 右上 -> 左上
                 buffer.addVertex(matrix, (float) x00, (float) y0, (float) z00).setColor(r, g, b, currentAlpha).setUv(0, 0);
                 buffer.addVertex(matrix, (float) x01, (float) y0, (float) z01).setColor(r, g, b, currentAlpha).setUv(0, 0);
@@ -113,41 +114,6 @@ public class VoidPrisonRenderer {
         net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
     }
 
-    private void drawLatitudeRings(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
-        BufferBuilder lineBuffer = Tesselator.getInstance().begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        double[] latitudes = new double[]{-Math.PI * 2.0 / 5.0, -Math.PI / 6, 0.0, Math.PI / 6, Math.PI * 2.0 / 5.0};
-        int segments = 60;
-
-        for (double lat : latitudes) {
-            double y = Math.sin(lat) * radius;
-            double ringRadius = Math.cos(lat) * radius;
-
-            for (int i = 0; i <= segments; i++) {
-                double angle = (Math.PI * 2) * (double) i / (double) segments;
-                double x = Math.cos(angle) * ringRadius;
-                double z = Math.sin(angle) * ringRadius;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha).setUv(0, 0);
-            }
-        }
-
-        int meridians = 16;
-        int rings = 30;
-
-        for (int m = 0; m < meridians; m++) {
-            double lng = (Math.PI * 2) * (double) m / (double) meridians;
-
-            for (int i = 0; i <= rings; i++) {
-                double lat = Math.PI * (-0.5 + (double) i / (double) rings);
-                double y = Math.sin(lat) * radius;
-                double rRing = Math.cos(lat) * radius;
-                double x = Math.cos(lng) * rRing;
-                double z = Math.sin(lng) * rRing;
-                lineBuffer.addVertex(matrix, (float) x, (float) y, (float) z).setColor(r, g, b, alpha * 0.6F).setUv(0, 0);
-            }
-        }
-
-        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(lineBuffer.buildOrThrow());
-    }
 
     public static void addPrisonZone(UUID playerId, Vec3 center, double radius, int duration) {
         activeZones.put(playerId, new PrisonZoneData(center, radius, duration));
