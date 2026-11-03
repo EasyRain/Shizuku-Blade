@@ -65,6 +65,14 @@ public final class CosmicShaders {
      */
     public static final float ICON_SPREAD = 0.012F;
 
+    /**
+     * 图标瓦片取样内缩（0.6 = 只采样每张星点精灵的中心 60%）：星点美术画到了 16×16 画布
+     * 边缘，图标接缝/瓦片边界处会把边缘星切成**半星**（世界路径星点太小看不出来；图标放大
+     * 后就是「有些星点只显示半边」）。收进中心后边缘内容永不被采样，剩下的都是完整星点
+     * （稍小、更接近 1.21.1 NeoForge 的大块星云观感）。
+     */
+    public static final float ICON_SPRITE_CENTER = 0.6F;
+
     public static final Identifier SHADER_ID = shizuku.prefix("core/cosmic");
     public static final Identifier PIPELINE_ID = shizuku.prefix("pipeline/cosmic");
 
@@ -81,6 +89,25 @@ public final class CosmicShaders {
     /** 物品图标专用（与 {@link #cosmicRenderType} 同管线，只是不带 layering transform）。 */
     private static RenderType cosmicIconRenderType;
     private static boolean spritesWarned;
+
+    /** 一次性诊断：每个 (group, icon) 组合只打一条日志，确认各路径的分组来源（容器格/掉落物/…）。 */
+    private static final java.util.Set<String> SUBMIT_DEBUG_LOGGED =
+            java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+    /**
+     * 「正在 GuiRenderer.render 里」= GUI 上下文（26.1 的 inventoryRender 等价物，由
+     * {@code GuiRendererCosmicMixin} 置位/复位）。期间发出的所有 cosmic 层都按图标
+     * （固定视角）处理：快捷栏 PIP、背包/容器格子、JEI、GuiItemAtlas 烘焙全覆盖。
+     */
+    private static boolean inGuiRender;
+
+    public static void beginGuiRender() {
+        inGuiRender = true;
+    }
+
+    public static void endGuiRender() {
+        inGuiRender = false;
+    }
 
     /** AtlasManager 的 atlasById 键 = 图集 json id（= AtlasIds.ITEMS）。⚠️ 26.1 把 item/ 目录
      *  的自动缝合从 blocks 图集挪到了独立 items 图集（vanilla items.json = directory source item/），
@@ -139,7 +166,17 @@ public final class CosmicShaders {
         //   externalScale=100 ⇒ 跨十几~几十个瓦片（每像素随机）⇒ **细碎噪点**
         //   externalScale≈16  ⇒ 图标横跨约 2~6 个 16×16 瓦片 ⇒ 能分辨若干星点 + 星云（目标观感）
         // yaw/pitch 固定 0：只让 time 推动 v，星点在图标上慢慢游动，转视角不重排。
-        boolean icon = group.startsWith("item_");
+        // ⚠️ 图标判定改用「渲染阶段」而不是分组名（= 1.20.1/1.21.1 inventoryRender 的迁移）：
+        // GuiRendererCosmicMixin 在 GuiRenderer.render 期间置位 —— 快捷栏（PIP 实时）、
+        // 背包/容器格子、JEI、GuiItemAtlas 烘焙期间发出的一切 RenderOverrideEvent 全覆盖。
+        // 旧写法 group.startsWith("item_") 的两个坑：容器格子走 3D 路径发 blade_luminous
+        // ⇒ 漏判成世界层（白横条 + 随视角闪烁）；地面掉落物发 item_* ⇒ 误判成图标（该流动的
+        // 世界星点被冻住）。按阶段判与原版语义一致（世界渲染在本帧更早处完成，标志必然 false）。
+        boolean icon = inGuiRender;
+        if (SUBMIT_DEBUG_LOGGED.add(group + "|" + icon)) {
+            LOGGER.info("[cosmic-submit] group={} icon={} gui={} caller={}",
+                    group, icon, inGuiRender, callerChain());
+        }
         RenderType chosen = icon ? cosmicIconRenderType() : cosmicRenderType();
         if (chosen == null) {
             return false;
@@ -182,6 +219,26 @@ public final class CosmicShaders {
             }
         });
         return true;
+    }
+
+    /** 诊断用：调用链头几个非本包帧（一眼看出这次提交来自 TEISR/GroundRenderer/LayerMainBlade 哪条路）。 */
+    private static String callerChain() {
+        StackTraceElement[] st = new Throwable().getStackTrace();
+        StringBuilder sb = new StringBuilder();
+        int printed = 0;
+        for (int i = 1; i < st.length && printed < 6; i++) {
+            String cls = st[i].getClassName();
+            if (cls.startsWith("com.buwan.shizuku.")) {
+                continue;
+            }
+            int dot = cls.lastIndexOf('.');
+            if (printed > 0) {
+                sb.append(" <- ");
+            }
+            sb.append(dot >= 0 ? cls.substring(dot + 1) : cls).append(':').append(st[i].getMethodName());
+            printed++;
+        }
+        return sb.toString();
     }
 
     private static void rebuild() {
@@ -248,6 +305,7 @@ public final class CosmicShaders {
         if (icon) {
             builder.withShaderDefine("COSMIC_ICON", 1.0F);
             builder.withShaderDefine("COSMIC_ICON_SPREAD", ICON_SPREAD);
+            builder.withShaderDefine("COSMIC_ICON_INSET", ICON_SPRITE_CENTER);
             // 图标用「第 0 帧」子矩形（多帧动画精灵整块采样会被压成白横条）
             for (int i = 0; i < 10; i++) {
                 builder.withShaderDefine("ICUV" + i + "_U0", ICON_UVS[i * 4]);

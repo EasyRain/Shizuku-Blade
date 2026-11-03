@@ -16,7 +16,8 @@
     "LevelRendererSynthwaveMixin",
     "EntityRenderStateCosmicFlagMixin",
     "SlashEffectRendererMixin",
-    "DriveRendererMixin"
+    "DriveRendererMixin",
+    "GuiRendererCosmicMixin"
   ],
   "injectors": {
     "defaultRequire": 1

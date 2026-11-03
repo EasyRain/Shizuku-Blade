@@ -181,6 +181,15 @@ void main (void)
                 orv = 1.0-ru;
             }
 
+#ifdef COSMIC_ICON
+            // Icon-only: the star sprites are drawn edge-to-edge on their 16x16 canvas, so any
+            // tile/icon seam crossing a sprite cuts the star in half ("half stars"). Pull the
+            // sampled sub-square toward the sprite centre (COSMIC_ICON_INSET = kept fraction)
+            // so edge content is never sampled; every visible star is then complete.
+            oru = 0.5 + (oru - 0.5) * COSMIC_ICON_INSET;
+            orv = 0.5 + (orv - 0.5) * COSMIC_ICON_INSET;
+#endif
+
             // get the icon uvs for the tile
             float umin = cosmicuvs[symbol][0][0];
             float umax = cosmicuvs[symbol][1][0];
