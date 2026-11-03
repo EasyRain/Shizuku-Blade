@@ -114,5 +114,7 @@ public class ShizukuFabricClient implements ClientModInitializer {
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("shizuku", "galaxy_field"),
                 (graphics, deltaTracker) -> GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post()));
+        // 宇宙刀手持星光（26.1：不用着色器，走 UV 滚动装饰器）
+        com.buwan.shizuku.client.CosmicBladeRenderer.register();
     }
 }
