@@ -179,15 +179,20 @@ public final class CosmicShaders {
         // 世界星点被冻住）。按阶段判与原版语义一致（世界渲染在本帧更早处完成，标志必然 false）。
         boolean icon = inGuiRender;
         float spread = ICON_FALLBACK_SPREAD;
+        float centerX = 0.0F;
+        float centerY = 0.0F;
         if (icon) {
-            float[] norm = iconSpreads(model, group, poseStack);
+            float[] norm = iconRayParams(model, group, poseStack);
             if (norm != null) {
                 spread = norm[0];
-                // 去重键带上（取整后的）pose 跨度：快捷栏 / 背包格 / JEI 的视口缩放不同会各记一条
-                if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|" + Math.round(norm[1] * 1000.0F)
-                        + "|" + Math.round(norm[2] * 1000.0F))) {
-                    LOGGER.info("[cosmic-submit] group={} icon=true ext=[{},{}] spread={} caller={}",
-                            group, norm[1], norm[2], spread, callerChain());
+                centerX = norm[1];
+                centerY = norm[2];
+                // 去重键带上（取整后的）中心+半跨度：快捷栏 / 背包格 / JEI 的视口缩放不同会各记一条
+                if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|" + Math.round(centerX * 10.0F)
+                        + "|" + Math.round(centerY * 10.0F) + "|" + Math.round(norm[3] * 1000.0F)
+                        + "|" + Math.round(norm[4] * 1000.0F))) {
+                    LOGGER.info("[cosmic-submit] group={} icon=true center=({},{}) half=[{},{}] spread={} caller={}",
+                            group, centerX, centerY, norm[3], norm[4], spread, callerChain());
                 }
             } else if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|nobounds")) {
                 LOGGER.info("[cosmic-submit] group={} icon=true NO-BOUNDS(fallback) caller={}",
@@ -201,12 +206,7 @@ public final class CosmicShaders {
             return false;
         }
         float scale = icon ? ICON_EXTERNAL_SCALE : 1.0F;
-        // ⚠️ 图标分支把归一化 spread 塞进 **yaw 槽位（UV0.y，全精度 float）**：图标的 yaw 本来
-        // 就是 0，槽位空闲；fsh 仍把它当 yaw 读——一个 ≤0.03 rad（≈1.7°）的星空旋转，视觉
-        // 不可分辨。（Normal.z 试过不行：法线是 3×byte 属性，`(byte)clamp(f,-1,1)*127` 截断
-        // 量化，spread < 1/127 直接变 0 ⇒ 射线塌缩成天球一点 = 19:51 的「物品栏全白闪」；
-        // UV1/UV2 是 16 位 overlay/lightmap 槽位，float 位模式同样被截断。）
-        float yaw = icon ? spread : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
         float time = mc.level.getGameTime() % 2147483647L;
@@ -220,6 +220,11 @@ public final class CosmicShaders {
         // 留 order(0) 的话星空层和 item_* 平面同桶、谁先画还是 identity hash 决定 ⇒
         // 一半启动被图标盖住 = 「只能看到一点效果」。
         final RenderType renderType = chosen;
+        // lambda 捕获要求 effectively final：图标射线参数在上方条件赋值，这里定格一份
+        final boolean iconF = icon;
+        final float centerXF = centerX;
+        final float centerYF = centerY;
+        final float spreadF = spread;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
@@ -235,7 +240,7 @@ public final class CosmicShaders {
                 PoseStack local = new PoseStack();
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha),
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha, iconF, centerXF, centerYF, spreadF),
                         local, MAX_LIGHT, 0, group);
             } finally {
                 Face.alphaOverride = prevAlpha;
@@ -250,12 +255,12 @@ public final class CosmicShaders {
             new java.util.WeakHashMap<>();
 
     /**
-     * 图标合成射线的归一化 spread：取分组原始 XY 包围盒的 4 角，经当前 pose 变换后的跨度
-     * （两轴各自的最大绝对值），各向同性取大者除 {@link #ICON_RAY_TARGET} ⇒ 无论驱动方把
-     * 模型缩放到多小（快捷栏 PIP / 背包格 PIP / 图集烘焙各不相同），射线锥角恒定、
-     * 星点密度恒定。返回 {@code [spread, extX, extY]}；找不到分组返回 null。
+     * 图标合成射线的归一化参数：分组原始 XY 包围盒 4 角经当前 pose 变换后，取**中心**
+     * （⚠️ 必须减掉平移——之前把变换后的绝对坐标当"跨度"，槽位平移 ~32 的倍数混进来，
+     * 把锥角压缩了 17~80× = 19:5x「一颗星 3~5 个图标大」的根因）与两轴半跨度，
+     * spread = {@link #ICON_RAY_TARGET}/max(半跨度)。返回 {spread, centerX, centerY, halfX, halfY}。
      */
-    private static float[] iconSpreads(WavefrontObject model, String group, PoseStack poseStack) {
+    private static float[] iconRayParams(WavefrontObject model, String group, PoseStack poseStack) {
         java.util.Map<String, float[]> byGroup = RAW_GROUP_BOUNDS.computeIfAbsent(model, m -> new java.util.HashMap<>());
         float[] raw = byGroup.get(group);
         if (raw == null) {
@@ -267,18 +272,26 @@ public final class CosmicShaders {
         }
         org.joml.Matrix4f mat = poseStack.last().pose();
         org.joml.Vector3f v = new org.joml.Vector3f();
-        float extX = 1.0E-4F;
-        float extY = 1.0E-4F;
+        float minX = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
         // raw = {minX, minY, maxX, maxY}，四个角 = 两个 min/max 的组合（不是 8 个连续坐标——
         // 19:35 崩溃就是把它当 8 元素数组读导致的越界）
         for (int i = 0; i < 4; i++) {
             float cx = (i & 1) == 0 ? raw[0] : raw[2];
             float cy = (i & 2) == 0 ? raw[1] : raw[3];
             mat.transformPosition(cx, cy, 0.0F, v);
-            extX = Math.max(extX, Math.abs(v.x));
-            extY = Math.max(extY, Math.abs(v.y));
+            minX = Math.min(minX, v.x);
+            maxX = Math.max(maxX, v.x);
+            minY = Math.min(minY, v.y);
+            maxY = Math.max(maxY, v.y);
         }
-        return new float[]{ICON_RAY_TARGET / Math.max(extX, extY), extX, extY};
+        float centerX = (minX + maxX) * 0.5F;
+        float centerY = (minY + maxY) * 0.5F;
+        float halfX = Math.max(1.0E-4F, (maxX - minX) * 0.5F);
+        float halfY = Math.max(1.0E-4F, (maxY - minY) * 0.5F);
+        return new float[]{ICON_RAY_TARGET / Math.max(halfX, halfY), centerX, centerY, halfX, halfY};
     }
 
     /** 分组原始顶点的 XY 包围盒（图标平面是 2D，z 不参与射线）；找不到分组返回 null。 */
@@ -485,19 +498,35 @@ public final class CosmicShaders {
         private final float pitch;
         private final float externalScale;
         private final int alpha;
+        /** 图标分支专用：居中射线的参数（icon=false 时 setUv1 走原样转发，这些值不参与）。 */
+        private final boolean icon;
+        private final float centerX;
+        private final float centerY;
+        private final float spread;
+        /** 当前顶点（pose 变换后）的 x/y：putVertex 先 addVertex 后 setOverlay→setUv1，同一顶点内有效。 */
+        private float lastX;
+        private float lastY;
 
         public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch,
-                                    float externalScale, int alpha) {
+                                    float externalScale, int alpha,
+                                    boolean icon, float centerX, float centerY, float spread) {
             this.inner = inner;
             this.time = time;
             this.yaw = yaw;
             this.pitch = pitch;
             this.externalScale = externalScale;
             this.alpha = alpha;
+            this.icon = icon;
+            this.centerX = centerX;
+            this.centerY = centerY;
+            this.spread = spread;
         }
 
         @Override
         public VertexConsumer addVertex(float x, float y, float z) {
+            // 记住变换后的顶点坐标：setUv1（在 setOverlay 默认实现里被调用）要用它算当前顶点的射线
+            this.lastX = x;
+            this.lastY = y;
             this.inner.addVertex(x, y, z);
             return this;
         }
@@ -523,9 +552,23 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setUv1(int u, int v) {
-            // UV1 = overlay 槽位（16 位），不能承载按位 float（见字段注释）——原样转发
-            this.inner.setUv1(u, v);
+            if (this.icon) {
+                // 图标分支：在 Java 侧算好**居中后的合成射线** (vertex-center)*spread，量化到
+                // [0,65535] 塞进 UV1 的两个 16 位短整（i2s 只保位模式，shader 端 & 0xFFFF 还原）。
+                // 必须在 Java 算：Position 含槽位平移（~32 的倍数），shader 侧减不掉——之前
+                // 在 vsh 里 -Position*spread，平移把锥角压缩了 17~80×（星星大出 3~5 个图标）。
+                this.inner.setUv1(packIconRay((this.lastX - this.centerX) * this.spread),
+                        packIconRay((this.lastY - this.centerY) * this.spread));
+            } else {
+                this.inner.setUv1(u, v);
+            }
             return this;
+        }
+
+        /** [-1,1] 线性映射到 [0,65535]（16 位短整的完整量程；vsh 端反变换）。 */
+        private static int packIconRay(float v) {
+            float c = Math.max(-1.0F, Math.min(1.0F, v)) * 0.5F + 0.5F;
+            return Math.round(c * 65535.0F);
         }
 
         @Override

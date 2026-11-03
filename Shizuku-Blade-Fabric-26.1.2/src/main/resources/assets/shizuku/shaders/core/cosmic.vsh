@@ -14,10 +14,13 @@ in vec3 Normal;
 // Faithful port of the 1.20.1 cosmic.vsh.
 // 26.1 has no per-draw uniform setter on the RenderType path, so the original
 // uniform surface rides on attributes the shader never reads:
-//   UV0    = (time [game ticks], yaw [rad] - OR the icon ray normalizer, see below)
+//   UV0    = (time [game ticks], yaw [rad])
 //   Normal = (pitch [rad], externalScale, 0)
 //   Color  = shade rgb (lightmix) + opacity in .a
-// UV1/UV2 (overlay/lightmap) are ignored by the fragment shader, like the original.
+//   UV1    = the CENTERED icon ray, (vertex-center)*spread quantized to two
+//            16-bit shorts [0,65535] = [-1,1] (icon branch only; Java must do
+//            the centering because Position carries the slot translation).
+// UV2 (lightmap) is ignored by the fragment shader, like the original.
 out vec4 cosmicParams;
 out vec4 vertexColor;
 out vec3 fPos;
@@ -32,17 +35,15 @@ void main() {
     // projection and its fragments span only ~0.004 of normalized direction, so sampling the
     // real view position magnifies one tiny patch of the sky sphere: the 16 rotated ray
     // layers then smear that sliver into stripes, and the result depends on GUI scale/pose.
-    // Synthesize the ray from the submitted vertex coordinates instead, with a spread that
-    // is NORMALIZED per submission: CosmicShaders measures the pose-transformed XY extents
-    // of the group (the hotbar PIP and the inventory PIP scale the plates differently!) and
-    // sends an isotropic normalizer through UV0.y - the yaw slot, which is free for icons
-    // (their yaw is always 0) and a proven full-precision float channel (the world path
-    // rides time/yaw on it). The fragment shader still reads it as yaw: a <=0.03 rad
-    // (~1.7 deg) starfield rotation, visually indistinguishable. Normal.z was tried first
-    // and failed: normals are stored as 3 bytes ((byte)clamp(f,-1,1)*127, truncating), so
-    // spreads below 1/127 quantized to zero and the ray collapsed to a single sky point.
+    // The ray is fully computed on the Java side instead: (vertex - groupCenter) * spread,
+    // with the spread normalized so the cone is identical for every driver (the hotbar PIP
+    // and the inventory PIP scale the plates differently). Java MUST do the centering:
+    // Position carries the slot translation (~32*n units), which crushed the cone 17-80x
+    // when the ray was derived from raw Position. The two components ride UV1's two 16-bit
+    // shorts ([0,65535] = [-1,1]; i2s keeps bit patterns, & 0xFFFF restores unsigned).
     // Fog keeps using the real view position.
-    fPos = vec3(-Position.x * UV0.y, -Position.y * UV0.y, -1.0);
+    vec2 cosmicRay = (vec2(float(UV1.x & 65535), float(UV1.y & 65535)) / 65535.0 - 0.5) * 2.0;
+    fPos = vec3(-cosmicRay.x, -cosmicRay.y, -1.0);
 #else
     fPos = view.xyz;
 #endif
