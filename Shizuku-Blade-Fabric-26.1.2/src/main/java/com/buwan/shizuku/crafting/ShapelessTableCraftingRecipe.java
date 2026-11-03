@@ -55,7 +55,9 @@ public class ShapelessTableCraftingRecipe implements ITierCraftingRecipe {
             return new ItemStack(this.outputTemplate.item(), this.outputTemplate.count(),
                     this.outputTemplate.components());
         }
-        return this.outputStack();
+        // 由 codec 之外（STREAM_CODEC 同步、直接构造）创建的实例没有模板，直接返回直存的栈。
+        // 旧写法这里又调了一次 outputStack() ⇒ 自递归，assemble() 会 StackOverflowError。
+        return this.output;
     }
 
     private static int getTierFromSize(int size) {
