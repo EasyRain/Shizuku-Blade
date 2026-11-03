@@ -21,15 +21,25 @@ public final class CosmicBladeRenderer {
     /** GUI 物品渲染的嵌套深度（>0 表示当前正在画物品图标）。 */
     private static int guiItemDepth;
 
+    /**
+     * 「正在以 GUI 上下文渲染物品」（快捷栏/背包格/JEI 图标；地面掉落物/展示框/手持都不走
+     * GUI 上下文）。驱动 {@link CosmicShaders#inventoryRender} —— 即 1.20.1 原版 Forge
+     * {@code ScreenEvent.Render.Pre/Post} 的 Fabric 等价物，而且比 Forge 事件更精确：
+     * 只覆盖真正的物品图标，不会把 HUD 整个阶段都算进 GUI 上下文。
+     */
     public static void enterGuiItemRender(boolean gui) {
         if (gui) {
             guiItemDepth++;
+            CosmicShaders.inventoryRender = true;
         }
     }
 
     public static void exitGuiItemRender(boolean gui) {
         if (gui && guiItemDepth > 0) {
             guiItemDepth--;
+            if (guiItemDepth == 0) {
+                CosmicShaders.inventoryRender = false;
+            }
         }
     }
 
@@ -38,10 +48,8 @@ public final class CosmicBladeRenderer {
     }
 
     private static void onRenderOverride(RenderOverrideEvent event) {
-        // GUI 里的物品图标不画：那里没有世界矩阵，cosmic 层会被放大成铺满屏幕的星空并随视角闪烁
-        if (guiItemDepth > 0) {
-            return;
-        }
+        // 图标照画（= 1.20.1 原版行为）：GUI 上下文里 inventoryRender 已被置位，
+        // prepareCosmicRender 会走 fixedView（yaw/pitch=0、scale=100），星图固定不随视角闪。
         ItemStack stack = event.getStack();
         if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof ItemSlashBlade)) {
             return;
