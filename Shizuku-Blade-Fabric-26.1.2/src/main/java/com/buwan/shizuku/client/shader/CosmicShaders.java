@@ -101,11 +101,18 @@ public final class CosmicShaders {
         if (mc.level == null || mc.player == null) {
             return false;
         }
-        // 原版 prepareCosmicRender 非 GUI 路径的取值（圆盘/刀身/斩击/刀光共用同一视角参数）
-        float time = mc.level.getGameTime() % 2147483647L;
-        float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
-        float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
+        // ⚠️ 物品栏/快捷栏图标也走同一个事件！上游 {@code SlashBladeTEISR.renderIcon} 把分组名
+        // 拼上 "_luminous" 再发事件（字节码里是 makeConcatWithConstants(item_blade + "_luminous")），
+        // 所以「item_blade_luminous」会被这里接住、把星空层叠到图标上。
+        // 1.20.1 原版是用 inventoryRender 分支解决"图标闪烁"的（= 下面的 fixed 视角：
+        // scale=100 / yaw=pitch=0 —— 此时 shader 里 v 的时间项 ×1/100 后≈0，图案完全静止），
+        // 26.1 移植时漏了，图标就会逐帧随玩家视角+时间抖动。
+        boolean icon = group.startsWith("item_");
+        float scale = icon ? 100.0F : 1.0F;
+        float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
+        float time = mc.level.getGameTime() % 2147483647L;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
@@ -121,7 +128,7 @@ public final class CosmicShaders {
                 PoseStack local = new PoseStack();
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, alpha),
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha),
                         local, MAX_LIGHT, 0, group);
             } finally {
                 Face.alphaOverride = prevAlpha;
@@ -236,13 +243,16 @@ public final class CosmicShaders {
         private final float time;
         private final float yaw;
         private final float pitch;
+        private final float externalScale;
         private final int alpha;
 
-        public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch, int alpha) {
+        public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch,
+                                    float externalScale, int alpha) {
             this.inner = inner;
             this.time = time;
             this.yaw = yaw;
             this.pitch = pitch;
+            this.externalScale = externalScale;
             this.alpha = alpha;
         }
 
@@ -285,8 +295,8 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setNormal(float x, float y, float z) {
-            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale=1.0, 0)
-            this.inner.setNormal(this.pitch, 1.0F, 0.0F);
+            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale, 0)
+            this.inner.setNormal(this.pitch, this.externalScale, 0.0F);
             return this;
         }
 
