@@ -8,3 +8,7 @@ accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> 
 accessible field net/minecraft/client/renderer/RenderPipelines ENTITY_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
 # 26.1：RenderType.create 为包内可见，模组需开放才能用自定义管线建 RenderType
 accessible method net/minecraft/client/renderer/rendertype/RenderType create (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+
+# 26.1：每帧代码重建 PostChain（注入每帧 uniform）需要 ShaderManager 的 post 链投影与矩阵缓冲（私有字段）
+accessible field net/minecraft/client/renderer/ShaderManager postChainProjection Lnet/minecraft/client/renderer/Projection;
+accessible field net/minecraft/client/renderer/ShaderManager postChainProjectionMatrixBuffer Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;

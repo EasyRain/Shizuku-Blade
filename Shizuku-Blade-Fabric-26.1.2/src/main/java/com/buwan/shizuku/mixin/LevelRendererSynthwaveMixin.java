@@ -18,8 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
  *
  * <p>选 addLateDebugPass 做 WrapOperation 的原因：builder 是它的方法参数（不用脆弱的 locals 捕获），
  * 且它位于 addMainPass / transparency 链 / clouds / weather 全部之后 —— main 目标此时已含完整世界画面。
- * 世界渲染完 → UI 之前，正是全屏后处理的时机。manager 内部有 once-per-frame 去重与
- * 「SA 未激活 / 光影包激活时跳过」闸门。</p>
+ * cameraRenderState 一并传给 manager：其 public 字段 projectionMatrix / viewRotationMatrix / pos
+ * 就是原版 1.21.1 从 WorldRenderEvents 拿的同源数据（逆矩阵/相机位注入用）。</p>
  */
 @Mixin(LevelRenderer.class)
 public abstract class LevelRendererSynthwaveMixin {
@@ -41,6 +41,6 @@ public abstract class LevelRendererSynthwaveMixin {
                                                     CameraRenderState cameraRenderState, GpuBufferSlice slice,
                                                     Matrix4fc matrix, Operation<Void> original) {
         original.call(instance, builder, cameraRenderState, slice, matrix);
-        SynthwaveShaderManager.addToFrame(builder, this.targets);
+        SynthwaveShaderManager.addToFrame(builder, this.targets, cameraRenderState);
     }
 }
