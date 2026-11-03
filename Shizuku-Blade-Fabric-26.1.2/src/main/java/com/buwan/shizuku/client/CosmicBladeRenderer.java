@@ -67,13 +67,18 @@ public final class CosmicBladeRenderer {
             return;
         }
 
-        // 忠实原版：基础分组（"blade_luminous" → "blade"），不取消发光层（三层共存）
-        String baseTarget = target.substring(0, target.length() - "_luminous".length());
-
         // 原版 prepareCosmicRender 非 GUI 路径的取值
         float time = mc.level.getGameTime() % 2147483647L;
         float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
+
+        // 26.1 Resharped 模型（wdq.obj）分组 = blade/handle/blade_damaged/blade_fragment/
+        // effect/item_*/sheath —— 刀身几何被拆成多个组，1.20.1 的「只画 blade 组」
+        // 在 Resharped 模型上覆盖不全（柄等空缺、边界像错位）。
+        // 上游为叠加光效专门留了 effect 外壳组（覆盖整把刀，renderChargeEffect 就画它）：
+        // 有就用它（Resharped 原生的全覆盖叠加几何），没有再回退基础分组。
+        String baseTarget = target.substring(0, target.length() - "_luminous".length());
+        String group = hasGroup(model, "effect") ? "effect" : baseTarget;
 
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
@@ -81,8 +86,21 @@ public final class CosmicBladeRenderer {
             local.last().pose().set(pose.pose());
             local.last().normal().set(pose.normal());
             model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
-                    local, 15728880, 0, baseTarget);
+                    local, 15728880, 0, group);
         });
+    }
+
+    /** 模型里是否存在该分组（OBJ 的分组名列表是公开的）。 */
+    private static boolean hasGroup(WavefrontObject model, String name) {
+        if (name == null || model.groupObjects == null) {
+            return false;
+        }
+        for (var group : model.groupObjects) {
+            if (name.equals(group.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
