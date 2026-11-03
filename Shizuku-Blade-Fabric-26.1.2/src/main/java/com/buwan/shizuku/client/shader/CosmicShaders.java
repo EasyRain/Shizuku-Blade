@@ -270,8 +270,12 @@ public final class CosmicShaders {
         org.joml.Vector3f v = new org.joml.Vector3f();
         float extX = 1.0E-4F;
         float extY = 1.0E-4F;
+        // raw = {minX, minY, maxX, maxY}，四个角 = 两个 min/max 的组合（不是 8 个连续坐标——
+        // 19:35 崩溃就是把它当 8 元素数组读导致的越界）
         for (int i = 0; i < 4; i++) {
-            mat.transformPosition(raw[i * 2], raw[i * 2 + 1], 0.0F, v);
+            float cx = (i & 1) == 0 ? raw[0] : raw[2];
+            float cy = (i & 2) == 0 ? raw[1] : raw[3];
+            mat.transformPosition(cx, cy, 0.0F, v);
             extX = Math.max(extX, Math.abs(v.x));
             extY = Math.max(extY, Math.abs(v.y));
         }
