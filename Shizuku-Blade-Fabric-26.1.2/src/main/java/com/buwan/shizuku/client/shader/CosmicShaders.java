@@ -87,6 +87,13 @@ public final class CosmicShaders {
                 // 暗星云自乘后≈0.01-0.09 = 原版「低透明度紫」观感的真正来源；
                 // 亮星星符号照常突出。alpha 通道在闪电混合下不参与（同原版）。
                 .withCull(false)
+                // ⚠️ ENTITY_SNIPPET 的顶点模式是 QUADS（vanilla 实体模型按四边形发射），
+                // 而 SlashBlade 的 OBJ 模型 tessellation 每面发射 3 顶点（三角形流）——
+                // 不改模式的话 collector 按 QUADS 开 buffer，三角形流被每 4 顶点强行
+                // 重组 = 跨面碎三角（上游刀也碎、碎法随模型而异、侧立长三角、细长空缺；
+                // 圆盘正常是因为它自己 begin(TRIANGLES)）。
+                .withVertexFormat(com.mojang.blaze3d.vertex.DefaultVertexFormat.ENTITY,
+                        com.mojang.blaze3d.vertex.VertexFormat.Mode.TRIANGLES)
                 .withColorTargetState(new ColorTargetState(BlendFunction.LIGHTNING));
         for (int i = 0; i < 10; i++) {
             builder.withShaderDefine("CUV" + i + "_U0", COSMIC_UVS[i * 4]);
