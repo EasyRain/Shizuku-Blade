@@ -48,18 +48,20 @@ public final class CosmicShaders {
     private static RenderType cosmicRenderType;
     private static boolean spritesWarned;
 
-    /** AtlasManager 的 atlasById 键：图集 json id（= AtlasIds.BLOCKS），不是贴图路径。 */
-    private static final Identifier BLOCKS_ATLAS_ID = Identifier.fromNamespaceAndPath("minecraft", "blocks");
+    /** AtlasManager 的 atlasById 键 = 图集 json id（= AtlasIds.ITEMS）。⚠️ 26.1 把 item/ 目录
+     *  的自动缝合从 blocks 图集挪到了独立 items 图集（vanilla items.json = directory source item/），
+     *  textures/item/misc/cosmic_N 天然在 items 图集里；1.20.1 的「BLOCK_ATLAS 含 item 精灵」已过时。 */
+    private static final Identifier ITEMS_ATLAS_ID = Identifier.fromNamespaceAndPath("minecraft", "items");
 
     private CosmicShaders() {
     }
 
-    /** 宇宙星空 RenderType（Sampler0 = 方块图集；圆盘与刀身共用，同原版 COSMIC_RENDER_TYPE）。 */
+    /** 宇宙星空 RenderType（Sampler0 = items 图集；圆盘与刀身共用，同原版 COSMIC_RENDER_TYPE）。 */
     public static RenderType cosmicRenderType() {
         if (!collectSprites()) {
             if (!spritesWarned) {
                 spritesWarned = true;
-                LOGGER.warn("Cosmic sprites not stitched into block atlas (assets/shizuku/atlases/blocks.json?); first sprite rect u0={} v0={} u1={} v1={}",
+                LOGGER.warn("Cosmic sprites missing from items atlas; all 10 rects identical (missing-sprite fallback)? first rect u0={} v0={} u1={} v1={}",
                         COSMIC_UVS[0], COSMIC_UVS[1], COSMIC_UVS[2], COSMIC_UVS[3]);
             }
             return null;
@@ -94,7 +96,7 @@ public final class CosmicShaders {
         }
         pipeline = builder.build();
         RenderSetup setup = RenderSetup.builder(pipeline)
-                .withTexture("Sampler0", TextureAtlas.LOCATION_BLOCKS)
+                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
                 .useLightmap()
                 .useOverlay()
                 .createRenderSetup();
@@ -112,20 +114,16 @@ public final class CosmicShaders {
         }
         TextureAtlas atlas;
         try {
-            // ⚠️ getAtlasOrThrow 查 atlasById 映射，键 = 图集 json id（minecraft:blocks），
-            // 不是贴图路径 textures/atlas/blocks.png（LOCATION_BLOCKS）——传错直接 IllegalArgumentException。
-            atlas = mc.getAtlasManager().getAtlasOrThrow(BLOCKS_ATLAS_ID);
+            // ⚠️ getAtlasOrThrow 查 atlasById 映射，键 = 图集 json id（minecraft:items），
+            // 不是贴图路径 textures/atlas/items.png（LOCATION_ITEMS）——传错直接 IllegalArgumentException。
+            atlas = mc.getAtlasManager().getAtlasOrThrow(ITEMS_ATLAS_ID);
         } catch (Exception e) {
-            LOGGER.error("Failed to look up block atlas by id {}", BLOCKS_ATLAS_ID, e);
+            LOGGER.error("Failed to look up items atlas by id {}", ITEMS_ATLAS_ID, e);
             return false;
         }
-        boolean allSame = true;
         for (int i = 0; i < 10; i++) {
             TextureAtlasSprite sprite = atlas.getSprite(shizuku.prefix("item/misc/cosmic_" + i));
             float u0 = sprite.getU0(), v0 = sprite.getV0(), u1 = sprite.getU1(), v1 = sprite.getV1();
-            if (u0 != u1 || v0 != v1) {
-                allSame = false;
-            }
             if (COSMIC_UVS[i * 4] != u0 || COSMIC_UVS[i * 4 + 1] != v0
                     || COSMIC_UVS[i * 4 + 2] != u1 || COSMIC_UVS[i * 4 + 3] != v1) {
                 COSMIC_UVS[i * 4] = u0;
@@ -137,7 +135,14 @@ public final class CosmicShaders {
                 }
             }
         }
-        // 全部退化为同一点 = 没缝进去（getSprite 回落成同一张缺失贴图）
-        return !allSame || COSMIC_UVS[0] != COSMIC_UVS[4];
+        // 缺失检测：getSprite 回落是同一张缺失贴图（16×16 棋盘格，非退化矩形！），
+        // ⇒ 10 个矩形全部相同 = 没缝进图集（判「退化」是错的，之前就因此漏判）
+        for (int i = 1; i < 10; i++) {
+            if (COSMIC_UVS[i * 4] != COSMIC_UVS[0] || COSMIC_UVS[i * 4 + 1] != COSMIC_UVS[1]
+                    || COSMIC_UVS[i * 4 + 2] != COSMIC_UVS[2] || COSMIC_UVS[i * 4 + 3] != COSMIC_UVS[3]) {
+                return true;  // 至少一个矩形不同 = 正常缝入
+            }
+        }
+        return false;
     }
 }
