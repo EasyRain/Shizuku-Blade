@@ -157,53 +157,76 @@ public class VoidPrisonRenderer {
         }
     }
 
+
+
+
     /**
-     * 网格线框（经纬网）。26.1 注意：顶点格式是 POSITION_COLOR，
-     * 只能写位置与颜色 —— 之前多写了一次 {@code setUv} 会让顶点错位，
-     * 表现为"从球心向外发散的色块"。
+     * 经纬网格（用细四边形带拼出来）。
+     *
+     * <p>不能用 {@code linesTranslucent()}：26.1 下这条管线与 {@code POSITION_COLOR}
+     * 顶点格式不匹配，画线会顶点错位（表现为从球心向外发散的色块），线本身也不可见。
+     * 这里改用已验证可用的 {@code debugQuads()}，把每条网格线画成一条很窄的四边形带。</p>
      */
     private void drawGrid(Matrix4f matrix, double radius, float r, float g, float b, float alpha) {
         BufferBuilder buffer = Tesselator.getInstance().begin(
-                VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+                VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
-        int latitudeCount = 5;
-        int meridianCount = 12;
+        int latCount = 5;
         int segments = 48;
+        double latHalf = Math.PI / 90.0;   // 纬度半宽（约 2°）
 
-        // 纬线
-        for (int li = 1; li < latitudeCount; li++) {
-            double lat = Math.PI * (-0.5 + (double) li / (double) latitudeCount);
-            double y = Math.sin(lat) * radius;
-            double ringRadius = Math.cos(lat) * radius;
+        // 纬线：每个分段用一条窄带
+        for (int li = 1; li < latCount; li++) {
+            double lat = Math.PI * (-0.5 + (double) li / (double) latCount);
             for (int i = 0; i < segments; i++) {
                 double a0 = (Math.PI * 2) * (double) i / (double) segments;
                 double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
-                buffer.addVertex(matrix, (float) (Math.cos(a0) * ringRadius), (float) y, (float) (Math.sin(a0) * ringRadius))
-                        .setColor(r, g, b, alpha);
-                buffer.addVertex(matrix, (float) (Math.cos(a1) * ringRadius), (float) y, (float) (Math.sin(a1) * ringRadius))
-                        .setColor(r, g, b, alpha);
+                ringQuad(buffer, matrix, radius, lat - latHalf, lat + latHalf, a0, a1, r, g, b, alpha);
             }
         }
 
-        // 经线
+        // 经线：沿经度方向的一条窄带
+        int merCount = 12;
         int rings = 24;
-        for (int m = 0; m < meridianCount; m++) {
-            double lng = (Math.PI * 2) * (double) m / (double) meridianCount;
+        double lngHalf = Math.PI / 90.0;
+        for (int m = 0; m < merCount; m++) {
+            double lng = (Math.PI * 2) * (double) m / (double) merCount;
             for (int i = 0; i < rings; i++) {
                 double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
                 double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
-                double y0 = Math.sin(lat0) * radius;
-                double y1 = Math.sin(lat1) * radius;
-                double r0 = Math.cos(lat0) * radius;
-                double r1 = Math.cos(lat1) * radius;
-                buffer.addVertex(matrix, (float) (Math.cos(lng) * r0), (float) y0, (float) (Math.sin(lng) * r0))
-                        .setColor(r, g, b, alpha);
-                buffer.addVertex(matrix, (float) (Math.cos(lng) * r1), (float) y1, (float) (Math.sin(lng) * r1))
-                        .setColor(r, g, b, alpha);
+                meridianQuad(buffer, matrix, radius, lat0, lat1, lng - lngHalf, lng + lngHalf, r, g, b, alpha);
             }
         }
 
-        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(buffer.buildOrThrow());
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+    }
+
+    /** 纬线窄带：固定两个纬度，横跨 a0..a1 的一个四边形。 */
+    private static void ringQuad(BufferBuilder buffer, Matrix4f matrix, double radius,
+                                 double latA, double latB, double a0, double a1,
+                                 float r, float g, float b, float alpha) {
+        double yA = Math.sin(latA) * radius;
+        double yB = Math.sin(latB) * radius;
+        double rA = Math.cos(latA) * radius;
+        double rB = Math.cos(latB) * radius;
+        buffer.addVertex(matrix, (float) (Math.cos(a0) * rA), (float) yA, (float) (Math.sin(a0) * rA)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(a1) * rA), (float) yA, (float) (Math.sin(a1) * rA)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(a1) * rB), (float) yB, (float) (Math.sin(a1) * rB)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(a0) * rB), (float) yB, (float) (Math.sin(a0) * rB)).setColor(r, g, b, alpha);
+    }
+
+    /** 经线窄带：固定两个经度，沿纬度 lat0..lat1 的一个四边形。 */
+    private static void meridianQuad(BufferBuilder buffer, Matrix4f matrix, double radius,
+                                     double lat0, double lat1, double lngA, double lngB,
+                                     float r, float g, float b, float alpha) {
+        double y0 = Math.sin(lat0) * radius;
+        double y1 = Math.sin(lat1) * radius;
+        double r0 = Math.cos(lat0) * radius;
+        double r1 = Math.cos(lat1) * radius;
+        buffer.addVertex(matrix, (float) (Math.cos(lngA) * r0), (float) y0, (float) (Math.sin(lngA) * r0)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(lngB) * r0), (float) y0, (float) (Math.sin(lngB) * r0)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(lngB) * r1), (float) y1, (float) (Math.sin(lngB) * r1)).setColor(r, g, b, alpha);
+        buffer.addVertex(matrix, (float) (Math.cos(lngA) * r1), (float) y1, (float) (Math.sin(lngA) * r1)).setColor(r, g, b, alpha);
     }
 
 }
