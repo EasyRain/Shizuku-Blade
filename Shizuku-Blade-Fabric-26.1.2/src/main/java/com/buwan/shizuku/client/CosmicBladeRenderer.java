@@ -36,16 +36,28 @@ public final class CosmicBladeRenderer {
         if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
-        // 不取消本体渲染：原版是在模型材质之上叠一层半透明星空，
-        // 这样即便着色器不可用（如光影环境）也仍然有本体材质兜底。
+        // 与 1.20.1 一致：由着色器直接生成星云材质，本体这一层不再绘制
+        event.setCanceled(true);
 
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
         int timeMillis = (int) (System.currentTimeMillis() % 1_000_000_000L);
 
+        // 朝向取自玩家视角，保证星空在世界里保持稳定（原版用的是刀/相机朝向）
+        float yawRad = 0.0F;
+        float pitchRad = 0.0F;
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null) {
+            yawRad = (float) Math.toRadians(-player.getYRot());
+            pitchRad = (float) Math.toRadians(player.getXRot());
+        }
+        int yawMilliRad = (int) (yawRad * 1000.0F);
+        int pitchMilliRad = (int) (pitchRad * 1000.0F);
+
         BufferBuilder buffer = Tesselator.getInstance().begin(
                 VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
-        model.tessellateAll(new CosmicVertexConsumer(buffer, timeMillis), poseStack, light, overlay);
+        model.tessellateAll(new CosmicVertexConsumer(buffer, timeMillis, yawMilliRad, pitchMilliRad),
+                poseStack, light, overlay);
         var mesh = buffer.build();
         if (mesh != null) {
             CosmicShaders.renderTypeFor(event.getTexture()).draw(mesh);
@@ -57,10 +69,14 @@ public final class CosmicBladeRenderer {
 
         private final VertexConsumer inner;
         private final int timeMillis;
+        private final int yawMilliRad;
+        private final int pitchMilliRad;
 
-        private CosmicVertexConsumer(VertexConsumer inner, int timeMillis) {
+        private CosmicVertexConsumer(VertexConsumer inner, int timeMillis, int yawMilliRad, int pitchMilliRad) {
             this.inner = inner;
             this.timeMillis = timeMillis;
+            this.yawMilliRad = yawMilliRad;
+            this.pitchMilliRad = pitchMilliRad;
         }
 
         @Override
@@ -89,13 +105,15 @@ public final class CosmicBladeRenderer {
 
         @Override
         public VertexConsumer setUv1(int u, int v) {
-            inner.setUv1(u, v);
+            // 原版这里是 overlay 坐标；我们用来传朝向（弧度 * 1000）
+            inner.setUv1(yawMilliRad, pitchMilliRad);
             return this;
         }
 
         @Override
         public VertexConsumer setUv2(int u, int v) {
-            inner.setUv2(timeMillis, 0);
+            // 原版这里是光照图坐标；我们用来传 时间(ms) 与 不透明度(*1000)
+            inner.setUv2(timeMillis, 1000);
             return this;
         }
 
