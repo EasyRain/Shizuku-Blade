@@ -99,6 +99,11 @@ public final class CosmicShaders {
                 .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
                 .useLightmap()
                 .useOverlay()
+                // 刀身路径：星空层与本体贴图层画的是同一几何、同深度 ⇒ z-fighting
+                // （斑驳空缺/错位）。视图空间 Z 偏移层叠把星空层微微推开。
+                // 1.20.1 靠 LEQUAL+后绘制顺序稳赢，26.1 的批提交不保序，必须显式偏移。
+                // 圆盘共用此 RenderType：Z 偏移量级极小，对圆盘无可感知影响。
+                .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
                 .createRenderSetup();
         cosmicRenderType = RenderType.create("shizuku_cosmic", setup);
     }
