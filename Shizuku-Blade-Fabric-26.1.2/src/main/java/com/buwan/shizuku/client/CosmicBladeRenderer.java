@@ -37,6 +37,14 @@ public final class CosmicBladeRenderer {
         if (texture == null || !texture.getPath().contains("cosmic")) {
             return;
         }
+
+        // 宇宙刀没有刀鞘：前置会为 sheath / sheath_luminous 各触发一次事件，
+        // 让它画出来就会多一截「碎刀鞘」（模型里 sheath 分组没有对应贴图）。
+        // 这里直接取消且不绘制。
+        if (target.startsWith("sheath")) {
+            event.setCanceled(true);
+            return;
+        }
         WavefrontObject model = event.getModel();
         PoseStack poseStack = event.getPoseStack();
         if (model == null || poseStack == null || event.getTexture() == null) {
