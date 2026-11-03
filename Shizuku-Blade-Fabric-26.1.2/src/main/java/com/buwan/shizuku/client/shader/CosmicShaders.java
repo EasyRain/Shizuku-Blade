@@ -78,7 +78,6 @@ public final class CosmicShaders {
      * （稍小、更接近 1.21.1 NeoForge 的大块星云观感）。
      */
     public static final float ICON_SPRITE_CENTER = 0.6F;
-
     public static final Identifier SHADER_ID = shizuku.prefix("core/cosmic");
     public static final Identifier PIPELINE_ID = shizuku.prefix("pipeline/cosmic");
 
@@ -179,18 +178,16 @@ public final class CosmicShaders {
         // ⇒ 漏判成世界层（白横条 + 随视角闪烁）；地面掉落物发 item_* ⇒ 误判成图标（该流动的
         // 世界星点被冻住）。按阶段判与原版语义一致（世界渲染在本帧更早处完成，标志必然 false）。
         boolean icon = inGuiRender;
-        float spreadX = ICON_FALLBACK_SPREAD;
-        float spreadY = ICON_FALLBACK_SPREAD;
+        float spread = ICON_FALLBACK_SPREAD;
         if (icon) {
-            float[] spreads = iconSpreads(model, group, poseStack);
-            if (spreads != null) {
-                spreadX = spreads[0];
-                spreadY = spreads[1];
+            float[] norm = iconSpreads(model, group, poseStack);
+            if (norm != null) {
+                spread = norm[0];
                 // 去重键带上（取整后的）pose 跨度：快捷栏 / 背包格 / JEI 的视口缩放不同会各记一条
-                if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|" + Math.round(spreads[2] * 1000.0F)
-                        + "|" + Math.round(spreads[3] * 1000.0F))) {
-                    LOGGER.info("[cosmic-submit] group={} icon=true ext=[{},{}] spread=[{},{}] caller={}",
-                            group, spreads[2], spreads[3], spreadX, spreadY, callerChain());
+                if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|" + Math.round(norm[1] * 1000.0F)
+                        + "|" + Math.round(norm[2] * 1000.0F))) {
+                    LOGGER.info("[cosmic-submit] group={} icon=true ext=[{},{}] spread={} caller={}",
+                            group, norm[1], norm[2], spread, callerChain());
                 }
             } else if (SUBMIT_DEBUG_LOGGED.add(group + "|icon|nobounds")) {
                 LOGGER.info("[cosmic-submit] group={} icon=true NO-BOUNDS(fallback) caller={}",
@@ -219,8 +216,7 @@ public final class CosmicShaders {
         // 一半启动被图标盖住 = 「只能看到一点效果」。
         final RenderType renderType = chosen;
         // lambda 捕获要求 effectively final：归一化 spread 在上面条件赋值，这里定格一份
-        final float spreadXf = spreadX;
-        final float spreadYf = spreadY;
+        final float spreadF = spread;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
@@ -236,7 +232,7 @@ public final class CosmicShaders {
                 PoseStack local = new PoseStack();
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha, spreadXf, spreadYf),
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha, spreadF),
                         local, MAX_LIGHT, 0, group);
             } finally {
                 Face.alphaOverride = prevAlpha;
@@ -252,9 +248,9 @@ public final class CosmicShaders {
 
     /**
      * 图标合成射线的归一化 spread：取分组原始 XY 包围盒的 4 角，经当前 pose 变换后的跨度
-     * （两轴各自的最大绝对值），除 {@link #ICON_RAY_TARGET} ⇒ 无论驱动方把模型缩放到多小
-     * （快捷栏 PIP / 背包格 PIP / 图集烘焙各不相同），射线锥角恒定、星点密度恒定。
-     * 返回 {@code [spreadX, spreadY, extX, extY]}；找不到分组返回 null。
+     * （两轴各自的最大绝对值），各向同性取大者除 {@link #ICON_RAY_TARGET} ⇒ 无论驱动方把
+     * 模型缩放到多小（快捷栏 PIP / 背包格 PIP / 图集烘焙各不相同），射线锥角恒定、
+     * 星点密度恒定。返回 {@code [spread, extX, extY]}；找不到分组返回 null。
      */
     private static float[] iconSpreads(WavefrontObject model, String group, PoseStack poseStack) {
         java.util.Map<String, float[]> byGroup = RAW_GROUP_BOUNDS.computeIfAbsent(model, m -> new java.util.HashMap<>());
@@ -279,7 +275,7 @@ public final class CosmicShaders {
             extX = Math.max(extX, Math.abs(v.x));
             extY = Math.max(extY, Math.abs(v.y));
         }
-        return new float[]{ICON_RAY_TARGET / extX, ICON_RAY_TARGET / extY, extX, extY};
+        return new float[]{ICON_RAY_TARGET / Math.max(extX, extY), extX, extY};
     }
 
     /** 分组原始顶点的 XY 包围盒（图标平面是 2D，z 不参与射线）；找不到分组返回 null。 */
@@ -486,20 +482,23 @@ public final class CosmicShaders {
         private final float pitch;
         private final float externalScale;
         private final int alpha;
-        /** 图标分支的归一化射线张角（按位打包进 UV1；世界分支的 vsh 不读 UV1）。 */
-        private final float spreadX;
-        private final float spreadY;
+        /**
+         * 图标分支的归一化射线张角，骑在 Normal.z 上（fsh 只读 Normal.xy 当 cosmicParams.zw，
+         * z 槽位空闲；法线是全精度 float——⚠️ UV1/UV2 是 overlay/lightmap 的 **16 位**槽位，
+         * float 按位写进去会被截断成垃圾（19:41「无星只闪白」的根因），Normal 通道才是
+         * 实测可靠的数据面：世界路径的 externalScale 就一直骑在 Normal.y 上）。
+         */
+        private final float spread;
 
         public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch,
-                                    float externalScale, int alpha, float spreadX, float spreadY) {
+                                    float externalScale, int alpha, float spread) {
             this.inner = inner;
             this.time = time;
             this.yaw = yaw;
             this.pitch = pitch;
             this.externalScale = externalScale;
             this.alpha = alpha;
-            this.spreadX = spreadX;
-            this.spreadY = spreadY;
+            this.spread = spread;
         }
 
         @Override
@@ -529,10 +528,8 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setUv1(int u, int v) {
-            // 图标分支：把归一化 spread 按位打包进着色器本来不读的 UV1（ivec2），vsh 用
-            // intBitsToFloat 解包；世界分支的 vsh 同样不读 UV1（overlay 本来就被忽略），
-            // 原值不必保留。
-            this.inner.setUv1(Float.floatToRawIntBits(this.spreadX), Float.floatToRawIntBits(this.spreadY));
+            // UV1 = overlay 槽位（16 位），不能承载按位 float（见字段注释）——原样转发
+            this.inner.setUv1(u, v);
             return this;
         }
 
@@ -544,8 +541,9 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setNormal(float x, float y, float z) {
-            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale, 0)
-            this.inner.setNormal(this.pitch, this.externalScale, 0.0F);
+            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale, spread)——
+            // spread 只被图标分支的 vsh 读（合成射线的归一化张角），世界分支不读 z
+            this.inner.setNormal(this.pitch, this.externalScale, this.spread);
             return this;
         }
 

@@ -15,11 +15,10 @@ in vec3 Normal;
 // 26.1 has no per-draw uniform setter on the RenderType path, so the original
 // uniform surface rides on attributes the shader never reads:
 //   UV0    = (time [game ticks], yaw [rad])
-//   Normal = (pitch [rad], externalScale, 0)
+//   Normal = (pitch [rad], externalScale, spread [icon ray normalizer])
 //   Color  = shade rgb (lightmix) + opacity in .a
-//   UV1    = (spreadX, spreadY) as raw float bits - icon branch only, unpacked
-//            with intBitsToFloat; the world branch ignores UV1 like the original.
-// UV2 (lightmap) is ignored by the fragment shader, like the original.
+// UV1/UV2 (overlay/lightmap) are ignored by the fragment shader, like the original;
+// Normal.z carries the icon-branch spread only (the world branch ignores it).
 out vec4 cosmicParams;
 out vec4 vertexColor;
 out vec3 fPos;
@@ -37,11 +36,11 @@ void main() {
     // Synthesize the ray from the submitted vertex coordinates instead, with a spread that
     // is NORMALIZED per submission: CosmicShaders measures the pose-transformed XY extents
     // of the group (the hotbar PIP and the inventory PIP scale the plates differently!) and
-    // packs an anisotropic spread into the unused UV1 attribute, so the ray cone - and the
-    // star sampling density - is identical for every driver. Fog keeps using the real view
-    // position.
-    vec2 cosmicSpread = vec2(intBitsToFloat(UV1.x), intBitsToFloat(UV1.y));
-    fPos = vec3(-Position.x * cosmicSpread.x, -Position.y * cosmicSpread.y, -1.0);
+    // sends an isotropic normalizer through Normal.z (a full-precision float channel; the
+    // overlay/lightmap UV1/UV2 attributes are 16-bit and would mangle float bits), so the
+    // ray cone - and the star sampling density - is identical for every driver. Fog keeps
+    // using the real view position.
+    fPos = vec3(-Position.x * Normal.z, -Position.y * Normal.z, -1.0);
 #else
     fPos = view.xyz;
 #endif
