@@ -166,9 +166,9 @@ public class TimeStopRenderer {
         BufferBuilder buffer = Tesselator.getInstance().begin(
                 VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
-        int latCount = 5;
-        int segments = 48;
-        double latHalf = Math.PI / 90.0;   // 纬度半宽（约 2°）
+        int latCount = 11;
+        int segments = 64;
+        double latHalf = Math.PI / 514.0;  // 约 0.35 度，接近线状
 
         // 纬线：每个分段用一条窄带
         for (int li = 1; li < latCount; li++) {
@@ -181,9 +181,9 @@ public class TimeStopRenderer {
         }
 
         // 经线：沿经度方向的一条窄带
-        int merCount = 12;
-        int rings = 24;
-        double lngHalf = Math.PI / 90.0;
+        int merCount = 24;
+        int rings = 32;
+        double lngHalf = Math.PI / 514.0;
         for (int m = 0; m < merCount; m++) {
             double lng = (Math.PI * 2) * (double) m / (double) merCount;
             for (int i = 0; i < rings; i++) {
