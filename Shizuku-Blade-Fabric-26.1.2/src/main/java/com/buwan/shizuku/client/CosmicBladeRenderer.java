@@ -62,9 +62,16 @@ public final class CosmicBladeRenderer {
         // 用 submitCustomGeometry 交给渲染管线统一提交；
         // 直接在图层回调里 RenderType.draw(...) 不会真正输出到屏幕。
         collector.submitCustomGeometry(poseStack, CosmicShaders.renderTypeFor(event.getTexture()),
-                (pose, consumer) -> model.tessellateAll(
-                        new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                        poseStack, light, overlay));
+                (pose, consumer) -> {
+                    // 关键：延迟执行时不能再复用外层 poseStack（会被再变换一次，
+                    // 表现为效果铺满屏幕而不是贴在刀上），必须用回调给的 pose 重建。
+                    PoseStack local = new PoseStack();
+                    local.last().pose().set(pose.pose());
+                    local.last().normal().set(pose.normal());
+                    model.tessellateAll(
+                            new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
+                            local, light, overlay);
+                });
     }
 
     /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
