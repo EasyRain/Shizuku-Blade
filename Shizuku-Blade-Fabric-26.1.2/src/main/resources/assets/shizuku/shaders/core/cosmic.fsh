@@ -22,6 +22,22 @@ const float lightmix = 0.2;
 uniform sampler2D Sampler0;
 
 const mat2 cosmicuvs[cosmiccount] = mat2[cosmiccount](
+#ifdef COSMIC_ICON
+    // The 10 star sprites are ANIMATED (16 x N*16, frames stacked vertically), so the whole
+    // sprite rect squashes N frames into one tile - at icon magnification that reads as a
+    // white horizontal streak. The icon variant therefore samples frame 0 only (ICUUVs are
+    // uploaded as the first-frame sub-rect by CosmicShaders).
+    mat2(ICUV0_U0, ICUV0_V0, ICUV0_U1, ICUV0_V1),
+    mat2(ICUV1_U0, ICUV1_V0, ICUV1_U1, ICUV1_V1),
+    mat2(ICUV2_U0, ICUV2_V0, ICUV2_U1, ICUV2_V1),
+    mat2(ICUV3_U0, ICUV3_V0, ICUV3_U1, ICUV3_V1),
+    mat2(ICUV4_U0, ICUV4_V0, ICUV4_U1, ICUV4_V1),
+    mat2(ICUV5_U0, ICUV5_V0, ICUV5_U1, ICUV5_V1),
+    mat2(ICUV6_U0, ICUV6_V0, ICUV6_U1, ICUV6_V1),
+    mat2(ICUV7_U0, ICUV7_V0, ICUV7_U1, ICUV7_V1),
+    mat2(ICUV8_U0, ICUV8_V0, ICUV8_U1, ICUV8_V1),
+    mat2(ICUV9_U0, ICUV9_V0, ICUV9_U1, ICUV9_V1)
+#else
     mat2(CUV0_U0, CUV0_V0, CUV0_U1, CUV0_V1),
     mat2(CUV1_U0, CUV1_V0, CUV1_U1, CUV1_V1),
     mat2(CUV2_U0, CUV2_V0, CUV2_U1, CUV2_V1),
@@ -32,6 +48,7 @@ const mat2 cosmicuvs[cosmiccount] = mat2[cosmiccount](
     mat2(CUV7_U0, CUV7_V0, CUV7_U1, CUV7_V1),
     mat2(CUV8_U0, CUV8_V0, CUV8_U1, CUV8_V1),
     mat2(CUV9_U0, CUV9_V0, CUV9_U1, CUV9_V1)
+#endif
 );
 
 in vec4 cosmicParams;   // x=time [ticks] y=yaw z=pitch w=externalScale

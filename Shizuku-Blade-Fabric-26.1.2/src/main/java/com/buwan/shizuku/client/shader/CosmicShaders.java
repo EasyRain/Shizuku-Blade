@@ -71,6 +71,9 @@ public final class CosmicShaders {
     /** 与原版同序：[i*4]=U0, +1=V0, +2=U1, +3=V1（对应 fsh mat2(U0,V0,U1,V1) 的列主序）。 */
     public static final float[] COSMIC_UVS = new float[40];
 
+    /** 图标版用的 uv：只取每张动画精灵的**第 0 帧**子矩形（见 collectSprites 的注释）。 */
+    public static final float[] ICON_UVS = new float[40];
+
     private static RenderPipeline pipeline;
     /** 图标版管线（同 shader 源码 + COSMIC_ICON define）。 */
     private static RenderPipeline iconPipeline;
@@ -245,6 +248,13 @@ public final class CosmicShaders {
         if (icon) {
             builder.withShaderDefine("COSMIC_ICON", 1.0F);
             builder.withShaderDefine("COSMIC_ICON_SPREAD", ICON_SPREAD);
+            // 图标用「第 0 帧」子矩形（多帧动画精灵整块采样会被压成白横条）
+            for (int i = 0; i < 10; i++) {
+                builder.withShaderDefine("ICUV" + i + "_U0", ICON_UVS[i * 4]);
+                builder.withShaderDefine("ICUV" + i + "_V0", ICON_UVS[i * 4 + 1]);
+                builder.withShaderDefine("ICUV" + i + "_U1", ICON_UVS[i * 4 + 2]);
+                builder.withShaderDefine("ICUV" + i + "_V1", ICON_UVS[i * 4 + 3]);
+            }
         }
         return builder.build();
     }
@@ -278,6 +288,23 @@ public final class CosmicShaders {
                 COSMIC_UVS[i * 4 + 3] = v1;
                 if (cosmicRenderType != null) {
                     rebuild();  // 图集重缝：精灵位置变了，重编管线里的 uv 常量
+                }
+            }
+            // ⚠️ 这 10 张星点精灵**全是动画贴图**（16 宽 × N×16 高，帧竖着堆在精灵区域内，
+            // cosmic_8 有 7 帧）。整块精灵矩形 = 把 N 帧挤进一个瓦片 ⇒ 在世界几何上只是「小星点」，
+            // 但在被放大几十倍的物品图标上就是**一条白色横条**（这也解释了「前十几秒好看、
+            // 之后变横条碎块」：time 推动 v 漂到多帧精灵所在的瓦片就变难看）。
+            // 图标版只取第 0 帧的子矩形：帧数 = v 跨度 / u 跨度（帧是正方形，无 padding）。
+            float frames = Math.max(1.0F, Math.round((v1 - v0) / Math.max(1.0E-6F, u1 - u0)));
+            float frameV1 = v0 + (v1 - v0) / frames;
+            if (ICON_UVS[i * 4] != u0 || ICON_UVS[i * 4 + 1] != v0
+                    || ICON_UVS[i * 4 + 2] != u1 || ICON_UVS[i * 4 + 3] != frameV1) {
+                ICON_UVS[i * 4] = u0;
+                ICON_UVS[i * 4 + 1] = v0;
+                ICON_UVS[i * 4 + 2] = u1;
+                ICON_UVS[i * 4 + 3] = frameV1;
+                if (cosmicIconRenderType != null) {
+                    rebuild();
                 }
             }
         }
