@@ -36,8 +36,8 @@ public final class CosmicBladeRenderer {
         if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
-        // 与 1.20.1 一致：由着色器直接生成星云材质，本体这一层不再绘制
-        event.setCanceled(true);
+        // 不取消本体渲染：原版是在刀自身材质之上叠加一层「自发光星空」，
+        // 所以白天能透过效果看到贴图，夜里靠这层发光。
 
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
@@ -54,14 +54,16 @@ public final class CosmicBladeRenderer {
         int yawMilliRad = (int) (yawRad * 1000.0F);
         int pitchMilliRad = (int) (pitchRad * 1000.0F);
 
-        BufferBuilder buffer = Tesselator.getInstance().begin(
-                VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
-        model.tessellateAll(new CosmicVertexConsumer(buffer, timeMillis, yawMilliRad, pitchMilliRad),
-                poseStack, light, overlay);
-        var mesh = buffer.build();
-        if (mesh != null) {
-            CosmicShaders.renderTypeFor(event.getTexture()).draw(mesh);
+        var collector = event.getSubmitNodeCollector();
+        if (collector == null) {
+            return;
         }
+        // 用 submitCustomGeometry 交给渲染管线统一提交；
+        // 直接在图层回调里 RenderType.draw(...) 不会真正输出到屏幕。
+        collector.submitCustomGeometry(poseStack, CosmicShaders.renderTypeFor(event.getTexture()),
+                (pose, consumer) -> model.tessellateAll(
+                        new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
+                        poseStack, light, overlay));
     }
 
     /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */

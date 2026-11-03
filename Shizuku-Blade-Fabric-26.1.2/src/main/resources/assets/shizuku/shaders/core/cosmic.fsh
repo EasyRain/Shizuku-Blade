@@ -77,7 +77,11 @@ void main() {
         col += vec3(0.75, 0.88, 1.0) * star * depthFade * 0.9;
     }
 
-    // 用顶点色的 alpha 作为遮罩强度（几何体本身即遮罩）
-    float alpha = clamp(vertexColor.a * opacity, 0.0, 1.0);
-    fragColor = vec4(col * vertexColor.rgb, alpha);
+    // 叠加层：只输出「星点 + 很淡的星云」，alpha 控制叠加强度，
+    // 本体材质由原版渲染负责，因此白天能透过效果看到刀贴图。
+    vec3 starOnly = col - vec3(0.12, 0.05, 0.24);   // 去掉星云底色，只留星点增量
+    starOnly = max(starOnly, vec3(0.0));
+    float intensity = clamp(dot(starOnly, vec3(0.4, 0.5, 0.8)), 0.0, 1.0);
+    float alpha = clamp(intensity * 1.6, 0.0, 1.0) * clamp(vertexColor.a * opacity, 0.0, 1.0);
+    fragColor = vec4(starOnly * 1.2, alpha);
 }
