@@ -31,6 +31,12 @@ public final class CosmicBladeRenderer {
         if (target == null || !target.endsWith("_luminous")) {
             return;
         }
+        // 只处理「宇宙刀」：其它刀同样带 *_luminous 分组，若不加这个判定，
+        // 所有刀都会套上这层着色器（会把非宇宙刀也渲染成星空）。
+        var texture = event.getTexture();
+        if (texture == null || !texture.getPath().contains("cosmic")) {
+            return;
+        }
         WavefrontObject model = event.getModel();
         PoseStack poseStack = event.getPoseStack();
         if (model == null || poseStack == null || event.getTexture() == null) {
