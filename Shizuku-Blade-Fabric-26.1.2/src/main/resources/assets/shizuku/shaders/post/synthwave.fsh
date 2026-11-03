@@ -88,14 +88,15 @@ float synthwaveSun(vec2 uv, float time) {
 void main() {
     float rawDepth = texture(MainDepthSampler, texCoord).r;
 
-    // 26.1：天空是**写深度的几何体**（SkyRenderer.buildSkyDisc：两张水平圆盘，视空间
-    // y=±16、半径 512），1.20.1 的 rawDepth >= 1.0 只剩 <1.79° 仰角掠出盘缘的地平线细缝。
-    // 之前天空像素全走地面分支按「距离」覆盖：圆盘命中距离 = 16/sin(仰角)，天顶 16 →
-    // 地平线 512，距离环从天顶往下盖 = 实测「黑幕从天而降」的根因（与 y 方向无关，
-    // 上一版改 -y 无效正是因为这个分支根本没运行）。
-    // 天空判定 = 远平面残留 ∪ 重建点落在 ±16 圆盘带上（±2 容差吸收深度量化误差）。
+    // 26.1 天空分类（实测探针定案：天空=红(rawDepth>=1.0 生效)、云=蓝(写深度)、地面=蓝）：
+    // ①天空圆盘不写深度 ⇒ 原版 rawDepth>=1.0 判定本来就有效（前两轮误诊于此）；
+    // ②「黑幕从天而降」的真凶 = 云层：26.1 的云写深度、走了地面分支的距离覆盖——云层
+    //   命中距离 = 云高/sin(仰角)，天顶先盖、地平线后盖 = 自上而下。1.20.1 的 fancy 云
+    //   不写深度、走天幕高度阈值（自地平线上升）。修法：世界高度 > 150（云层 192+，
+    //   常规地形 <130）的像素并入天空分支，恢复原版自下而上的观感。
     vec3 probePos = clipToView(texCoord, rawDepth);
-    bool isSky = (rawDepth >= 1.0) || (abs(abs(probePos.y) - 16.0) < 2.0);
+    vec3 probeWorld = (U_InverseViewMatrix * vec4(probePos, 1.0)).xyz + U_CameraPosition;
+    bool isSky = (rawDepth >= 1.0) || (probeWorld.y > 150.0);
 
     vec3 synthColor = vec3(0.0);
     float pixelMetricForMask = 0.0;
