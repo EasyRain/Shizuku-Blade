@@ -13,11 +13,9 @@ import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
 /**
  * 宇宙刀的「手持星光」（26.1，自定义着色器版）。
  *
- * 用 CosmicShaders 里的自定义管线和着色器一次性画出「刀身 + 流动星空」：
- * - 取消本体渲染，避免画两遍；
- * - 自己 tessellate 模型，写顶点时把时间塞进 UV2.x
- *   （26.1 的 uniform 要自建 RenderPass 才能绑，走顶点属性可以绕开）；
- * - 用宇宙刀 RenderType 画出结果。
+ * 与 1.20.1 一致：在模型材质**之上**叠一层半透明星空（不替换本体渲染），
+ * 这样光影环境下即便自定义着色器不生效，也有本体材质兜底。
+ * 时间通过顶点 UV2.x 传入（26.1 的 uniform 需自建 RenderPass 才能绑）。
  */
 public final class CosmicBladeRenderer {
 
@@ -38,7 +36,8 @@ public final class CosmicBladeRenderer {
         if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
-        event.setCanceled(true);
+        // 不取消本体渲染：原版是在模型材质之上叠一层半透明星空，
+        // 这样即便着色器不可用（如光影环境）也仍然有本体材质兜底。
 
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
