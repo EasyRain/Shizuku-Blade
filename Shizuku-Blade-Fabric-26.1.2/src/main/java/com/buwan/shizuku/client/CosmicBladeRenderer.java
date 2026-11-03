@@ -28,16 +28,8 @@ import net.minecraft.client.renderer.rendertype.RenderType;
  */
 public final class CosmicBladeRenderer {
 
-    /** 手持星光开关（26.1 忠实移植完成后开启）。 */
+    /** 手持星光开关（26.1 忠实移植完成，实机确认 ✅）。 */
     public static final boolean ENABLE_COSMIC_HELD_EFFECT = true;
-
-    /**
-     * 诊断开关（临时）：让星空叠加对<b>所有刀</b>生效，不限宇宙刀。
-     * 用途 = 对照实验：拿一把上游（原版 SlashBlade）的刀套我们的 shader——
-     * 上游刀也碎 ⇒ 我们渲染路径的问题；上游刀干净 ⇒ wdq.obj 模型与 Resharped
-     * OBJ 解析器的兼容问题。测完改回 false。
-     */
-    public static final boolean DEBUG_APPLY_TO_ALL_BLADES = true;
 
     private CosmicBladeRenderer() {
     }
@@ -56,12 +48,8 @@ public final class CosmicBladeRenderer {
         }
         // 只处理「宇宙刀」：26.1 事件没有 getStack（渲染走 render state），
         // 宇宙刀的模型贴图 = model/shizuku/cosmic.png，按贴图名等价判定。
-        // DEBUG_APPLY_TO_ALL_BLADES=true 时对所有刀生效（对照实验用，见该常量注释）。
         var texture = event.getTexture();
-        if (texture == null) {
-            return;
-        }
-        if (!DEBUG_APPLY_TO_ALL_BLADES && !texture.getPath().contains("cosmic")) {
+        if (texture == null || !texture.getPath().contains("cosmic")) {
             return;
         }
         WavefrontObject model = event.getModel();
