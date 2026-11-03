@@ -55,8 +55,10 @@ public final class CosmicBladeRenderer {
         // buildOrThrow 直接抛 "BufferBuilder was empty" 崩端。
         BufferBuilder stars = Tesselator.getInstance().begin(
                 VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
-        model.tessellateOnly(new UvScrollConsumer(stars, scroll, 0.0F),
-                poseStack, light, overlay, target);
+        // 用 tessellateAll：event.getTarget() 与模型分组名未必一致，
+        // tessellateOnly(target) 曾产出空缓冲（build() 返回 null），表现为"完全没有效果"。
+        model.tessellateAll(new UvScrollConsumer(stars, scroll, 0.0F),
+                poseStack, light, overlay);
         var mesh = stars.build();
         if (mesh != null) {
             // build() 在空缓冲区时返回 null（不会抛异常），这里直接用贴图 RenderType 画出星空层
