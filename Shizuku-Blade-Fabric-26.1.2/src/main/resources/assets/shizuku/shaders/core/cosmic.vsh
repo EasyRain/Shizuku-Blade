@@ -1,27 +1,23 @@
-#version 150
+#version 330
 
-#moj_import <fog.glsl>
+#moj_import <minecraft:light.glsl>
+#moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <minecraft:projection.glsl>
 
 in vec3 Position;
 in vec4 Color;
 in vec2 UV0;
+in ivec2 UV2;
 in vec3 Normal;
 
-uniform mat4 ModelViewMat;
-uniform mat4 ProjMat;
-uniform int FogShape;
-
-out float vertexDistance;
 out vec4 vertexColor;
 out vec2 texCoord0;
-out vec4 normal;
-out vec3 fPos;
+/** 时间：由顶点UV2.x传入（毫秒），用来驱动星空流动 */
+out float cosmicTime;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
-    fPos = (ModelViewMat * vec4(Position, 1.0)).xyz;
-    vertexDistance = fog_distance(fPos, FogShape);
     vertexColor = Color;
     texCoord0 = UV0;
-    normal = ProjMat * ModelViewMat * vec4(Normal, 0.0);
+    cosmicTime = float(UV2.x) / 1000.0;
 }

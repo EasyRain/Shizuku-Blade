@@ -3,3 +3,8 @@ accessWidener v2 official
 # 26.1 的 BlockEntityType 构造器是 private（无 Builder），模组需开放才能注册
 accessible class net/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier
 accessible method net/minecraft/world/level/block/entity/BlockEntityType <init> (Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+
+# 26.1：自定义 RenderPipeline 需要 ENTITY_SNIPPET（uniform/采样器声明集合）
+accessible field net/minecraft/client/renderer/RenderPipelines ENTITY_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+# 26.1：RenderType.create 为包内可见，模组需开放才能用自定义管线建 RenderType
+accessible method net/minecraft/client/renderer/rendertype/RenderType create (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;

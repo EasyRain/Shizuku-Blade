@@ -1,6 +1,6 @@
 package com.buwan.shizuku.client;
 
-import com.buwan.shizuku.shizuku;
+import com.buwan.shizuku.client.shader.CosmicShaders;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -9,25 +9,17 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.resources.Identifier;
 
 /**
- * 宇宙刀的「手持星光」覆盖层（26.1）。
+ * 宇宙刀的「手持星光」（26.1，自定义着色器版）。
  *
- * <p>1.20.1/1.21.1 用的是自定义星空着色器；26.1 的自定义着色器要走
- * RenderPipeline + RenderPass 自行绑定 uniform，成本很高。这里换个思路：<b>不用着色器</b>——
- * 模型由我们自己 tessellate，写顶点时用 {@link UvScrollConsumer} 把 UV 按时间平推，
- * 星空贴图就会顺着刀身流动，观感接近原来的扫光效果。</p>
- *
- * <p>事件 {@link RenderOverrideEvent} 在 26.1 依然可用且可取消：我们取消本体渲染后，
- * 先用本体自己的 RenderType 画一遍原模型，再叠一层流动星空。</p>
+ * 用 CosmicShaders 里的自定义管线和着色器一次性画出「刀身 + 流动星空」：
+ * - 取消本体渲染，避免画两遍；
+ * - 自己 tessellate 模型，写顶点时把时间塞进 UV2.x
+ *   （26.1 的 uniform 要自建 RenderPass 才能绑，走顶点属性可以绕开）；
+ * - 用宇宙刀 RenderType 画出结果。
  */
 public final class CosmicBladeRenderer {
-
-    /** 星空贴图（与星河领域圆盘共用同一张）。 */
-    private static final Identifier STARRY_TEXTURE =
-            shizuku.prefix("textures/entity/starry_sky.png");
 
     private CosmicBladeRenderer() {
     }
@@ -43,43 +35,33 @@ public final class CosmicBladeRenderer {
         }
         WavefrontObject model = event.getModel();
         PoseStack poseStack = event.getPoseStack();
-        if (model == null || poseStack == null) {
+        if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
+        event.setCanceled(true);
+
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        float scroll = (System.currentTimeMillis() % 6000L) / 6000.0F;
+        int timeMillis = (int) (System.currentTimeMillis() % 1_000_000_000L);
 
-        // 注意：这里**不接管**本体渲染，只是额外叠加一层星空。
-        // 之前取消本体重画会让 tessellateOnly 的缓冲区为空（target 不匹配），
-        // buildOrThrow 直接抛 "BufferBuilder was empty" 崩端。
-        BufferBuilder stars = Tesselator.getInstance().begin(
+        BufferBuilder buffer = Tesselator.getInstance().begin(
                 VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
-        // 用 tessellateAll：event.getTarget() 与模型分组名未必一致，
-        // tessellateOnly(target) 曾产出空缓冲（build() 返回 null），表现为"完全没有效果"。
-        model.tessellateAll(new UvScrollConsumer(stars, scroll, 0.0F),
-                poseStack, light, overlay);
-        var mesh = stars.build();
+        model.tessellateAll(new CosmicVertexConsumer(buffer, timeMillis), poseStack, light, overlay);
+        var mesh = buffer.build();
         if (mesh != null) {
-            // build() 在空缓冲区时返回 null（不会抛异常），这里直接用贴图 RenderType 画出星空层
-            RenderTypes.entityTranslucent(STARRY_TEXTURE).draw(mesh);
+            CosmicShaders.renderTypeFor(event.getTexture()).draw(mesh);
         }
     }
 
-    /**
-     * 把 {@code setUv(u, v)} 的 u 加上滚动偏移的装饰器（其余调用原样转发）。
-     * 贴图按 repeat 采样，UV 越界不会出问题。
-     */
-    private static final class UvScrollConsumer implements VertexConsumer {
+    /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
+    private static final class CosmicVertexConsumer implements VertexConsumer {
 
         private final VertexConsumer inner;
-        private final float offsetU;
-        private final float offsetV;
+        private final int timeMillis;
 
-        private UvScrollConsumer(VertexConsumer inner, float offsetU, float offsetV) {
+        private CosmicVertexConsumer(VertexConsumer inner, int timeMillis) {
             this.inner = inner;
-            this.offsetU = offsetU;
-            this.offsetV = offsetV;
+            this.timeMillis = timeMillis;
         }
 
         @Override
@@ -102,7 +84,7 @@ public final class CosmicBladeRenderer {
 
         @Override
         public VertexConsumer setUv(float u, float v) {
-            inner.setUv(u + offsetU, v + offsetV);
+            inner.setUv(u, v);
             return this;
         }
 
@@ -114,7 +96,7 @@ public final class CosmicBladeRenderer {
 
         @Override
         public VertexConsumer setUv2(int u, int v) {
-            inner.setUv2(u, v);
+            inner.setUv2(timeMillis, 0);
             return this;
         }
 
