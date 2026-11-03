@@ -72,13 +72,22 @@ public final class CosmicBladeRenderer {
         float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
 
-        // 26.1 Resharped 模型（wdq.obj）分组 = blade/handle/blade_damaged/blade_fragment/
-        // effect/item_*/sheath —— 刀身几何被拆成多个组，1.20.1 的「只画 blade 组」
-        // 在 Resharped 模型上覆盖不全（柄等空缺、边界像错位）。
-        // 上游为叠加光效专门留了 effect 外壳组（覆盖整把刀，renderChargeEffect 就画它）：
-        // 有就用它（Resharped 原生的全覆盖叠加几何），没有再回退基础分组。
+        // 26.1 Resharped 模型（wdq.obj）把 1.20.1 单一 blade 组拆成了多个组：
+        // blade(139面)/blade_damaged(102)/blade_fragment(37)/effect(240 外壳)/handle(92)/item_*
+        // —— 忠实等价 = 画「可见刀身」= 事件对应的基础分组（blade 或 blade_damaged）+ handle 柄。
+        // 不用 effect 外壳（240 面的鞘状松散包壳，实测画出来是「破碎三角拼成的鞘」）；
+        // sheath_luminous 事件自然跳过（该模型没有 sheath 组）。
         String baseTarget = target.substring(0, target.length() - "_luminous".length());
-        String group = hasGroup(model, "effect") ? "effect" : baseTarget;
+        java.util.List<String> groups = new java.util.ArrayList<>();
+        if (hasGroup(model, baseTarget)) {
+            groups.add(baseTarget);
+        }
+        if (hasGroup(model, "handle")) {
+            groups.add("handle");
+        }
+        if (groups.isEmpty()) {
+            return;
+        }
 
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
@@ -86,7 +95,7 @@ public final class CosmicBladeRenderer {
             local.last().pose().set(pose.pose());
             local.last().normal().set(pose.normal());
             model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
-                    local, 15728880, 0, group);
+                    local, 15728880, 0, groups.toArray(new String[0]));
         });
     }
 
