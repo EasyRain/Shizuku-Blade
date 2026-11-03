@@ -56,6 +56,8 @@ public final class CosmicShaders {
 
     private static RenderPipeline pipeline;
     private static RenderType cosmicRenderType;
+    /** 物品图标专用（与 {@link #cosmicRenderType} 同管线，只是不带 layering transform）。 */
+    private static RenderType cosmicIconRenderType;
     private static boolean spritesWarned;
 
     /** AtlasManager 的 atlasById 键 = 图集 json id（= AtlasIds.ITEMS）。⚠️ 26.1 把 item/ 目录
@@ -68,18 +70,27 @@ public final class CosmicShaders {
 
     /** 宇宙星空 RenderType（Sampler0 = items 图集；圆盘与刀身共用，同原版 COSMIC_RENDER_TYPE）。 */
     public static RenderType cosmicRenderType() {
+        return ensureRenderTypes() ? cosmicRenderType : null;
+    }
+
+    /** 物品图标专用的星空 RenderType（同管线、无 Z 层叠偏移，见 {@code rebuild()} 注释）。 */
+    public static RenderType cosmicIconRenderType() {
+        return ensureRenderTypes() ? cosmicIconRenderType : null;
+    }
+
+    private static boolean ensureRenderTypes() {
         if (!collectSprites()) {
             if (!spritesWarned) {
                 spritesWarned = true;
                 LOGGER.warn("Cosmic sprites missing from items atlas; all 10 rects identical (missing-sprite fallback)? first rect u0={} v0={} u1={} v1={}",
                         COSMIC_UVS[0], COSMIC_UVS[1], COSMIC_UVS[2], COSMIC_UVS[3]);
             }
-            return null;
+            return false;
         }
-        if (cosmicRenderType == null) {
+        if (cosmicRenderType == null || cosmicIconRenderType == null) {
             rebuild();
         }
-        return cosmicRenderType;
+        return true;
     }
 
     /** 兼容旧调用（刀身路径，当前休眠）：原版刀身也用同一个图集 RenderType，不采样本体贴图。 */
@@ -93,10 +104,6 @@ public final class CosmicShaders {
         if (model == null || group == null || poseStack == null || collector == null) {
             return false;
         }
-        RenderType renderType = cosmicRenderType();
-        if (renderType == null) {
-            return false;
-        }
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) {
             return false;
@@ -108,6 +115,10 @@ public final class CosmicShaders {
         // scale=100 / yaw=pitch=0 —— 此时 shader 里 v 的时间项 ×1/100 后≈0，图案完全静止），
         // 26.1 移植时漏了，图标就会逐帧随玩家视角+时间抖动。
         boolean icon = group.startsWith("item_");
+        RenderType chosen = icon ? cosmicIconRenderType() : cosmicRenderType();
+        if (chosen == null) {
+            return false;
+        }
         float scale = icon ? 100.0F : 1.0F;
         float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
@@ -116,12 +127,15 @@ public final class CosmicShaders {
         // ⚠️⚠️ 顺序必须自己定死：26.1 的自定义几何按 RenderType 分桶、**桶间顺序由
         // RenderType 的 identity hash 决定（每次启动都可能不同）**，所以「星空层 vs 本体层
         // 谁先画」根本不可依赖 —— 这一路「一会只见星空、一会只见刀身」就是这么来回横跳的。
-        // vanilla 所有提交都走 order(0)，这里走 order(1) ⇒ 本层永远排在本帧所有实体几何之后，
+        // vanilla 所有提交都走 order(0)，这里走 order(1) ⇒ 本层永远排在本帧所有其它几何之后，
         // 配合「不写深度」+ 加法混合 = 1.20.1 里「TAIL 再叠一层」的等价语义（三层共存，稳定）。
-        // 图标例外：GUI 的 collector 不保证支持 order，保持 0。
-        int order = icon ? 0 : 1;
+        // ⚠️ 图标同样要 order(1)：26.1 的 GUI 物品渲染（OversizedItemRenderer）用的是**同一个**
+        // SubmitNodeStorage + FeatureRenderDispatcher（先 submit 再 renderAllFeatures），
+        // 留 order(0) 的话星空层和 item_* 平面同桶、谁先画还是 identity hash 决定 ⇒
+        // 一半启动被图标盖住 = 「只能看到一点效果」。
+        final RenderType renderType = chosen;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
-        collector.order(order).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+        collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
             // alphaOverrideYZZ（按 Y/Z 空间改 alpha）/ uvOperator，残留时我们的 tessellation
             // 会继承它们 → 部分面 alpha=0 隐形 = 细长三角形空缺。1.20.1 原版
@@ -180,17 +194,24 @@ public final class CosmicShaders {
             builder.withShaderDefine("CUV" + i + "_V1", COSMIC_UVS[i * 4 + 3]);
         }
         pipeline = builder.build();
-        RenderSetup setup = RenderSetup.builder(pipeline)
+        // 世界路径：星空层与本体贴图层是同一几何、同深度 ⇒ 视图空间 Z 偏移把它微微推开
+        //（1.20.1 靠「TAIL 后绘制」稳赢，26.1 靠 order(1) 已能定序，这里保留一点余量）。
+        RenderSetup worldSetup = RenderSetup.builder(pipeline)
                 .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
                 .useLightmap()
                 .useOverlay()
-                // 刀身路径：星空层与本体贴图层画的是同一几何、同深度 ⇒ z-fighting
-                // （斑驳空缺/错位）。视图空间 Z 偏移层叠把星空层微微推开。
-                // 1.20.1 靠 LEQUAL+后绘制顺序稳赢，26.1 的批提交不保序，必须显式偏移。
-                // 圆盘共用此 RenderType：Z 偏移量级极小，对圆盘无可感知影响。
                 .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
                 .createRenderSetup();
-        cosmicRenderType = RenderType.create("shizuku_cosmic", setup);
+        cosmicRenderType = RenderType.create("shizuku_cosmic", worldSetup);
+        // 图标路径：**不带 layering transform**（1.20.1 / 1.21.1 的 COSMIC_RENDER_TYPE 本来就没有
+        // 这个 shard）。GUI 是正交投影，VIEW_OFFSET_Z_LAYERING 在正交下会被换算成完全不同的
+        // Z 位移，容易让图标那层被 LEQUAL 挡掉 ⇒ 只剩边角一点星空（用户实测「差点意思」）。
+        RenderSetup iconSetup = RenderSetup.builder(pipeline)
+                .withTexture("Sampler0", TextureAtlas.LOCATION_ITEMS)
+                .useLightmap()
+                .useOverlay()
+                .createRenderSetup();
+        cosmicIconRenderType = RenderType.create("shizuku_cosmic_icon", iconSetup);
     }
 
     /**
