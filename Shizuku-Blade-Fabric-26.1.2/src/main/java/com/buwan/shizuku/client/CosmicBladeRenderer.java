@@ -63,6 +63,19 @@ public final class CosmicBladeRenderer {
         int yawMilliRad = (int) (yawRad * 1000.0F);
         int pitchMilliRad = (int) (pitchRad * 1000.0F);
 
+        // 发光层对应「刀身」那一份几何：前置用 "blade_luminous" 触发事件，
+        // 而模型里只有 "blade"/"blade_damaged"，所以去掉后缀再按实际存在的分组渲染。
+        String group = target.endsWith("_luminous")
+                ? target.substring(0, target.length() - "_luminous".length())
+                : target;
+        if (!hasGroup(model, group)) {
+            group = hasGroup(model, "blade") ? "blade" : null;
+        }
+        if (group == null) {
+            return;
+        }
+        String finalGroup = group;
+
         var collector = event.getSubmitNodeCollector();
         if (collector == null) {
             return;
@@ -72,12 +85,25 @@ public final class CosmicBladeRenderer {
                     PoseStack local = new PoseStack();
                     local.last().pose().set(pose.pose());
                     local.last().normal().set(pose.normal());
-                    // 关键：排除 OBJ 里的 item_* 分组 —— 那是「物品栏平面图标」用的平面，
-                    // tessellateAll 会把它也画到世界里（表现为平面图标叠在手持模型上）。
-                    model.tessellateAllExcept(
+                    // 只画刀身分组：既不会把 item_*（物品栏平面图标）画进来，
+                    // 也不会因为画到 sheath 等其它分组而产生错位/空洞。
+                    model.tessellateOnly(
                             new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay, "item_blade", "item_damaged", "item_bladens");
+                            local, light, overlay, finalGroup);
                 });
+    }
+
+    /** 模型里是否存在该分组（OBJ 的分组名列表是公开的）。 */
+    private static boolean hasGroup(WavefrontObject model, String name) {
+        if (name == null || model.groupObjects == null) {
+            return false;
+        }
+        for (var group : model.groupObjects) {
+            if (name.equals(group.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
