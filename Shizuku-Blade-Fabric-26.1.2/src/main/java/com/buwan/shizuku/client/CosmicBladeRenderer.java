@@ -1,34 +1,35 @@
 package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.client.shader.CosmicShaders;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import mods.flammpfeil.slashblade.client.renderer.model.obj.WavefrontObject;
 import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.rendertype.RenderType;
 
 /**
- * 宇宙刀的「手持星光」（26.1，自定义着色器版）。
+ * 宇宙刀的「手持星光」（26.1，1.20.1 原版忠实移植）。
  *
- * 与 1.20.1 一致：在模型材质**之上**叠一层半透明星空（不替换本体渲染），
- * 这样光影环境下即便自定义着色器不生效，也有本体材质兜底。
- * 时间通过顶点 UV2.x 传入（26.1 的 uniform 需自建 RenderPass 才能绑）。
+ * <p>原版逻辑（modrinth37 CosmicBladeRenderer + CosmicShaders.renderCosmic）：</p>
+ * <ul>
+ *   <li>只处理宇宙刀（26.1 事件没有 getStack，用模型贴图名 cosmic.png 等价判定）；</li>
+ *   <li>在 {@code *_luminous} 分组事件上，把<b>基础分组</b>（去掉 _luminous 后缀）用
+ *       同一个 cosmic RenderType（= 星河圆盘那套：items 图集 + 闪电混合 + 星空 fsh）
+ *       tessellate 进去，opacity=1.0、满亮度 15728880；</li>
+ *   <li><b>不取消</b>发光层 —— 原版就是「本体材质 + 发光层 + 星空叠加」三层共存；</li>
+ *   <li>参数取原版 prepareCosmicRender 非 GUI 路径的值：time=世界刻、yaw=+yRot 弧度、
+ *       pitch=-xRot 弧度、externalScale=1.0。</li>
+ * </ul>
+ *
+ * <p>26.1 无 per-draw uniform ⇒ 参数由 {@link CosmicParamsConsumer} 写进着色器不读的
+ * 顶点属性槽位（UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity），
+ * 与圆盘（GalaxyFieldRenderer）共用同一管线。</p>
  */
 public final class CosmicBladeRenderer {
 
-    /**
-     * 手持星光的开关。
-     *
-     * <p>26.1 上该效果尚未做对（外壳分组覆盖不全、与本体贴图争深度、刀鞘/图标易被带入），
-     * 且前置 SlashBlade Refabricated 26.1 自身还在修 bug（见上游 issue #20）。
-     * 因此 <b>默认关闭</b>：先保证 26.1.2 可正常游玩，等前置稳定后再开。</p>
-     *
-     * <p>沙盒验证时改成 true 即可继续调试，无需改其它代码。</p>
-     */
-    public static final boolean ENABLE_COSMIC_HELD_EFFECT = false;
+    /** 手持星光开关（26.1 忠实移植完成后开启）。 */
+    public static final boolean ENABLE_COSMIC_HELD_EFFECT = true;
 
     private CosmicBladeRenderer() {
     }
@@ -45,99 +46,62 @@ public final class CosmicBladeRenderer {
         if (target == null || !target.endsWith("_luminous")) {
             return;
         }
-        // 只处理「宇宙刀」：其它刀同样带 *_luminous 分组，若不加这个判定，
-        // 所有刀都会套上这层着色器（会把非宇宙刀也渲染成星空）。
+        // 只处理「宇宙刀」：26.1 事件没有 getStack（渲染走 render state），
+        // 宇宙刀的模型贴图 = model/shizuku/cosmic.png，按贴图名等价判定。
         var texture = event.getTexture();
         if (texture == null || !texture.getPath().contains("cosmic")) {
             return;
         }
         WavefrontObject model = event.getModel();
         PoseStack poseStack = event.getPoseStack();
-        if (model == null || poseStack == null || event.getTexture() == null) {
-            return;
-        }
-        // 不取消本体渲染：取消会让前置退回平面 fallback（表现为物品栏模型叠在手持模型上）。
-        // 我们的层叠在材质之上，负责夜间自发光。
-
-        // 前置官方逻辑：isCanceled() 时它这一层直接 return（不会 fallback），
-        // 因此我们接管这一层，自己提交几何。
-        event.setCanceled(true);
-
-        int light = event.getPackedLightIn();
-        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        int timeMillis = (int) (System.currentTimeMillis() % 1_000_000_000L);
-
-        float yawRad = 0.0F;
-        float pitchRad = 0.0F;
-        var player = net.minecraft.client.Minecraft.getInstance().player;
-        if (player != null) {
-            yawRad = (float) Math.toRadians(-player.getYRot());
-            pitchRad = (float) Math.toRadians(player.getXRot());
-        }
-        int yawMilliRad = (int) (yawRad * 1000.0F);
-        int pitchMilliRad = (int) (pitchRad * 1000.0F);
-
-        // 发光层对应「刀身」那一份几何：前置用 "blade_luminous" 触发事件，
-        // 而模型里只有 "blade"/"blade_damaged"，所以去掉后缀再按实际存在的分组渲染。
-        String group = target.endsWith("_luminous")
-                ? target.substring(0, target.length() - "_luminous".length())
-                : target;
-        if (!hasGroup(model, group)) {
-            group = hasGroup(model, "blade") ? "blade" : null;
-        }
-        // 前置的附魔光效（renderChargeEffect）用 target="effect" 绘制 —— 这是模型里
-        // 覆盖整把刀的外壳几何，专门用于叠加发光/光效。用它来叠星空，覆盖率才完整。
-        if (hasGroup(model, "effect")) {
-            group = "effect";
-        }
-        if (group == null) {
-            return;
-        }
-        String finalGroup = group;
-
         var collector = event.getSubmitNodeCollector();
-        if (collector == null) {
+        if (model == null || poseStack == null || collector == null) {
             return;
         }
-        collector.submitCustomGeometry(poseStack, CosmicShaders.renderTypeFor(event.getTexture()),
-                (pose, consumer) -> {
-                    PoseStack local = new PoseStack();
-                    local.last().pose().set(pose.pose());
-                    local.last().normal().set(pose.normal());
-                    // 只画刀身分组：既不会把 item_*（物品栏平面图标）画进来，
-                    // 也不会因为画到 sheath 等其它分组而产生错位/空洞。
-                    model.tessellateOnly(
-                            new CosmicVertexConsumer(consumer, timeMillis, yawMilliRad, pitchMilliRad),
-                            local, light, overlay, finalGroup);
-                });
+        RenderType renderType = CosmicShaders.cosmicRenderType();
+        if (renderType == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) {
+            return;
+        }
+
+        // 忠实原版：基础分组（"blade_luminous" → "blade"），不取消发光层（三层共存）
+        String baseTarget = target.substring(0, target.length() - "_luminous".length());
+
+        // 原版 prepareCosmicRender 非 GUI 路径的取值
+        float time = mc.level.getGameTime() % 2147483647L;
+        float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
+
+        // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
+        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+            PoseStack local = new PoseStack();
+            local.last().pose().set(pose.pose());
+            local.last().normal().set(pose.normal());
+            model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch),
+                    local, 15728880, 0, baseTarget);
+        });
     }
 
-    /** 模型里是否存在该分组（OBJ 的分组名列表是公开的）。 */
-    private static boolean hasGroup(WavefrontObject model, String name) {
-        if (name == null || model.groupObjects == null) {
-            return false;
-        }
-        for (var group : model.groupObjects) {
-            if (name.equals(group.name)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /** 把 UV2（原版光照图坐标）改写为时间值，供着色器读取；其余属性原样转发。 */
-    private static final class CosmicVertexConsumer implements VertexConsumer {
+    /**
+     * 参数通道 wrapper：把宇宙刀参数写进着色器不读的顶点属性
+     * （UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity=1.0），
+     * 其余属性原样转发。与圆盘共用同一个 cosmic 管线。
+     */
+    private static final class CosmicParamsConsumer implements VertexConsumer {
 
         private final VertexConsumer inner;
-        private final int timeMillis;
-        private final int yawMilliRad;
-        private final int pitchMilliRad;
+        private final float time;
+        private final float yaw;
+        private final float pitch;
 
-        private CosmicVertexConsumer(VertexConsumer inner, int timeMillis, int yawMilliRad, int pitchMilliRad) {
+        private CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch) {
             this.inner = inner;
-            this.timeMillis = timeMillis;
-            this.yawMilliRad = yawMilliRad;
-            this.pitchMilliRad = pitchMilliRad;
+            this.time = time;
+            this.yaw = yaw;
+            this.pitch = pitch;
         }
 
         @Override
@@ -148,39 +112,40 @@ public final class CosmicBladeRenderer {
 
         @Override
         public VertexConsumer setColor(int r, int g, int b, int a) {
-            inner.setColor(r, g, b, a);
+            // opacity 恒 1.0（原版 renderCosmic 传 1.0F）
+            inner.setColor(r, g, b, 255);
             return this;
         }
 
         @Override
         public VertexConsumer setColor(int color) {
-            inner.setColor(color);
+            inner.setColor((color & 0x00FFFFFF) | 0xFF000000);
             return this;
         }
 
         @Override
         public VertexConsumer setUv(float u, float v) {
-            inner.setUv(u, v);
+            // 模型 UV 被着色器忽略（原版也不采样刀身贴图），此槽位改传 (time, yaw)
+            inner.setUv(time, yaw);
             return this;
         }
 
         @Override
         public VertexConsumer setUv1(int u, int v) {
-            // 原版这里是 overlay 坐标；我们用来传朝向（弧度 * 1000）
-            inner.setUv1(yawMilliRad, pitchMilliRad);
+            inner.setUv1(u, v);
             return this;
         }
 
         @Override
         public VertexConsumer setUv2(int u, int v) {
-            // 原版这里是光照图坐标；我们用来传 时间(ms) 与 不透明度(*1000)
-            inner.setUv2(timeMillis, 1000);
+            inner.setUv2(u, v);
             return this;
         }
 
         @Override
         public VertexConsumer setNormal(float x, float y, float z) {
-            inner.setNormal(x, y, z);
+            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale=1.0, 0)
+            inner.setNormal(pitch, 1.0F, 0.0F);
             return this;
         }
 
