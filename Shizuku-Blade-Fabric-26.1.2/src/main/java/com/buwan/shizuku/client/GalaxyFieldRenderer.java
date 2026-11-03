@@ -11,6 +11,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -132,18 +133,30 @@ public final class GalaxyFieldRenderer {
 
     }
 
-    /** 星空贴图：26.1 没有自定义星空着色器，改用贴图 + 径向 UV 还原星盘观感。 */
-    private static final net.minecraft.resources.Identifier STARRY_TEXTURE =
-            net.minecraft.resources.Identifier.fromNamespaceAndPath("shizuku", "textures/entity/starry_sky.png");
-
+    /**
+     * 忠实移植 1.20.1 drawDisk：48 段三角扇（边0→边1→圆心），半径/高度同原版，
+     * 星空由 cosmic 着色器绘制（Sampler0 = 方块图集的 cosmic_N 精灵）。
+     * 原版每帧 uniform 走顶点属性：UV0=(time,yaw)、Normal=(pitch,externalScale,0)、Color.a=opacity。
+     */
     private static void drawDisk(ZoneData zone, Matrix4f mat) {
         float alpha = Math.min(1.0F, (float) zone.ageTicks / 4.0F) * 0.75F;
         if (alpha <= 0.01F) {
             return;
         }
+        RenderType renderType = CosmicShaders.cosmicRenderType();
+        if (renderType == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        // 原版 prepareCosmicRender 非 GUI 路径的取值
+        float time = mc.level.getGameTime() % 2147483647L;
+        float yaw = (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        float pitch = -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
+        float externalScale = 1.0F;
+
         float radius = zone.radius;
         float y = 0.05F;
-        int segments = 96;
+        int segments = 48;
         BufferBuilder vb = Tesselator.getInstance().begin(
                 VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
         for (int i = 0; i < segments; i++) {
@@ -153,29 +166,21 @@ public final class GalaxyFieldRenderer {
             float z0 = (float) (Math.sin(a0) * (double) radius);
             float x1 = (float) (Math.cos(a1) * (double) radius);
             float z1 = (float) (Math.sin(a1) * (double) radius);
-            // 圆心 UV 为贴图中心；边缘 UV 沿圆周展开，形成放射状星空
-            float u0 = (float) (0.5 + Math.cos(a0) * 0.5);
-            float v0 = (float) (0.5 + Math.sin(a0) * 0.5);
-            float u1 = (float) (0.5 + Math.cos(a1) * 0.5);
-            float v1 = (float) (0.5 + Math.sin(a1) * 0.5);
-            // 边缘淡出：圆心不透明，外缘 alpha 归零，避免生硬的圆边
-            vertex(vb, mat, 0.0F, y, 0.0F, 0.5F, 0.5F, alpha);
-            vertex(vb, mat, x0, y, z0, u0, v0, 0.0F);
-            vertex(vb, mat, x1, y, z1, u1, v1, 0.0F);
+            vertex(vb, mat, x0, y, z0, time, yaw, pitch, externalScale, alpha);
+            vertex(vb, mat, x1, y, z1, time, yaw, pitch, externalScale, alpha);
+            vertex(vb, mat, 0.0F, y, 0.0F, time, yaw, pitch, externalScale, alpha);
         }
-        net.minecraft.client.renderer.rendertype.RenderTypes
-                .entityTranslucent(STARRY_TEXTURE)
-                .draw(vb.buildOrThrow());
+        renderType.draw(vb.buildOrThrow());
     }
 
     private static void vertex(BufferBuilder vb, Matrix4f mat, float x, float y, float z,
-                               float u, float v, float alpha) {
+                               float time, float yaw, float pitch, float externalScale, float alpha) {
         vb.addVertex(mat, x, y, z)
                 .setColor(1.0F, 1.0F, 1.0F, alpha)
-                .setUv(u, v)
+                .setUv(time, yaw)
                 .setOverlay(OverlayTexture.NO_OVERLAY)
                 .setLight(15728880)
-                .setNormal(0.0F, 1.0F, 0.0F);
+                .setNormal(pitch, externalScale, 0.0F);
     }
 
     public static class ZoneData {

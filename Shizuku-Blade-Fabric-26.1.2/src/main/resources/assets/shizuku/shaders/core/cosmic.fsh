@@ -3,97 +3,205 @@
 #define M_PI 3.1415926535897932384626433832795
 
 #moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <minecraft:fog.glsl>
+
+// Faithful port of the 1.20.1 cosmic.fsh (star field sampled from the 10 atlas
+// sprites item/misc/cosmic_0..9 stitched into the block atlas).
+// Only the input channels differ from the original:
+//   time/yaw/pitch/externalScale/opacity were loose uniforms -> now vertex
+//   attributes (UV0 / Normal / Color.a); cosmicuvs[10] was a mat2 array
+//   uniform -> now float defines injected by CosmicShaders (full precision,
+//   pipeline rebuilt when the atlas restitches).
+// mat2(U0, V0, U1, V1): col0=(U0,V0) col1=(U1,V1)
+//   -> [0][0]=umin [0][1]=vmin [1][0]=umax [1][1]=vmax  (same as the original upload order)
+
+const int cosmiccount = 10;
+const int cosmicoutof = 101;
+const float lightmix = 0.2;
 
 uniform sampler2D Sampler0;
 
-in vec4 cosmicParams;
-in vec3 viewPos;
-in vec4 vertexColor;
-in vec2 texCoord0;
+const mat2 cosmicuvs[cosmiccount] = mat2[cosmiccount](
+    mat2(CUV0_U0, CUV0_V0, CUV0_U1, CUV0_V1),
+    mat2(CUV1_U0, CUV1_V0, CUV1_U1, CUV1_V1),
+    mat2(CUV2_U0, CUV2_V0, CUV2_U1, CUV2_V1),
+    mat2(CUV3_U0, CUV3_V0, CUV3_U1, CUV3_V1),
+    mat2(CUV4_U0, CUV4_V0, CUV4_U1, CUV4_V1),
+    mat2(CUV5_U0, CUV5_V0, CUV5_U1, CUV5_V1),
+    mat2(CUV6_U0, CUV6_V0, CUV6_U1, CUV6_V1),
+    mat2(CUV7_U0, CUV7_V0, CUV7_U1, CUV7_V1),
+    mat2(CUV8_U0, CUV8_V0, CUV8_U1, CUV8_V1),
+    mat2(CUV9_U0, CUV9_V0, CUV9_U1, CUV9_V1)
+);
+
+in vec4 cosmicParams;   // x=time [ticks] y=yaw z=pitch w=externalScale
+in vec4 vertexColor;    // rgb=shade (lightmix) a=opacity
+in vec3 fPos;
+in float vertexDistanceSpherical;
+in float vertexDistanceCylindrical;
 
 out vec4 fragColor;
 
-mat4 rotationMatrix(vec3 axis, float angle) {
+mat4 rotationMatrix(vec3 axis, float angle)
+{
     axis = normalize(axis);
     float s = sin(angle);
     float c = cos(angle);
     float oc = 1.0 - c;
-    return mat4(oc * axis.x * axis.x + c,          oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
-                oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c,          oc * axis.y * axis.z - axis.x * s, 0.0,
-                oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c,          0.0,
-                0.0, 0.0, 0.0, 1.0);
+
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
 }
 
-float hash21(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
+void main (void)
+{
+    float time = cosmicParams.x;
+    float yaw = cosmicParams.y;
+    float pitch = cosmicParams.z;
+    float externalScale = cosmicParams.w;
+    float opacity = vertexColor.a;
 
-/** 移植自 1.20.1 cosmic.fsh：星云底色 + 多层经旋转的星空取样 */
-void main() {
-    float time   = cosmicParams.x;
-    float yaw    = cosmicParams.y;
-    float pitch  = cosmicParams.z;
-    float opacity = 1.0;
+    // star mask: the geometry itself is the mask (blade/disk model), no extra texture
+    vec4 mask = vec4(1.0);
 
-    // 深邃星云底色（随时间轻微脉动）
-    float pulse = mod(time, 400.0) / 400.0;
-    vec3 col = vec3(0.12, 0.05, 0.24);
-    col.r += 0.06 + 0.05 * sin(pulse * M_PI * 2.0);
-    col.g += 0.08 + 0.06 * sin(pulse * M_PI * 2.0 + 1.0);
-    col.b += 0.12 + 0.09 * cos(pulse * M_PI * 2.0);
+    float oneOverExternalScale = 1.0/externalScale;
 
-    // 从相机指向该片元的射线（原版用 -fPos 归一化，再按 yaw/pitch 旋转）
-    vec4 dir = normalize(vec4(-viewPos, 0.0));
-    float sb = sin(pitch), cb = cos(pitch);
-    dir = normalize(vec4(dir.x, dir.y * cb - dir.z * sb, dir.y * sb + dir.z * cb, 0.0));
-    float sa = sin(-yaw), ca = cos(-yaw);
-    dir = normalize(vec4(dir.z * sa + dir.x * ca, dir.y, dir.z * ca - dir.x * sa, 0.0));
+    int uvtiles = 16;
 
-    // 16 层星空
-    for (int i = 0; i < 16; i++) {
+    // background colour: deep nebula (brightened so stars are visible)
+    vec4 col = vec4(0.12, 0.05, 0.24, 1.0);
+
+    float pulse = mod(time,400)/400.0;
+
+    col.r += 0.06 + 0.05 * sin(pulse*M_PI*2);
+    col.g += 0.08 + 0.06 * sin(pulse*M_PI*2 + 1.0);
+    col.b += 0.12 + 0.09 * cos(pulse*M_PI*2);
+
+    // get ray from camera to fragment
+    vec4 dir = normalize(vec4(-fPos, 0));
+
+    // rotate the ray to show the right bit of the sphere for the angle
+    float sb = sin(pitch);
+    float cb = cos(pitch);
+    dir = normalize(vec4(dir.x, dir.y * cb - dir.z * sb, dir.y * sb + dir.z * cb, 0));
+
+    float sa = sin(-yaw);
+    float ca = cos(-yaw);
+    dir = normalize(vec4(dir.z * sa + dir.x * ca, dir.y, dir.z * ca - dir.x * sa, 0));
+
+    vec4 ray;
+
+    // draw the layers
+    for (int i=0; i<16; i++) {
+        int mult = 16-i;
+
+        // get semi-random stuff
         int j = i + 7;
-        float rand1 = (j * j * 4321 + j * 8) * 2.0;
+        float rand1 = (j * j * 4321 + j * 8) * 2.0F;
         int k = j + 1;
-        float rand2 = (k * k * k * 239 + k * 37) * 3.6;
+        float rand2 = (k * k * k * 239 + k * 37) * 3.6F;
         float rand3 = rand1 * 347.4 + rand2 * 63.4;
 
-        vec3 axis = normalize(vec3(sin(rand1), sin(rand2), cos(rand3)));
-        vec4 ray = dir * rotationMatrix(axis, mod(rand3, 2.0 * M_PI));
+        // random rotation matrix by random rotation around random axis
+        vec3 axis = normalize(vec3(sin(rand1), sin(rand2) , cos(rand3)));
 
-        float rawu = 0.5 + (atan(ray.z, ray.x) / (2.0 * M_PI));
-        float rawv = 0.5 + (asin(clamp(ray.y, -1.0, 1.0)) / M_PI);
+        // apply
+        ray = dir * rotationMatrix(axis, mod(rand3, 2*M_PI));
 
-        float scale = (16 - i) * 0.5 + 2.75;
-        vec2 uv = vec2(rawu * scale, (rawv + time * 0.0002) * scale * 0.6);
+        // calcuate the UVs from the final ray
+        float rawu = 0.5 + (atan(ray.z,ray.x)/(2*M_PI));
+        float rawv = 0.5 + (asin(clamp(ray.y, -1.0, 1.0))/M_PI);
 
-        // 每个格子按 hash 决定是否画星，并让其闪烁
-        vec2 cell = floor(uv * 16.0);
-        float seed = hash21(cell + float(i) * 31.0);
-        vec2 local = fract(uv * 16.0) - 0.5;
-        float dist = length(local);
-        float twinkle = 0.55 + 0.45 * sin(time * 1.5 + seed * 6.283);
-        float star = step(0.86, seed) * smoothstep(0.30, 0.0, dist) * twinkle;
+        // get UV scaled for layers and offset by time;
+        float scale = mult*0.5 + 2.75;
+        float u = rawu * scale * externalScale;
+        float v = (rawv + time * 0.0002 * oneOverExternalScale) * scale * 0.6 * externalScale;
 
-        // 越靠后的层越暗（景深）
-        float depthFade = 0.35 + 0.65 * (1.0 - float(i) / 16.0);
-        col += vec3(0.75, 0.88, 1.0) * star * depthFade * 0.9;
+        vec2 tex = vec2( u, v );
+
+        // tile position of the current uv
+        int tu = int(mod(floor(u*uvtiles),uvtiles));
+        int tv = int(mod(floor(v*uvtiles),uvtiles));
+
+        // get pseudorandom variants
+        int position = ((171 * tu) + (489 * tv) + (303 * (i+31)) + 17209 ) ^ 10;
+        int symbol = int(mod(position, cosmicoutof));
+        int rotation = int(mod(pow(tu,float(tv)) + tu + 3 + tv*i, 8));
+        bool flip = false;
+        if (rotation >= 4) {
+            rotation -= 4;
+            flip = true;
+        }
+
+        // if it's an icon, then add the colour!
+        if (symbol >= 0 && symbol < cosmiccount) {
+
+            vec2 cosmictex = vec2(1.0,1.0);
+            vec4 tcol = vec4(1.0,0.0,0.0,1.0);
+
+            // get uv within the tile
+            float ru = clamp(mod(u,1.0)*uvtiles - tu, 0.0, 1.0);
+            float rv = clamp(mod(v,1.0)*uvtiles - tv, 0.0, 1.0);
+
+            if (flip) {
+                ru = 1.0 - ru;
+            }
+
+            float oru = ru;
+            float orv = rv;
+
+            // rotate uvs if necessary
+            if (rotation == 1) {
+                oru = 1.0-rv;
+                orv = ru;
+            } else if (rotation == 2) {
+                oru = 1.0-ru;
+                orv = 1.0-rv;
+            } else if (rotation == 3) {
+                oru = rv;
+                orv = 1.0-ru;
+            }
+
+            // get the icon uvs for the tile
+            float umin = cosmicuvs[symbol][0][0];
+            float umax = cosmicuvs[symbol][1][0];
+            float vmin = cosmicuvs[symbol][0][1];
+            float vmax = cosmicuvs[symbol][1][1];
+
+            // interpolate based on tile uvs
+            cosmictex.x = umin * (1.0-oru) + umax * oru;
+            cosmictex.y = vmin * (1.0-orv) + vmax * orv;
+
+            tcol = texture(Sampler0, cosmictex);
+
+            // set the alpha, blending out at the bunched ends
+            float a = tcol.r * (0.6 + (1.0/mult) * 1.0) * (1.0-smoothstep(0.25, 0.55, abs(rawv-0.5)));
+
+            // get fancy colours (brightened)
+            float r = (mod(rand1, 29.0)/29.0) * 0.5 + 0.5;
+            float g = (mod(rand2, 35.0)/35.0) * 0.6 + 0.4;
+            float b = (mod(rand1, 17.0)/17.0) * 0.5 + 0.5;
+
+            // mix the colours (1.5x brightness)
+            col = col + vec4(r,g,b,1.0)*a*1.5;
+        }
     }
 
-    // 本体贴图（按自发光处理：不乘光照图，夜里同样明亮）
-    vec4 base = texture(Sampler0, texCoord0);
-    if (base.a < 0.02) {
-        discard;
-    }
+    // apply lighting
+    vec3 shade = vertexColor.rgb * (lightmix) + vec3(1.0-lightmix,1.0-lightmix,1.0-lightmix);
+    col.rgb *= shade;
 
-    // 这一层由前置的「发光层」调用，UV2 里是光照图坐标而不是我们的参数，
-    // 所以不能用它当 opacity（否则整层透明、看起来"没效果"）。
-    opacity = 1.0;
+    // apply mask
+    col.a *= mask.r * opacity;
 
-    // 星点增量（去掉星云底色，只保留闪烁星点）
-    vec3 starOnly = max(col - vec3(0.12, 0.05, 0.24), vec3(0.0));
+    col = clamp(col,0.0,1.0);
 
-    // 贴图本身也是星空图案：再叠一点点冷色辉光让它更“宇宙”
-    vec3 rgb = base.rgb * vertexColor.rgb * 1.15 + starOnly * 1.1;
-    float alpha = clamp(base.a * opacity, 0.0, 1.0);
-    fragColor = vec4(rgb, alpha);
+    // 1.20.1 used linear_fog; 26.1 fog is the standard UBO-based apply_fog
+    // (the disk sits close to the camera, fog contribution is ~zero either way)
+    fragColor = apply_fog(col * ColorModulator,
+            vertexDistanceSpherical, vertexDistanceCylindrical,
+            FogEnvironmentalStart, FogEnvironmentalEnd,
+            FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
 }
