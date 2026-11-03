@@ -201,7 +201,12 @@ public final class CosmicShaders {
             return false;
         }
         float scale = icon ? ICON_EXTERNAL_SCALE : 1.0F;
-        float yaw = icon ? 0.0F : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
+        // ⚠️ 图标分支把归一化 spread 塞进 **yaw 槽位（UV0.y，全精度 float）**：图标的 yaw 本来
+        // 就是 0，槽位空闲；fsh 仍把它当 yaw 读——一个 ≤0.03 rad（≈1.7°）的星空旋转，视觉
+        // 不可分辨。（Normal.z 试过不行：法线是 3×byte 属性，`(byte)clamp(f,-1,1)*127` 截断
+        // 量化，spread < 1/127 直接变 0 ⇒ 射线塌缩成天球一点 = 19:51 的「物品栏全白闪」；
+        // UV1/UV2 是 16 位 overlay/lightmap 槽位，float 位模式同样被截断。）
+        float yaw = icon ? spread : (float) (mc.player.getYRot() * 2.0 * Math.PI / 360.0);
         float pitch = icon ? 0.0F : -((float) (mc.player.getXRot() * 2.0 * Math.PI / 360.0));
         int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
         float time = mc.level.getGameTime() % 2147483647L;
@@ -215,8 +220,6 @@ public final class CosmicShaders {
         // 留 order(0) 的话星空层和 item_* 平面同桶、谁先画还是 identity hash 决定 ⇒
         // 一半启动被图标盖住 = 「只能看到一点效果」。
         final RenderType renderType = chosen;
-        // lambda 捕获要求 effectively final：归一化 spread 在上面条件赋值，这里定格一份
-        final float spreadF = spread;
         // 前置的 submitCustomGeometry 必须用回调给的 pose（否则整层铺满屏，历史踩坑）
         collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             // ⚠️ Face 的静态算子是全局可变状态：SlashEffectRenderer 等渲染路径会设置
@@ -232,7 +235,7 @@ public final class CosmicShaders {
                 PoseStack local = new PoseStack();
                 local.last().pose().set(pose.pose());
                 local.last().normal().set(pose.normal());
-                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha, spreadF),
+                model.tessellateOnly(new CosmicParamsConsumer(consumer, time, yaw, pitch, scale, alpha),
                         local, MAX_LIGHT, 0, group);
             } finally {
                 Face.alphaOverride = prevAlpha;
@@ -482,23 +485,15 @@ public final class CosmicShaders {
         private final float pitch;
         private final float externalScale;
         private final int alpha;
-        /**
-         * 图标分支的归一化射线张角，骑在 Normal.z 上（fsh 只读 Normal.xy 当 cosmicParams.zw，
-         * z 槽位空闲；法线是全精度 float——⚠️ UV1/UV2 是 overlay/lightmap 的 **16 位**槽位，
-         * float 按位写进去会被截断成垃圾（19:41「无星只闪白」的根因），Normal 通道才是
-         * 实测可靠的数据面：世界路径的 externalScale 就一直骑在 Normal.y 上）。
-         */
-        private final float spread;
 
         public CosmicParamsConsumer(VertexConsumer inner, float time, float yaw, float pitch,
-                                    float externalScale, int alpha, float spread) {
+                                    float externalScale, int alpha) {
             this.inner = inner;
             this.time = time;
             this.yaw = yaw;
             this.pitch = pitch;
             this.externalScale = externalScale;
             this.alpha = alpha;
-            this.spread = spread;
         }
 
         @Override
@@ -541,9 +536,10 @@ public final class CosmicShaders {
 
         @Override
         public VertexConsumer setNormal(float x, float y, float z) {
-            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale, spread)——
-            // spread 只被图标分支的 vsh 读（合成射线的归一化张角），世界分支不读 z
-            this.inner.setNormal(this.pitch, this.externalScale, this.spread);
+            // 模型法线被着色器忽略，此槽位改传 (pitch, externalScale, 0)。
+            // ⚠️ 法线是 3×byte 属性（截断量化），只能承载 [-1,1] 内"够大"的值——
+            // pitch 会被钳到 ±1、小值会被截断；它对 pitch/externalScale 够用，但别再往这塞小数。
+            this.inner.setNormal(this.pitch, this.externalScale, 0.0F);
             return this;
         }
 
