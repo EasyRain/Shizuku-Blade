@@ -12,7 +12,8 @@
   "client": [
     "DeferredTooltipMixin",
     "GuiGraphicsExtractorAccessor",
-    "AbstractContainerScreenAccessor"
+    "AbstractContainerScreenAccessor",
+    "LevelRendererSynthwaveMixin"
   ],
   "injectors": {
     "defaultRequire": 1
