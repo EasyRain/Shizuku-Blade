@@ -61,6 +61,9 @@ public final class CosmicShaders {
                     .withTexture("Sampler0", tex)
                     .useLightmap()
                     .useOverlay()
+                    // 与本体贴图同深度会 z-fighting（画面闪烁/斑驳），
+                    // 用原版的视图空间 Z 偏移层叠变换错开。
+                    .setLayeringTransform(net.minecraft.client.renderer.rendertype.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
                     .createRenderSetup();
             return RenderType.create("shizuku_cosmic_" + tex.getPath().replace('/', '_'), setup);
         });
