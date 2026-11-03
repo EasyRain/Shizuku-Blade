@@ -36,9 +36,8 @@ public final class CosmicBladeRenderer {
         if (model == null || poseStack == null || event.getTexture() == null) {
             return;
         }
-        // 接管 *_luminous 层：本体的发光层需要由我们绘制
-        //（着色器会采样刀贴图并按自发光处理，因此夜里也是亮的）。
-        event.setCanceled(true);
+        // 不取消本体渲染：取消会让前置退回平面 fallback（表现为物品栏模型叠在手持模型上）。
+        // 我们的层叠在材质之上，负责夜间自发光。
 
         int light = event.getPackedLightIn();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
