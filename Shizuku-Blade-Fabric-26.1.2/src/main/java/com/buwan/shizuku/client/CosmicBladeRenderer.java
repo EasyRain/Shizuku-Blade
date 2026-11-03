@@ -71,6 +71,11 @@ public final class CosmicBladeRenderer {
         if (!hasGroup(model, group)) {
             group = hasGroup(model, "blade") ? "blade" : null;
         }
+        // 前置的附魔光效（renderChargeEffect）用 target="effect" 绘制 —— 这是模型里
+        // 覆盖整把刀的外壳几何，专门用于叠加发光/光效。用它来叠星空，覆盖率才完整。
+        if (hasGroup(model, "effect")) {
+            group = "effect";
+        }
         if (group == null) {
             return;
         }
