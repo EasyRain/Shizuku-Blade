@@ -102,10 +102,10 @@ public final class SynthwaveShaderManager {
                     uval("U_FadeIn", "float", new JsonPrimitive(fade)),
                     uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)),
                     // ⚠️ 26.1 的 matrix4x4 uniform 按【行主序】解释（ExtraCodecs.MATRIX4F: setRowColumn(i>>2, i&3, v)），
-                    // JOML get() 是列主序 → 必须 getTransposed()（行主序），否则矩阵被转置
+                    // JOML get() 是列主序 → 必须转成行主序，否则矩阵被转置
                     // （实测症状：黑幕有深度但遮罩瞬间全开 + 网格糊屏 = 转置逆矩阵压缩了距离）
-                    uval("U_InverseProjectionMatrix", "matrix4x4", floats(invProj.getTransposed(new float[16]))),
-                    uval("U_InverseViewMatrix", "matrix4x4", floats(invView.getTransposed(new float[16]))),
+                    uval("U_InverseProjectionMatrix", "matrix4x4", rowMajor(invProj)),
+                    uval("U_InverseViewMatrix", "matrix4x4", rowMajor(invView)),
                     uval("U_CameraPosition", "vec3", floats((float) camPos.x, (float) camPos.y, (float) camPos.z)));
 
             ShaderManager shaderManager = Minecraft.getInstance().getShaderManager();
@@ -157,6 +157,16 @@ public final class SynthwaveShaderManager {
             array.add(v);
         }
         return array;
+    }
+
+    /** JOML 列主序 → 26.1 matrix4x4 codec 要的行主序（本 JOML 版本无 getTransposed(float[])）。 */
+    private static JsonArray rowMajor(Matrix4f m) {
+        float[] c = m.get(new float[16]); // c[col*4+row]
+        return floats(
+                c[0], c[4], c[8], c[12],
+                c[1], c[5], c[9], c[13],
+                c[2], c[6], c[10], c[14],
+                c[3], c[7], c[11], c[15]);
     }
 
     /** 26.1 无需在代码里创建 ShaderInstance，保留方法供调用方兼容。 */
