@@ -19,6 +19,17 @@ import mods.flammpfeil.slashblade.event.client.RenderOverrideEvent;
  */
 public final class CosmicBladeRenderer {
 
+    /**
+     * 手持星光的开关。
+     *
+     * <p>26.1 上该效果尚未做对（外壳分组覆盖不全、与本体贴图争深度、刀鞘/图标易被带入），
+     * 且前置 SlashBlade Refabricated 26.1 自身还在修 bug（见上游 issue #20）。
+     * 因此 <b>默认关闭</b>：先保证 26.1.2 可正常游玩，等前置稳定后再开。</p>
+     *
+     * <p>沙盒验证时改成 true 即可继续调试，无需改其它代码。</p>
+     */
+    public static final boolean ENABLE_COSMIC_HELD_EFFECT = false;
+
     private CosmicBladeRenderer() {
     }
 
@@ -27,6 +38,9 @@ public final class CosmicBladeRenderer {
     }
 
     private static void onRenderOverride(RenderOverrideEvent event) {
+        if (!ENABLE_COSMIC_HELD_EFFECT) {
+            return;
+        }
         String target = event.getTarget();
         if (target == null || !target.endsWith("_luminous")) {
             return;
