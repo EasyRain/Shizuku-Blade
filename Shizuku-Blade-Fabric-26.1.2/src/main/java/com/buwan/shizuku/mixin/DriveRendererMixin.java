@@ -28,7 +28,7 @@ public abstract class DriveRendererMixin {
     @Inject(
             method = "extractRenderState(Lmods/flammpfeil/slashblade/entity/EntityDrive;"
                     + "Lmods/flammpfeil/slashblade/client/renderer/entity/state/DriveRenderState;F)V",
-            at = @At("TAIL"))
+            at = @At("TAIL"), require = 0)
     private void shizuku$markCosmicDrive(EntityDrive entity, DriveRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
@@ -45,7 +45,7 @@ public abstract class DriveRendererMixin {
                     + "Lnet/minecraft/client/renderer/SubmitNodeCollector;"
                     + "Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
             at = @At("HEAD"),
-            cancellable = true)
+            cancellable = true, require = 0)
     private void shizuku$renderDaoguang(DriveRenderState state, PoseStack poseStack,
                                         SubmitNodeCollector collector, CameraRenderState camera,
                                         CallbackInfo ci) {

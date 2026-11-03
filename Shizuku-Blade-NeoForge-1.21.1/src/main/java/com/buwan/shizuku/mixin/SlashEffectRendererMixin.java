@@ -29,7 +29,8 @@ public abstract class SlashEffectRendererMixin {
 
     @Inject(
             method = "render",
-            at = @At("TAIL")
+            at = @At("TAIL"),
+            require = 0
     )
     private void shizuku$renderCosmicSlash(
             EntitySlashEffect entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight, CallbackInfo ci

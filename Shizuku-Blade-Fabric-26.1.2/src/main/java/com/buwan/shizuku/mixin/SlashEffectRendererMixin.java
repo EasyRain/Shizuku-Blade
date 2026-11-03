@@ -35,7 +35,7 @@ public abstract class SlashEffectRendererMixin {
     @Inject(
             method = "extractRenderState(Lmods/flammpfeil/slashblade/entity/EntitySlashEffect;"
                     + "Lmods/flammpfeil/slashblade/client/renderer/entity/state/SlashEffectRenderState;F)V",
-            at = @At("TAIL"))
+            at = @At("TAIL"), require = 0)
     private void shizuku$markCosmicSlash(EntitySlashEffect entity, SlashEffectRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
@@ -48,7 +48,7 @@ public abstract class SlashEffectRendererMixin {
                     + "Lcom/mojang/blaze3d/vertex/PoseStack;"
                     + "Lnet/minecraft/client/renderer/SubmitNodeCollector;"
                     + "Lnet/minecraft/client/renderer/state/level/CameraRenderState;)V",
-            at = @At("TAIL"))
+            at = @At("TAIL"), require = 0)
     private void shizuku$renderCosmicSlash(SlashEffectRenderState state, PoseStack poseStack,
                                            SubmitNodeCollector collector, CameraRenderState camera,
                                            CallbackInfo ci) {

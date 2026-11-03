@@ -30,7 +30,9 @@ public abstract class DriveRendererMixin {
     @Inject(
             method = "render",
             at = @At("HEAD"),
-            cancellable = true
+            cancellable = true,
+            // 可选注入：前置改签名时只是特效失效，不崩启动（详见 EntityAbstractSummonedSwordMixin 的说明）
+            require = 0
     )
     private void shizuku$renderDaoguang(
             EntityDrive entity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource buffer, int packedLight, CallbackInfo ci

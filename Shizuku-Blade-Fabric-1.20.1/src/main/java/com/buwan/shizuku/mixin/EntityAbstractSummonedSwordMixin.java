@@ -18,7 +18,8 @@ public abstract class EntityAbstractSummonedSwordMixin {
     @Inject(
             method = "setHitEntity",
             at = @At("HEAD"),
-            cancellable = true
+            cancellable = true,
+            require = 0
     )
     private void shizuku$disappearOnHit(Entity hitEntity, CallbackInfo ci) {
         if (isMosmicDrive((EntityAbstractSummonedSword) (Object) this)) {
@@ -30,7 +31,8 @@ public abstract class EntityAbstractSummonedSwordMixin {
     @Inject(
             method = "burst",
             at = @At("HEAD"),
-            cancellable = true
+            cancellable = true,
+            require = 0
     )
     private void shizuku$silentRemove(CallbackInfo ci) {
         if (isMosmicDrive((EntityAbstractSummonedSword) (Object) this)) {
