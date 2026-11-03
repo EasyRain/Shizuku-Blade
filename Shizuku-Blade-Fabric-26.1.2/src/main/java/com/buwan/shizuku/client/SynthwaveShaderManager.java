@@ -101,8 +101,11 @@ public final class SynthwaveShaderManager {
                     uval("U_GameTime", "float", new JsonPrimitive(timeSeconds)),
                     uval("U_FadeIn", "float", new JsonPrimitive(fade)),
                     uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)),
-                    uval("U_InverseProjectionMatrix", "matrix4x4", floats(invProj.get(new float[16]))),
-                    uval("U_InverseViewMatrix", "matrix4x4", floats(invView.get(new float[16]))),
+                    // ⚠️ 26.1 的 matrix4x4 uniform 按【行主序】解释（ExtraCodecs.MATRIX4F: setRowColumn(i>>2, i&3, v)），
+                    // JOML get() 是列主序 → 必须 getTransposed()（行主序），否则矩阵被转置
+                    // （实测症状：黑幕有深度但遮罩瞬间全开 + 网格糊屏 = 转置逆矩阵压缩了距离）
+                    uval("U_InverseProjectionMatrix", "matrix4x4", floats(invProj.getTransposed(new float[16]))),
+                    uval("U_InverseViewMatrix", "matrix4x4", floats(invView.getTransposed(new float[16]))),
                     uval("U_CameraPosition", "vec3", floats((float) camPos.x, (float) camPos.y, (float) camPos.z)));
 
             ShaderManager shaderManager = Minecraft.getInstance().getShaderManager();
