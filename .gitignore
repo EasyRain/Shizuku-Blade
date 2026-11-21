@@ -18,6 +18,11 @@ run-data/
 PROJECT_MEMORY.md
 MODRINTH_DESCRIPTION.md
 
+# 原作者 Forge 1.20.1 源码还原（独立 git 仓库，分支 restore-3.7.0-source）
+# 它有自己的一套远端（origin=我们 fork / upstream=作者仓库）用于发 PR 与拉取作者新代码，
+# 不能作为普通目录提交进主仓库，否则会变成 gitlink（子模块）。
+Shizuku-Blade-Forge-1.20.1/
+
 # 杂项
 *.log
 .DS_Store
