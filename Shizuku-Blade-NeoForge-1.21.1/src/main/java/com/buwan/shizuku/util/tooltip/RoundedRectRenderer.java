@@ -253,8 +253,10 @@ public class RoundedRectRenderer {
         }
 
         graphics.flush();
-        RenderSystem.disableBlend();
+        // 注意顺序：必须先画再关混合。原来是 disableBlend() 在前，
+        // 顶点里的 alpha（220/255）就被忽略，蓝色底变成纯实心。
         BufferUploader.drawWithShader(builder.buildOrThrow());
+        RenderSystem.disableBlend();
 
         poseStack.popPose();
     }
