@@ -22,6 +22,7 @@ import mods.flammpfeil.slashblade.ability.StunManager;
 import mods.flammpfeil.slashblade.init.DefaultResources;
 import mods.flammpfeil.slashblade.registry.combo.ComboState;
 import mods.flammpfeil.slashblade.util.AttackManager;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -192,17 +193,32 @@ public class SAComboRegistry {
 
     public static final DeferredHolder<ComboState, ComboState> YMSA = COMBO_STATES.register("ymsa",
             ComboState.Builder.newInstance()
-                    .startAndEnd(400, 430)
+                    .startAndEnd(0, Ymsa.RECOVERY_FRAME)
                     .priority(50)
-                    .motionLoc(DefaultResources.ExMotionLocation)
-                    .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
-                    .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
-                            .put(3, (entityIn) -> {
-                                if (entityIn instanceof LivingEntity) {
-                                    Ymsa.doYmsaSlash(entityIn);
-                                }
-                            }).build())
+                    .motionLoc(Ymsa.MOTION)
+                    .next(ComboState.TimeoutNext.buildFromFrame(Ymsa.RECOVERY_FRAME, entity -> SlashBlade.prefix("none")))
+                    .nextOfTimeout(entity -> SlashBlade.prefix("none"))
+                    .addTickAction(entity -> {
+                        if (entity instanceof ServerPlayer player
+                                && com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
+                            return;
+                        }
+                        long tick = ComboState.getElapsed(entity);
+                        if (entity instanceof ServerPlayer player) {
+                            if (tick == 1) {
+                                Ymsa.beginJudgment(player);
+                            } else if (tick == Ymsa.STRIKE_TICK) {
+                                Ymsa.openRift(player);
+                            } else if (tick == Ymsa.VERDICT_TICK) {
+                                Ymsa.verdictTick(player);
+                            }
+                        }
+                        if (tick == Ymsa.VERDICT_TICK) {
+                            Ymsa.doYmsaSlash(entity);
+                        } else if (tick == Ymsa.SHEATH_TICK) {
+                            mods.flammpfeil.slashblade.util.AttackManager.playQuickSheathSoundAction(entity);
+                        }
+                    })
                     .releaseAction((user, elapsed) -> {
                         if (FMLEnvironment.dist.isClient() && user instanceof Player) {
                             com.buwan.shizuku.client.SynthwaveShaderManager.stopShader();

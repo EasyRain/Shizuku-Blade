@@ -34,8 +34,15 @@ public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, V
      * 用指定朝向构造包（审判期间锁定施法朝向，避免落剑跟着鼠标跑）。
      */
     public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick, float yaw, float pitch) {
+        return from(player, phaseTick, yaw, pitch,
+                player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z);
+    }
+
+    /** 同时锁定施法瞬间的眼睛位置：落点不会因为施法过程中走动而漂移。 */
+    public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick, float yaw, float pitch,
+                                            double x, double y, double z) {
         long start = player.level().getGameTime() - phaseTick;
-        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, player.getEyePosition(), yaw, pitch);
+        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, new Vec3(x, y, z), yaw, pitch);
     }
 
     private JudgmentImpactPacket(RegistryFriendlyByteBuf buf) {

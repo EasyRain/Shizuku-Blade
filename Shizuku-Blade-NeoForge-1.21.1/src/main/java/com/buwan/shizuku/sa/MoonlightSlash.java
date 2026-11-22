@@ -24,12 +24,10 @@ public class MoonlightSlash {
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
 
     public static void doMoonlightSlash(LivingEntity entity) {
-        com.buwan.shizuku.util.SaDebug.enter("MoonlightSlash");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DAMAGE_SCALE;
-                com.buwan.shizuku.util.SaDebug.log("MoonlightSlash", damage, entity);
                 int colorCode = BladeStateAccess.of(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(MOONLIGHT_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.3F);
                 SlashData slashData = new SlashData(damage, colorCode);

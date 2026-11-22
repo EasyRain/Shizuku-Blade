@@ -142,11 +142,7 @@ public class shizuku {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(prefix(name)));
     }
 
-    /** 构建标记：确认客户端实际加载的是哪一个测试包。 */
-    public static final String BUILD_MARKER = "SA-DEBUG-BUILD-3";
-
     public shizuku(IEventBus modEventBus, net.neoforged.fml.ModContainer modContainer) {
-        org.slf4j.LoggerFactory.getLogger("shizuku").info("[shizuku] {} loaded", BUILD_MARKER);
         // 配置必须在构造阶段用 ModContainer 注册，否则 client 侧读值会抛
         // "Cannot get config value before config is loaded"
         modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER,

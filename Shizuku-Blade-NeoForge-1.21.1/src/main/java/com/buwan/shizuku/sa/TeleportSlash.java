@@ -29,14 +29,12 @@ public class TeleportSlash {
     private static final Map<UUID, TeleportChainData> activeChains = new ConcurrentHashMap<>();
 
     public static void doTeleportSlash(LivingEntity entity) {
-        com.buwan.shizuku.util.SaDebug.enter("TeleportSlash");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel serverLevel = (ServerLevel) entity.level();
                 List<LivingEntity> targets = findMultipleTargets(entity, serverLevel);
                 if (!targets.isEmpty()) {
                     float damage = DAMAGE_SCALE;
-                    com.buwan.shizuku.util.SaDebug.log("TeleportSlash", damage, entity);
                     TeleportChainData chainData = new TeleportChainData(targets, damage);
                     activeChains.put(player.getUUID(), chainData);
                     executeChainAttack(player, chainData, serverLevel);

@@ -778,10 +778,44 @@ public class Ymsa {
         boolean annihilated;
     }
 
-    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) { }
-    public static void openRift(net.minecraft.server.level.ServerPlayer player) { }
-    public static void verdictTick(net.minecraft.server.level.ServerPlayer player) { }
-    public static void clearUnleashedArea(java.util.UUID id) { }
+    /** 施法瞬间锁定的朝向与眼睛位置（yaw, pitch, x, y, z）。 */
+    private static final java.util.Map<java.util.UUID, double[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
+        AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
+                player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
+        broadcastPhase(player, 1);
+    }
+
+    public static void openRift(net.minecraft.server.level.ServerPlayer player) {
+        protectMainHandBlade(player);
+        broadcastPhase(player, STRIKE_TICK);
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                net.minecraft.sounds.SoundEvents.TRIDENT_THROW.value(),
+                net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 0.72F);
+    }
+
+    public static void verdictTick(net.minecraft.server.level.ServerPlayer player) {
+        broadcastPhase(player, VERDICT_TICK);
+        player.level().playSound(null, player.getX(), player.getY(), player.getZ(),
+                net.minecraft.sounds.SoundEvents.BELL_RESONATE,
+                net.minecraft.sounds.SoundSource.PLAYERS, 1.4F, 0.65F);
+    }
+
+    /** 按锁定的朝向 + 位置发包；没有锁定值就回退当前值。 */
+    private static void broadcastPhase(net.minecraft.server.level.ServerPlayer player, int phaseTick) {
+        double[] aim = AIM.get(player.getUUID());
+        com.buwan.shizuku.network.PacketHandler.sendToNearby(
+                aim == null
+                        ? com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick)
+                        : com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick,
+                                (float) aim[0], (float) aim[1], aim[2], aim[3], aim[4]),
+                player, DOMAIN_RADIUS * 2.5);
+    }
+
+    public static void clearUnleashedArea(java.util.UUID id) {
+        AIM.remove(id);
+    }
     public static void finishChaosEncounter(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity boss) {
         if (boss instanceof net.minecraft.world.entity.LivingEntity living) living.setHealth(0.0F);
     }

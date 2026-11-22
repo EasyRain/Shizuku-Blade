@@ -41,7 +41,6 @@ public class Shizukusa {
     }
 
     public static void doSlash(LivingEntity playerIn, float speed, int colorCode, boolean playSound) {
-        com.buwan.shizuku.util.SaDebug.enter("Shizukusa");
         if (playerIn.level().isClientSide()) return;
 
         // 音效播放逻辑（优化：使用资源位置直接获取）
@@ -85,7 +84,6 @@ public class Shizukusa {
                     drive.setSilent(true);
                     float refinedDamage = DamageCalculator.calculateRefinedDamage(playerIn, 1.0F);
                     drive.setDamage(refinedDamage * DAMAGE_SCALE);
-                                com.buwan.shizuku.util.SaDebug.log("Shizukusa", refinedDamage * DAMAGE_SCALE, playerIn);
                 }
             }
 

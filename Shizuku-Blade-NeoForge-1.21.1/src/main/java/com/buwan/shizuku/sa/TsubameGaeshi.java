@@ -24,12 +24,10 @@ public class TsubameGaeshi {
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
 
     public static void doTsubameGaeshi(LivingEntity entity) {
-        com.buwan.shizuku.util.SaDebug.enter("TsubameGaeshi");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DAMAGE_SCALE;
-                com.buwan.shizuku.util.SaDebug.log("TsubameGaeshi", damage, entity);
                 int colorCode = BladeStateAccess.of(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWALLOW_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.5F, 0.8F);
                 SlashData slashData = new SlashData(damage, colorCode);

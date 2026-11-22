@@ -35,7 +35,6 @@ public class TeleportSlash {
                 List<LivingEntity> targets = findMultipleTargets(entity, serverLevel);
                 if (!targets.isEmpty()) {
                     float damage = DAMAGE_SCALE;
-                    com.buwan.shizuku.util.SaDebug.log("TeleportSlash", damage, entity);
                     TeleportChainData chainData = new TeleportChainData(targets, damage);
                     activeChains.put(player.getUUID(), chainData);
                     executeChainAttack(player, chainData, serverLevel);
