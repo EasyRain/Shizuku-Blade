@@ -148,15 +148,18 @@ public final class JudgmentScreen extends Screen {
         if (!serverConfigEditable()) {
             return;
         }
-        int button = compact ? 16 : 18;
+        rowY += Math.max(6, rowHeight / 3);   // 客户端/服务端两段之间留白，别让边框贴着上一行
+        int stepper = stepperWidth();
+        int stepperY = rowY + Math.max(0, (rowHeight - 22) / 2);
         for (IntSetting setting : CONFIG_INTS) {
-            addRenderableWidget(new PanelButton(contentX, rowY, button, Component.literal("-"),
+            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, Component.literal("\u2212"),
                 b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
-            addRenderableWidget(new PanelButton(contentX + contentWidth - button, rowY, button, Component.literal("+"),
+            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, Component.literal("+"),
                 b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
+            stepperY = rowY + Math.max(0, (rowHeight - 22) / 2);
         }
     }
 
@@ -186,7 +189,13 @@ public final class JudgmentScreen extends Screen {
     }
 
     private int configRowHeight() {
-        return Math.min(compact ? 18 : 24, (footerY - configRowsStart()) / 6);
+        int available = footerY - configRowsStart();
+        return Math.max(20, Math.min(28, available / 6));
+    }
+
+    /** 步进按钮的边长（要够宽才放得下 + / -：PanelButton 会把文字按 width-16 截断）。 */
+    private int stepperWidth() {
+        return compact ? 22 : 26;
     }
 
     private void addSetting(int y, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
@@ -266,18 +275,19 @@ public final class JudgmentScreen extends Screen {
 
     private void renderConfig(GuiGraphics graphics) {
         int rowHeight = configRowHeight();
-        int button = compact ? 16 : 18;
+        int stepper = stepperWidth();
         for (int i = 0; i < intRowY.size(); i++) {
             IntSetting setting = intRowSetting.get(i);
             int y = intRowY.get(i);
             int value = setting.get().getAsInt();
             String valueText = Integer.toString(value);
-            graphics.drawString(font, label(setting.labelKey()), contentX + button + 6, y + rowHeight / 2 - 4, MUTED, false);
+            int textY = y + Math.max(0, (rowHeight - 22) / 2) + 7;
+            graphics.drawString(font, label(setting.labelKey()), contentX + stepper + 6, textY, MUTED, false);
             graphics.drawString(font, valueText,
-                contentX + contentWidth - button - 6 - font.width(valueText), y + rowHeight / 2 - 4, INK, false);
+                contentX + contentWidth - stepper - 6 - font.width(valueText), textY, INK, false);
         }
         if (!serverConfigEditable()) {
-            int y = configRowsStart() + configRowHeight() * 3;
+            int y = configRowsStart() + configRowHeight() * 4;
             graphics.drawString(font, fit(label("server_only"), contentWidth), contentX, y + 2, MUTED, false);
         }
     }
