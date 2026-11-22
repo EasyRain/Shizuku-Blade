@@ -24,6 +24,7 @@ public class TsubameGaeshi {
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
 
     public static void doTsubameGaeshi(LivingEntity entity) {
+        com.buwan.shizuku.util.SaDebug.enter("TsubameGaeshi");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();

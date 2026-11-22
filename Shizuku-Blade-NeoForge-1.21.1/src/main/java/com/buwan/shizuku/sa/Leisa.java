@@ -21,6 +21,7 @@ public class Leisa {
     };
 
     public static void doLeisaSlash(LivingEntity player) {
+        com.buwan.shizuku.util.SaDebug.enter("Leisa");
         if (!player.level().isClientSide()) {
             playLeisaSound(player);
             float damage = DAMAGE_SCALE;

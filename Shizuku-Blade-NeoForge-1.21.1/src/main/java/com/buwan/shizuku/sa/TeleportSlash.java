@@ -29,6 +29,7 @@ public class TeleportSlash {
     private static final Map<UUID, TeleportChainData> activeChains = new ConcurrentHashMap<>();
 
     public static void doTeleportSlash(LivingEntity entity) {
+        com.buwan.shizuku.util.SaDebug.enter("TeleportSlash");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel serverLevel = (ServerLevel) entity.level();

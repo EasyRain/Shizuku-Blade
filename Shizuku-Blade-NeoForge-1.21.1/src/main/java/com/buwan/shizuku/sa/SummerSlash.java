@@ -33,6 +33,7 @@ public class SummerSlash {
     private static final int SLASH_INTERVAL = 3;
 
     public static void doSummerSlash(LivingEntity playerIn) {
+        com.buwan.shizuku.util.SaDebug.enter("SummerSlash");
         if (!playerIn.level().isClientSide()) {
             Level level = playerIn.level();
             Vec3 lookAngle = playerIn.getViewVector(1.0F);

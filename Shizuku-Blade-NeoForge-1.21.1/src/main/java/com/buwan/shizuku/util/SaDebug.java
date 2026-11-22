@@ -14,6 +14,11 @@ public final class SaDebug {
 
     private SaDebug() {}
 
+    /** SA 入口被调用时无条件打一行（用来确认代码路径真的执行了）。 */
+    public static void enter(String saName) {
+        LOGGER.info("[sa-enter] {}", saName);
+    }
+
     public static void log(String saName, double damage) {
         if (ENABLED) {
             LOGGER.info("[sa-damage] {} -> {}", saName, damage);

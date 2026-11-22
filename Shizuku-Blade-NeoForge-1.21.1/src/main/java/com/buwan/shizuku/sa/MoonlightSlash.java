@@ -24,6 +24,7 @@ public class MoonlightSlash {
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
 
     public static void doMoonlightSlash(LivingEntity entity) {
+        com.buwan.shizuku.util.SaDebug.enter("MoonlightSlash");
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
