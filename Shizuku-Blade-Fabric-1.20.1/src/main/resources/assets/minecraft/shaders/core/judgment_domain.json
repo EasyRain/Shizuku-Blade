@@ -4,8 +4,8 @@
     "srcrgb": "srcalpha",
     "dstrgb": "1-srcalpha"
   },
-  "vertex": "shizuku:judgment_domain",
-  "fragment": "shizuku:judgment_domain",
+  "vertex": "minecraft:judgment_domain",
+  "fragment": "minecraft:judgment_domain",
   "attributes": [
     "Position",
     "UV0"

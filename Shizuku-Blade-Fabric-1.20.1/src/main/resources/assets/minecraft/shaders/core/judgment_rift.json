@@ -4,8 +4,8 @@
     "srcrgb": "srcalpha",
     "dstrgb": "1-srcalpha"
   },
-  "vertex": "shizuku:judgment_rift",
-  "fragment": "shizuku:judgment_rift",
+  "vertex": "minecraft:judgment_rift",
+  "fragment": "minecraft:judgment_rift",
   "attributes": [
     "Position",
     "UV0"
