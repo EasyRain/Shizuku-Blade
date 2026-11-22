@@ -31,6 +31,7 @@ public class PacketHandler {
 
     /** 服务端接收（common init 调用）。 */
     public static void registerServer() {
+        registerUnleashedInput();
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.ID,
                 (srv, player, handler, buf, sender) -> srv.execute(() -> {
                     boolean mosmic = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())
@@ -39,6 +40,14 @@ public class PacketHandler {
                         GalaxyField.toggleField(player);
                     }
                 }));
+    }
+
+    private static void registerUnleashedInput() {
+        ServerPlayNetworking.registerGlobalReceiver(UnleashedInputPacket.ID,
+                (srv, player, handler, buf, sender) -> {
+                    UnleashedInputPacket packet = UnleashedInputPacket.read(buf);
+                    srv.execute(() -> packet.handle(player));
+                });
     }
 
     public static void sendToServer(ShizukuPacket packet) {
