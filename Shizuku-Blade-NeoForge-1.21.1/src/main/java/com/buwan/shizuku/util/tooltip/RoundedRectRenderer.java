@@ -55,7 +55,11 @@ public class RoundedRectRenderer {
         Matrix3f normal = poseStack.last().normal();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        VertexConsumer consumer = graphics.bufferSource().getBuffer(renderType);
+        // 自建 TRIANGLES 缓冲并立即绘制：描边走的就是这条路径（本端口已验证能画），
+        // 而 graphics.bufferSource() 在 tooltip 阶段不会被 flush（填充曾整块消失）。
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        VertexConsumer consumer = builder;
         float maxRadius = Math.min(width, height) / 2.0F;
         topLeft = Math.min(topLeft, maxRadius);
         topRight = Math.min(topRight, maxRadius);
@@ -250,6 +254,8 @@ public class RoundedRectRenderer {
 
         graphics.flush();
         RenderSystem.disableBlend();
+        BufferUploader.drawWithShader(builder.buildOrThrow());
+
         poseStack.popPose();
     }
 
@@ -276,12 +282,12 @@ public class RoundedRectRenderer {
         int color2 = getColorAtPosition(x1, y2, rectX, rectY, rectWidth, rectHeight, gradient, fallbackColor, time);
         int color3 = getColorAtPosition(x2, y2, rectX, rectY, rectWidth, rectHeight, gradient, fallbackColor, time);
         int color4 = getColorAtPosition(x2, y1, rectX, rectY, rectWidth, rectHeight, gradient, fallbackColor, time);
-        // RenderType.gui() 的模式是 QUADS：必须写 4 个顶点组成一个四边形。
-        // 原来写 6 个顶点（两个三角形）会被解析成 1.5 个四边形 ⇒ 底色缺块 + 斜向横条。
         addColoredVertexWithNormal(consumer, matrix, normal, x1, y1, 0.0F, color1, nx, ny, nz);
-        addColoredVertexWithNormal(consumer, matrix, normal, x2, y1, 0.0F, color4, nx, ny, nz);
-        addColoredVertexWithNormal(consumer, matrix, normal, x2, y2, 0.0F, color3, nx, ny, nz);
         addColoredVertexWithNormal(consumer, matrix, normal, x1, y2, 0.0F, color2, nx, ny, nz);
+        addColoredVertexWithNormal(consumer, matrix, normal, x2, y2, 0.0F, color3, nx, ny, nz);
+        addColoredVertexWithNormal(consumer, matrix, normal, x1, y1, 0.0F, color1, nx, ny, nz);
+        addColoredVertexWithNormal(consumer, matrix, normal, x2, y2, 0.0F, color3, nx, ny, nz);
+        addColoredVertexWithNormal(consumer, matrix, normal, x2, y1, 0.0F, color4, nx, ny, nz);
     }
 
     private static void addRoundedCornerGradientWithConsumer(
@@ -339,7 +345,7 @@ public class RoundedRectRenderer {
         int r = color >> 16 & 0xFF;
         int g = color >> 8 & 0xFF;
         int b = color & 0xFF;
-        consumer.addVertex(matrix, x, y, z).setColor(r, g, b, a).setNormal(nx, ny, nz);
+        consumer.addVertex(matrix, x, y, z).setColor(r, g, b, a);
     }
 
     public static void renderRoundedRectBorder(
