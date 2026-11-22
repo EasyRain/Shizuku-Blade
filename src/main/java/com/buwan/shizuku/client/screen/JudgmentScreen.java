@@ -132,7 +132,7 @@ public final class JudgmentScreen extends Screen {
     private void buildConfigTab() {
         int rowY = configRowsStart();
         int rowHeight = configRowHeight();
-        int controlHeight = Math.max(12, Math.min(18, rowHeight - 6));
+        int controlHeight = Math.max(14, Math.min(22, rowHeight - 5));
         if (rowHeight < 12) {
             return;
         }
@@ -164,7 +164,8 @@ public final class JudgmentScreen extends Screen {
         }
         int stepper = stepperWidth();
         int gap = 6;
-        for (IntSetting setting : CONFIG_INTS) {
+        IntSetting[] intRows = new IntSetting[]{CONFIG_INTS[0], CONFIG_INTS[1], CONFIG_INTS[2], MEOW_STONE};
+        for (IntSetting setting : intRows) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
             addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, controlHeight,
                 Component.literal("+"),
@@ -208,7 +209,12 @@ public final class JudgmentScreen extends Screen {
     }
 
     private int configRowsStart() {
-        return top + HEADER_HEIGHT + (compact ? 26 : 40);
+        return top + HEADER_HEIGHT + (compact ? 16 : 24);
+    }
+
+    /** 配置页没有底部按钮，表格可以一直画到面板底边，多出来的空间给行高。 */
+    private int configAreaBottom() {
+        return top + panelHeight - (compact ? 10 : 14);
     }
 
     private int configRowCount() {
@@ -216,8 +222,8 @@ public final class JudgmentScreen extends Screen {
     }
 
     private int configRowHeight() {
-        int available = footerY - configRowsStart();
-        return Math.max(14, Math.min(28, available / configRowCount()));
+        int available = configAreaBottom() - configRowsStart();
+        return Math.max(14, Math.min(30, available / configRowCount()));
     }
 
     /** 配置页的卡片高度：每行内居中的 22px 卡片会贴边，所以统一按 rowHeight-4 收紧。 */
@@ -295,7 +301,9 @@ public final class JudgmentScreen extends Screen {
             case VISUALS -> "visuals";
             case CONFIG -> "config";
         }), contentX, top + 12, MUTED, false);
-        graphics.fill(contentX, footerY, contentX + contentWidth, footerY + 1, LINE);
+        if (tab != Tab.CONFIG) {
+            graphics.fill(contentX, footerY, contentX + contentWidth, footerY + 1, LINE);
+        }
 
         if (tab == Tab.VISUALS) {
             renderPreview(graphics);
