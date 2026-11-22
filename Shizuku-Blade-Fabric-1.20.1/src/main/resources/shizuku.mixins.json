@@ -24,7 +24,9 @@
     "ServerLevelAccessor",
     "SynchedEntityDataAccessor",
     "TrackedEntityAccessor",
-    "TransientEntitySectionManagerAccessor"
+    "TransientEntitySectionManagerAccessor",
+    "EntityPersistentDataMixin",
+    "BlockEntityPersistentDataMixin"
   ],
   "client": [
     "DriveRendererMixin",

@@ -163,10 +163,19 @@ public class Ymsa {
     public static InteractionResult doYmsaSlash(LivingEntity entityIn) {
         if (entityIn instanceof ServerPlayer player) {
             protectMainHandBlade(player);
+            // 3.8.0：解放（审判）状态下走 overdrive —— 由 JudgmentExecution 接管无敌/假死等特殊血量逻辑
+            boolean overdrive = UnleashedJudgment.isCasting(player) && JudgmentExecution.supported();
+            if (overdrive) {
+                JudgmentExecution.arm();
+            }
             try {
                 performYmsaCast(player);
             } catch (Exception e) {
                 LOGGER.error("[SA] Ymsa 施法异常(已隔离, 服务器继续运行): {}", e.toString());
+            } finally {
+                if (overdrive) {
+                    JudgmentExecution.disarm();
+                }
             }
             return InteractionResult.SUCCESS;
         }
@@ -258,6 +267,9 @@ public class Ymsa {
             return false;
         }
         try {
+            if (JudgmentExecution.armed()) {
+                JudgmentExecution.breakInvulnerability(target);
+            }
             stripAllTotems(target);
             target.setHealth(0.0F);
             stripProtections(target);
@@ -333,6 +345,10 @@ public class Ymsa {
         PENDING_DROPS.put(targetId, Boolean.TRUE);
 
         try {
+            if (JudgmentExecution.armed()) {
+                JudgmentExecution.breakInvulnerability(target);
+                JudgmentExecution.fakeDeathState(target);
+            }
             stripProtections(target);
             target.setLastHurtByMob(player);
             target.hurt(src, KILL_DAMAGE);
