@@ -36,6 +36,8 @@ public final class JudgmentScreen extends Screen {
     private enum Tab { OVERVIEW, VISUALS, CONFIG }
     private Tab tab = Tab.OVERVIEW;
     private boolean compact;
+    private final java.util.List<Integer> boolRowY = new java.util.ArrayList<>();
+    private final java.util.List<String> boolRowKey = new java.util.ArrayList<>();
     private final java.util.List<Integer> intRowY = new java.util.ArrayList<>();
     private final java.util.List<IntSetting> intRowSetting = new java.util.ArrayList<>();
     private long previewAt = -Ymsa.END_TICK * 50L;
@@ -123,48 +125,63 @@ public final class JudgmentScreen extends Screen {
         }
     }
 
-    /** 配置页：客户端三项开关 + 服务端三项数值（单机/集成服务器里可改，多人只读）。 */
+    /**
+     * 配置页：一个圆角框把 6 行包起来、行间用横线分隔（跟「概览」页的表格一致），
+     * 每行左边是名称、右边是控件（开关 / - 值 +）。
+     */
     private void buildConfigTab() {
         int rowY = configRowsStart();
         int rowHeight = configRowHeight();
-        int cardHeight = configCardHeight();
-        if (cardHeight < 12) {
+        int controlHeight = Math.max(12, Math.min(18, rowHeight - 6));
+        if (rowHeight < 12) {
             return;
         }
-        int cardY = rowY + (rowHeight - cardHeight) / 2;
-        addSetting(cardY, cardHeight, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
-        rowY += rowHeight;
-        cardY = rowY + (rowHeight - cardHeight) / 2;
-        addRenderableWidget(new PanelButton(contentX, cardY, contentWidth, cardHeight, unleashLabel(), b -> {
-            JudgmentVisuals.UNLEASHED.set(!JudgmentVisuals.UNLEASHED.get());
-            JudgmentVisuals.UNLEASHED.save();
-            b.setMessage(unleashLabel());
-        }, ButtonStyle.OUTLINE, Icon.NONE)).setTooltip(Tooltip.create(label("power_hint")));
-        rowY += rowHeight;
-        cardY = rowY + (rowHeight - cardHeight) / 2;
-        addRenderableWidget(new PanelButton(contentX, cardY, contentWidth, cardHeight, effectLabel(), b -> {
-            JudgmentVisuals.SCREEN_EFFECT.set(!JudgmentVisuals.SCREEN_EFFECT.get());
-            JudgmentVisuals.SCREEN_EFFECT.save();
-            b.setMessage(effectLabel());
-        }, ButtonStyle.OUTLINE, Icon.NONE)).setTooltip(Tooltip.create(label("effect_label")));
-        rowY += rowHeight;
+
+        // 客户端三项：右侧一个小按钮显示 开/关
+        int toggleWidth = 44;
+        NetToggle[] toggles = new NetToggle[]{
+            new NetToggle("pvp", JudgmentVisuals.DAMAGE_PLAYERS),
+            new NetToggle("power", JudgmentVisuals.UNLEASHED),
+            new NetToggle("effect_label", JudgmentVisuals.SCREEN_EFFECT),
+        };
+        for (NetToggle toggle : toggles) {
+            int controlY = rowY + (rowHeight - controlHeight) / 2;
+            boolean[] state = {toggle.setting().get()};
+            PanelButton button = new PanelButton(contentX + contentWidth - toggleWidth - 10, controlY, toggleWidth,
+                controlHeight, label(state[0] ? "value_on" : "value_off"), b -> {
+                    boolean next = !toggle.setting().get();
+                    toggle.setting().set(next);
+                    toggle.setting().save();
+                    b.setMessage(label(next ? "value_on" : "value_off"));
+                }, ButtonStyle.OUTLINE, Icon.NONE);
+            button.setTooltip(Tooltip.create(label(toggle.key() + "_hint")));
+            addRenderableWidget(button);
+            boolRowY.add(rowY);
+            boolRowKey.add(toggle.key());
+            rowY += rowHeight;
+        }
 
         if (!serverConfigEditable()) {
             return;
         }
         int stepper = stepperWidth();
+        int gap = 6;
         for (IntSetting setting : CONFIG_INTS) {
-            int stepperY = rowY + (rowHeight - cardHeight) / 2;
-            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, cardHeight, Component.literal("\u2212"),
-                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
-            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, cardHeight,
+            int controlY = rowY + (rowHeight - controlHeight) / 2;
+            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, controlHeight,
                 Component.literal("+"),
                 b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
+            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper * 2 - gap, controlY, stepper,
+                controlHeight, Component.literal("\u2212"),
+                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
         }
     }
+
+    /** 配置页里的一行开关。 */
+    private record NetToggle(String key, net.minecraftforge.common.ForgeConfigSpec.ConfigValue<Boolean> setting) {}
 
     /** 配置页里可改的服务端数值（步长与范围跟 ForgeConfigSpec 一致）。 */
     private record IntSetting(String labelKey, int min, int max, int step,
@@ -218,6 +235,8 @@ public final class JudgmentScreen extends Screen {
     private void select(Tab selected) {
         if (tab != selected) {
             tab = selected;
+            boolRowY.clear();
+            boolRowKey.clear();
             intRowY.clear();
             intRowSetting.clear();
             previewAt = -Ymsa.END_TICK * 50L;
@@ -283,20 +302,39 @@ public final class JudgmentScreen extends Screen {
 
     private void renderConfig(GuiGraphics graphics) {
         int rowHeight = configRowHeight();
+        int rows = 6;
+        int boxHeight = rowHeight * rows;
+        int boxY = configRowsStart();
+
+        // 一个圆角框包住所有行，行间用横线分隔（与「概览」页的表格同样的画法）
+        rounded(graphics, contentX, boxY, contentWidth, boxHeight, 6, LINE);
+        rounded(graphics, contentX + 1, boxY + 1, contentWidth - 2, boxHeight - 2, 5, PAPER);
+        for (int i = 1; i < rows; i++) {
+            int y = boxY + rowHeight * i;
+            graphics.fill(contentX + 1, y, contentX + contentWidth - 1, y + 1, LINE);
+        }
+
         int stepper = stepperWidth();
-        for (int i = 0; i < intRowY.size(); i++) {
-            IntSetting setting = intRowSetting.get(i);
-            int y = intRowY.get(i);
-            int value = setting.get().getAsInt();
-            String valueText = Integer.toString(value);
+        int textPad = 10;
+        int i = 0;
+        for (String key : boolRowKey) {
+            int y = boolRowY.get(i++);
             int textY = y + (rowHeight - 8) / 2;
-            graphics.drawString(font, label(setting.labelKey()), contentX + stepper + 6, textY, MUTED, false);
-            graphics.drawString(font, valueText,
-                contentX + contentWidth - stepper - 6 - font.width(valueText), textY, INK, false);
+            graphics.drawString(font, fit(label(key), contentWidth - stepper * 2 - textPad * 2), contentX + textPad, textY, INK, false);
+        }
+        for (int j = 0; j < intRowY.size(); j++) {
+            IntSetting setting = intRowSetting.get(j);
+            int y = intRowY.get(j);
+            int textY = y + (rowHeight - 8) / 2;
+            String valueText = Integer.toString(setting.get().getAsInt());
+            int valueX = contentX + contentWidth - 10 - stepper * 2 - 6 - 6 - font.width(valueText);
+            graphics.drawString(font, fit(label(setting.labelKey()), valueX - contentX - textPad - 8),
+                contentX + textPad, textY, MUTED, false);
+            graphics.drawString(font, valueText, valueX, textY, INK, false);
         }
         if (!serverConfigEditable()) {
-            int y = configRowsStart() + configRowHeight() * 3;
-            graphics.drawString(font, fit(label("server_only"), contentWidth), contentX, y + 2, MUTED, false);
+            int y = boxY + rowHeight * 3 + (rowHeight - 8) / 2;
+            graphics.drawString(font, fit(label("server_only"), contentWidth - textPad * 2), contentX + textPad, y, MUTED, false);
         }
     }
 

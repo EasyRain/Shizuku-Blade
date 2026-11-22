@@ -70,5 +70,6 @@
   "screen.shizuku.judgment.obs_ticks": "Observation ticks",
   "screen.shizuku.judgment.phase_ticks": "Encounter window (ticks)",
   "screen.shizuku.judgment.phase_radius": "Encounter radius (blocks)",
-  "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml)."
-}
+  "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml).",
+  "screen.shizuku.judgment.value_on": "On",
+  "screen.shizuku.judgment.value_off": "Off"}
