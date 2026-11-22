@@ -4,8 +4,7 @@
   "package": "com.buwan.shizuku.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "JudgmentDefenseMixin",
-    "JudgmentMixinAudit"
+    "JudgmentDefenseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

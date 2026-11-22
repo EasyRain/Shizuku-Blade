@@ -1,6 +1,5 @@
 package com.buwan.shizuku.mixin;
 
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -15,19 +14,16 @@ import java.util.function.Consumer;
 public class ItemStackMixin {
 
     /**
-     * 1.20.1 目标签名为 {@code hurtAndBreak(int, LivingEntity, Consumer<LivingEntity>)}；
-     * 1.21.1 已改为 {@code hurtAndBreak(int, ServerLevel, @Nullable LivingEntity, Consumer<Item>)}，
-     * 且存在 ServerPlayer 与 LivingEntity 两个 4 参重载，必须用完整描述符显式指定，
-     * 否则 Mixin 按名字匹配到 ServerPlayer 重载会导致描述符不匹配而崩溃。
+     * 1.20.1 是 3 参版本 {@code hurtAndBreak(int, LivingEntity, Consumer)}；
+     * 4 参（带 ServerLevel）是 1.21.1 才有的，这里必须用 1.20.1 的描述符。
      */
     @Inject(
-            method = "hurtAndBreak(ILnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/LivingEntity;Ljava/util/function/Consumer;)V",
+            method = "hurtAndBreak(ILnet/minecraft/world/entity/LivingEntity;Ljava/util/function/Consumer;)V",
             at = @At("HEAD"),
             cancellable = true,
             require = 0
     )
-    private void onHurtAndBreak(int amount, ServerLevel level, LivingEntity entity, Consumer<Item> onBreak,
-                                CallbackInfo ci) {
+    private void onHurtAndBreak(int amount, LivingEntity entity, Consumer<Item> onBreak, CallbackInfo ci) {
         ItemStack stack = (ItemStack) (Object) this;
 
         try {
