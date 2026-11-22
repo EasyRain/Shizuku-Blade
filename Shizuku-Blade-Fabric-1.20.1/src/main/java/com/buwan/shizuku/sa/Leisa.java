@@ -24,7 +24,7 @@ public class Leisa {
         if (!player.level().isClientSide()) {
             playLeisaSound(player);
             float damage = DAMAGE_SCALE;
-            com.buwan.shizuku.util.SaDebug.log("Leisa", damage);
+            com.buwan.shizuku.util.SaDebug.log("Leisa", damage, player);
             SakuraEnd.doSlash(player, 0.0F, PURPLE_COLOR, new Vec3(0.0, 0.2, 0.0), true, true, damage * 0.8F, KnockBacks.cancel);
             SakuraEnd.doSlash(player, -45.0F, PURPLE_COLOR, new Vec3(0.0, 0.1, 0.0), true, true, damage, KnockBacks.cancel);
             SakuraEnd.doSlash(player, 45.0F, PURPLE_COLOR, new Vec3(0.0, 0.1, 0.0), true, true, damage, KnockBacks.cancel);

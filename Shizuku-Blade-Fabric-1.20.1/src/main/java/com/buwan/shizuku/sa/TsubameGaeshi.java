@@ -28,7 +28,7 @@ public class TsubameGaeshi {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DAMAGE_SCALE;
-                com.buwan.shizuku.util.SaDebug.log("TsubameGaeshi", damage);
+                com.buwan.shizuku.util.SaDebug.log("TsubameGaeshi", damage, entity);
                 int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWALLOW_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.5F, 0.8F);
                 SlashData slashData = new SlashData(damage, colorCode);

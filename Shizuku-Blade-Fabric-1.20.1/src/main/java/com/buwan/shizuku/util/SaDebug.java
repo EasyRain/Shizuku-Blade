@@ -17,4 +17,20 @@ public final class SaDebug {
             LOGGER.info("[sa-damage] {} -> {}", saName, damage);
         }
     }
+
+    /**
+     * 连「攻击力基准」一起打印，方便跨版本对比：
+     * {@code damage} 是倍率，{@code attack} 是当前攻击力，{@code basis = attack × 倍率}。
+     * 两个版本 basis 一样、最终伤害不同 ⇒ 差异在 MC/前置的伤害管线，不在本 mod。
+     */
+    public static void log(String saName, double damage, net.minecraft.world.entity.LivingEntity caster) {
+        if (!ENABLED || caster == null) {
+            log(saName, damage);
+            return;
+        }
+        double attack = caster.getAttributeValue(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+        LOGGER.info("[sa-damage] {} 倍率={} 攻击力={} 基准={}", saName,
+                String.format("%.2f", damage), String.format("%.2f", attack),
+                String.format("%.2f", damage * attack));
+    }
 }

@@ -84,7 +84,7 @@ public class Shizukusa {
                     drive.setSilent(true);
                     float refinedDamage = DamageCalculator.calculateRefinedDamage(playerIn, 1.0F);
                     drive.setDamage(refinedDamage * DAMAGE_SCALE);
-                                com.buwan.shizuku.util.SaDebug.log("Shizukusa", refinedDamage * DAMAGE_SCALE);
+                                com.buwan.shizuku.util.SaDebug.log("Shizukusa", refinedDamage * DAMAGE_SCALE, playerIn);
                 }
             }
 
