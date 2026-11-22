@@ -108,7 +108,7 @@ public final class JudgmentScreen extends Screen {
                 JudgmentVisuals.SCREEN_EFFECT.set(!JudgmentVisuals.SCREEN_EFFECT.get());
                 JudgmentVisuals.SCREEN_EFFECT.save();
                 b.setMessage(effectLabel());
-            }, ButtonStyle.TOGGLE, Icon.NONE)).setTooltip(Tooltip.create(label("effect_label")));
+            }, ButtonStyle.TOGGLE, Icon.NONE)).setTooltip(Tooltip.create(label("effect_label_hint")));
         } else if (tab == Tab.CONFIG) {
             buildConfigTab();
         } else {
