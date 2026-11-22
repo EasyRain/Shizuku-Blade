@@ -172,11 +172,11 @@ public final class JudgmentScreen extends Screen {
         for (IntSetting setting : intRows) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
             addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, stepper,
-                Component.empty(),
-                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.PLUS, Icon.NONE));
+                Component.literal("+"),
+                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.KEYCAP, Icon.NONE));
             addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper * 2 - gap, controlY, stepper,
-                stepper, Component.empty(),
-                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.MINUS, Icon.NONE));
+                stepper, Component.literal("\u2212"),
+                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.KEYCAP, Icon.NONE));
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
@@ -238,7 +238,7 @@ public final class JudgmentScreen extends Screen {
 
     /** 步进按钮的边长：横竖相等（正方形），随行高缩放但不改变比例。 */
     private int stepperSize(int rowHeight) {
-        return Math.max(14, Math.min(22, rowHeight - 6)) & ~1;
+        return Math.max(14, Math.min(18, rowHeight - 6)) & ~1;
     }
 
     /**
@@ -246,7 +246,7 @@ public final class JudgmentScreen extends Screen {
      * 步进按钮用同一数值作边长 ⇒ 任何分辨率下都是正方形，不会被拉成长方形。
      */
     private static int controlHeight(int rowHeight) {
-        return Math.max(14, Math.min(22, rowHeight - 6)) & ~1;
+        return Math.max(14, Math.min(18, rowHeight - 6)) & ~1;
     }
 
     private void addSetting(int y, int height, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
@@ -477,7 +477,7 @@ public final class JudgmentScreen extends Screen {
 
     private enum Icon { CLOSE, KEYBOARD, PLAY, NONE }
 
-    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER, SWITCH, PLUS, MINUS }
+    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER, SWITCH, KEYCAP }
 
     private final class PanelButton extends Button {
         private final ButtonStyle style;
@@ -524,16 +524,12 @@ public final class JudgmentScreen extends Screen {
                 rounded(graphics, x, y, width, height, 5, fill);
             }
 
-            if (style == ButtonStyle.PLUS || style == ButtonStyle.MINUS) {
-                // 自己画 + / −，这样按钮可以是任意正方形（字体在窄按钮里会被裁掉）
-                int arm = Math.max(4, Math.min(width, height) / 2);
-                int thickness = Math.max(1, Math.min(width, height) / 9);
-                int cx = x + width / 2;
-                int cy = y + height / 2;
-                graphics.fill(cx - arm / 2, cy - thickness / 2, cx + (arm + 1) / 2, cy + (thickness + 1) / 2, foreground);
-                if (style == ButtonStyle.PLUS) {
-                    graphics.fill(cx - thickness / 2, cy - arm / 2, cx + (thickness + 1) / 2, cy + (arm + 1) / 2, foreground);
-                }
+            if (style == ButtonStyle.KEYCAP) {
+                // 与「概览」页「面板快捷键 J」完全同一种键帽画法：4px 圆角浅灰底 + 居中文字，无描边
+                rounded(graphics, x, y, width, height, 4, hovered ? 0xFFE7E8EA : HOVER);
+                String glyph = getMessage().getString();
+                int glyphWidth = font.width(glyph);
+                graphics.drawString(font, glyph, x + (width - glyphWidth) / 2, y + (height - 8) / 2, INK, false);
             } else if (style == ButtonStyle.SWITCH) {
                 boolean on = switchState != null && switchState.getAsBoolean();
                 int trackY = y + (height - 12) / 2;
