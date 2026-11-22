@@ -301,6 +301,24 @@ public final class JudgmentScreen extends Screen {
         return super.keyPressed(key, scanCode, modifiers);
     }
 
+    /**
+     * 空覆写背景绘制。
+     *
+     * <p>NeoForge 1.21 的 {@code Screen#renderBackground} 会触发「ESC 菜单同款」的高斯虚化，
+     * 把面板先画的内容糊掉、只剩 widget 清晰。我们的面板自己画底（圆角+分隔线），
+     * 所以这里直接不调用 super。</p>
+     */
+    @Override
+    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // 故意留空
+    }
+
+    /** 同上：关掉 1.21 的背景模糊通道。 */
+    @Override
+    protected void renderBlurredBackground(float partialTick) {
+        // 故意留空
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0x6916181C);
