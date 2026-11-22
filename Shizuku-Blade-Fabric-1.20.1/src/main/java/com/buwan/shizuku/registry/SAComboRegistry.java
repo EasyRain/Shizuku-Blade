@@ -193,17 +193,35 @@ public class SAComboRegistry {
 
     public static final DeferredHolder<ComboState, ComboState> YMSA = COMBO_STATES.register("ymsa",
             ComboState.Builder.newInstance()
-                    .startAndEnd(400, 430)
+                    .startAndEnd(0, Ymsa.RECOVERY_FRAME)
                     .priority(50)
-                    .motionLoc(DefaultResources.ExMotionLocation)
-                    .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
-                    .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
-                            .put(3, (entityIn) -> {
-                                if (entityIn instanceof LivingEntity) {
-                                    Ymsa.doYmsaSlash(entityIn);
-                                }
-                            }).build())
+                    .motionLoc(Ymsa.MOTION)
+                    .next(ComboState.TimeoutNext.buildFromFrame(Ymsa.RECOVERY_FRAME, entity -> SlashBlade.prefix("none")))
+                    .nextOfTimeout(entity -> SlashBlade.prefix("none"))
+                    .addTickAction(entity -> {
+                        // 蓄力（解放）中不重复走审判动作，避免和解放流程打架
+                        if (entity instanceof net.minecraft.server.level.ServerPlayer player
+                                && com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
+                            return;
+                        }
+                        long tick = ComboState.getElapsed(entity);
+                        if (tick == 1) {
+                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
+                                Ymsa.beginJudgment(player);
+                            }
+                        } else if (tick == Ymsa.STRIKE_TICK) {
+                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
+                                Ymsa.openRift(player);
+                            }
+                        } else if (tick == Ymsa.VERDICT_TICK) {
+                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
+                                Ymsa.verdictTick(player);
+                            }
+                            Ymsa.doYmsaSlash(entity);
+                        } else if (tick == Ymsa.SHEATH_TICK) {
+                            AttackManager.playQuickSheathSoundAction(entity);
+                        }
+                    })
                     .releaseAction((user, elapsed) -> {
                         if ((FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT) && user instanceof Player) {
                             com.buwan.shizuku.client.SynthwaveShaderManager.stopShader();

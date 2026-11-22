@@ -22,7 +22,6 @@
     "LivingEntityTickMixin",
     "ServerAddEntityMixin",
     "ServerLevelAccessor",
-    "ServerMaintenanceMixin",
     "SynchedEntityDataAccessor",
     "TrackedEntityAccessor",
     "TransientEntitySectionManagerAccessor"

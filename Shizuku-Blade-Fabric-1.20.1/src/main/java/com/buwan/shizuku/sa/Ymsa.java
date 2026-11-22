@@ -60,6 +60,10 @@ public class Ymsa {
 
     private static final double KILL_RADIUS = 256.0;
     // 3.8.0 起审判动画的时序（与 Forge 版保持一致）
+    /** 审判姿态动画（combostate/judgment.vmd）。 */
+    public static final net.minecraft.resources.ResourceLocation MOTION =
+        new net.minecraft.resources.ResourceLocation("shizuku", "combostate/judgment.vmd");
+
     public static final int STRIKE_TICK = 8;
     public static final int RIFT_CLOSED_TICK = 38;
     public static final int VERDICT_TICK = 42;
@@ -77,11 +81,19 @@ public class Ymsa {
     }
 
     public static void openRift(net.minecraft.server.level.ServerPlayer player) {
+        if (UnleashedJudgment.isCasting(player)) {
+            UnleashedVerdicts.get(player.serverLevel().getServer()).lockTargets(player);
+        }
+        protectMainHandBlade(player);
         UnleashedJudgment.notePhase(player, STRIKE_TICK);
+        player.level().playSound(null, player.blockPosition(),
+            net.minecraft.sounds.SoundEvents.TRIDENT_THROW, net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 0.72F);
     }
 
     public static void verdictTick(net.minecraft.server.level.ServerPlayer player) {
         UnleashedJudgment.notePhase(player, VERDICT_TICK);
+        player.level().playSound(null, player.blockPosition(),
+            net.minecraft.sounds.SoundEvents.BELL_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, 1.4F, 0.65F);
     }
 
     public static void clearUnleashedArea(java.util.UUID id) {
@@ -724,6 +736,7 @@ public class Ymsa {
     }
 
     public static void handleServerTickEnd(MinecraftServer server) {
+        UnleashedJudgment.tick(server);
         YmsaLogic.tickCleanups(RESPAWN_TRACKER);
         YmsaLogic.tickTypeSuppression(TYPE_SUPPRESSION);
         processPendingPhysicalRemovals(server);
