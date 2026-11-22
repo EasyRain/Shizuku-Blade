@@ -5,19 +5,18 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
 /**
  * 修复无铭「有名」攻击时的负数附魔等级。
+ *
+ * <p>Fabric 版不再订阅 Forge 的 LivingAttackEvent：由 {@code AttackEntityCallback}
+ * （在 {@code shizuku#init()} 里注册）调用 {@link #onLivingAttack(net.minecraft.world.entity.LivingEntity)}。</p>
  */
-@EventBusSubscriber
 public class BladeDurabilityFix {
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/bladedurabilityfix");
-    @SubscribeEvent
-    public static void onLivingAttack(LivingAttackEvent event) {
-        if (event.getSource().getEntity() instanceof LivingEntity attacker) {
+    /** 攻击者挥击时修一次附魔等级（由 Fabric 的攻击回调传入攻击者）。 */
+    public static void onLivingAttack(LivingEntity attacker) {
+        if (attacker != null) {
             fixBladeEnchantmentLevels(attacker.getMainHandItem());
         }
     }

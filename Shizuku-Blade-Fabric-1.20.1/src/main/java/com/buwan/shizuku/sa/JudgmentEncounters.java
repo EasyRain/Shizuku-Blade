@@ -2,11 +2,13 @@ package com.buwan.shizuku.sa;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import com.buwan.shizuku.util.PersistentData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
@@ -18,31 +20,21 @@ import java.util.function.Consumer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.common.capabilities.AutoRegisterCapability;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.event.entity.living.MobSpawnEvent;
-import net.minecraftforge.event.server.ServerStartingEvent;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.registries.ForgeRegistries;
 
 /** A single encounter UUID may be shared by a core, its phases, a summoner and its SavedData owner. */
-@EventBusSubscriber(modid = "shizuku")
 public final class JudgmentEncounters {
     public static final String ENCOUNTER_ID = "shizuku:encounter_id";
 
-    @AutoRegisterCapability
+    /** Fabric 上没有 Forge 的能力系统：实现这个接口的实体/方块就是「遭遇控制器」，用 instanceof 判断。 */
     public interface Controller {
         UUID encounterId();
         /** Release this encounter's bars, phase queue and persistence. Must be idempotent. */
         void finish(ServerLevel level);
     }
 
-    public static final Capability<Controller> CONTROLLER = CapabilityManager.get(new CapabilityToken<>() {});
+    static java.util.Optional<Controller> controller(Object holder) {
+        return holder instanceof Controller controller ? java.util.Optional.of(controller) : java.util.Optional.empty();
+    }
     private static final ClassValue<List<Field>> BARS = new ClassValue<>() {
         @Override protected List<Field> computeValue(Class<?> type) {
             var fields = new ArrayList<Field>();
@@ -87,14 +79,14 @@ public final class JudgmentEncounters {
     }
 
     @Nullable static Adapter adapter(Entity entity) {
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return type == null ? null : ADAPTERS.get(type.getNamespace());
     }
 
     private JudgmentEncounters() {}
 
-    static UUID link(ICapabilityProvider provider, @Nullable CompoundTag data) {
-        var controller = provider.getCapability(CONTROLLER).resolve();
+    static UUID link(Object provider, @Nullable CompoundTag data) {
+        var controller = controller(provider);
         if (controller.isPresent()) return controller.get().encounterId();
         if (provider instanceof Entity entity) {
             Adapter adapter = adapter(entity);
@@ -110,12 +102,12 @@ public final class JudgmentEncounters {
     }
 
     static boolean identifies(Entity entity) {
-        ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (key == null) return false;
         if (entity.getType().is(Ymsa.BOSS_TYPES)) return true;
         Adapter adapter = adapter(entity);
         if (adapter != null && adapter.isBoss(entity)) return true;
-        if (entity.getCapability(CONTROLLER).isPresent() || !BARS.get(entity.getClass()).isEmpty()) return true;
+        if (entity instanceof Controller || !BARS.get(entity.getClass()).isEmpty()) return true;
         if (JudgmentConfig.TYPES.get().contains(key.toString()) || JudgmentConfig.NAMESPACES.get().contains(key.getNamespace())) return true;
         String customName = entity.hasCustomName() && entity.getCustomName() != null ? entity.getCustomName().getString() : "";
         String name = (key.getPath() + " " + entity.getClass().getSimpleName() + " " + customName).toLowerCase(Locale.ROOT);
@@ -125,7 +117,7 @@ public final class JudgmentEncounters {
     static void finishEntity(ServerLevel level, Entity entity) {
         Adapter adapter = adapter(entity);
         if (adapter != null) adapter.finish(level, entity);
-        entity.getCapability(CONTROLLER).ifPresent(c -> c.finish(level));
+        if (entity instanceof Controller controller) controller.finish(level);
         for (Field f : BARS.get(entity.getClass())) {
             try {
                 if (f.get(entity) instanceof ServerBossEvent bar) {
@@ -151,17 +143,18 @@ public final class JudgmentEncounters {
                 if (chunk == null) continue;
                 for (BlockEntity block : List.copyOf(chunk.getBlockEntities().values())) {
                     if (!area.contains(block.getBlockPos().getCenter())) continue;
-                    block.getCapability(CONTROLLER).ifPresent(controller -> {
+                    if (block instanceof Controller controller) {
                         verdicts.recordController(caster, level, controller.encounterId(), block.getBlockPos().getCenter());
                         controller.finish(level);
-                    });
+                    }
                 }
             }
         }
     }
 
-    @SubscribeEvent public static void verifyCompatibility(ServerStartingEvent event) {
-        if (!net.minecraftforge.fml.ModList.get().isLoaded("chaoswither")) return;
+    /** 由 Fabric 的 SERVER_STARTING 调用。 */
+    public static void verifyCompatibility() {
+        if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("chaoswither")) return;
         var log = org.slf4j.LoggerFactory.getLogger("shizuku/judgment");
         for (String target : List.of("net.wzz.chaoswither.utils.ChaosUtil",
                 "lIllIlIIllIIllI.IlIIIlIlllIllIll.lIIIIllIIIIIIIl.IllIIIIIIIllIIIl.IIlIlIlllllIIII")) {
@@ -176,33 +169,36 @@ public final class JudgmentEncounters {
         log.warn("Unrecognized chaoswither controller version; check the installed mod's encounter hooks.");
     }
 
-    @SubscribeEvent public static void onConversion(net.minecraftforge.event.entity.living.LivingConversionEvent.Post event) {
-        if (event.getEntity().level() instanceof ServerLevel level) {
-            UnleashedVerdicts.get(level.getServer()).followConversion(event.getEntity(), event.getOutcome());
+    /** 由生物转化回调调用（Fabric 无 Forge 的 LivingConversionEvent，改由调用方传参）。 */
+    public static void onConversion(net.minecraft.world.entity.Mob entity, net.minecraft.world.entity.Mob outcome) {
+        if (entity.level() instanceof ServerLevel level) {
+            UnleashedVerdicts.get(level.getServer()).followConversion(entity, outcome);
         }
     }
 
-    @SubscribeEvent public static void onSpawn(MobSpawnEvent.FinalizeSpawn event) {
-        var spawner = event.getSpawner();
-        if (spawner == null || !(event.getEntity().level() instanceof ServerLevel level)) return;
-        BlockEntity block = spawner.getSpawnerBlockEntity();
-        Entity cart = spawner.getSpawnerEntity();
-        if (block == null && cart == null) return;
-        CompoundTag data = block != null ? block.getPersistentData() : cart.getPersistentData();
-        UUID source = link(block != null ? block : cart, data);
+    /**
+     * 生成器刷新生物时打遭遇标记（Forge 是 MobSpawnEvent.FinalizeSpawn）。
+     * Fabric 1.20.1 没有等价的 spawn 事件，这里保留方法给将来的 mixin/调用方使用。
+     */
+    public static void onSpawn(ServerLevel level, @Nullable BlockEntity block,
+                               @Nullable Entity summonerEntity, Entity spawned) {
+        if (block == null && summonerEntity == null) return;
+        CompoundTag data = block != null ? PersistentData.of(block) : PersistentData.of(summonerEntity);
+        UUID source = link(block != null ? block : summonerEntity, data);
         if (source == null) {
             source = UUID.randomUUID();
             data.putUUID(ENCOUNTER_ID, source);
             if (block != null) block.setChanged();
         }
-        event.getEntity().getPersistentData().putUUID("shizuku:spawn_source", source);
-        if (UnleashedVerdicts.get(level.getServer()).active(source, level.getServer().overworld().getGameTime()))
-            event.setSpawnCancelled(true);
+        PersistentData.of(spawned).putUUID("shizuku:spawn_source", source);
+        if (UnleashedVerdicts.get(level.getServer()).active(source, level.getServer().overworld().getGameTime())) {
+            spawned.discard();
+        }
     }
 
-    @SubscribeEvent public static void onSummonerUse(PlayerInteractEvent.RightClickItem event) {
-        if (event.getLevel() instanceof ServerLevel level && blockedItem(level, event.getItemStack()))
-            event.setCanceled(true);
+    /** 召唤物物品被右键时若属于「正在被审判」的遭遇则拦下（Fabric 的 UseItemCallback 调用）。 */
+    public static boolean onSummonerUse(ServerLevel level, ItemStack stack) {
+        return blockedItem(level, stack);
     }
 
     static boolean blockedItem(ServerLevel level, ItemStack stack) {
@@ -210,16 +206,14 @@ public final class JudgmentEncounters {
         return id != null && UnleashedVerdicts.get(level.getServer()).active(id, level.getServer().overworld().getGameTime());
     }
 
-    @SubscribeEvent public static void onSummonerBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!(event.getLevel() instanceof ServerLevel level)) return;
-        if (blockedItem(level, event.getItemStack())) {
-            event.setCanceled(true);
-            return;
+    /** 召唤器方块被右键时同样拦下（Fabric 的 UseBlockCallback 调用）。 */
+    public static boolean onSummonerBlock(ServerLevel level, BlockPos pos, ItemStack stack) {
+        if (blockedItem(level, stack)) {
+            return true;
         }
-        var block = level.getBlockEntity(event.getPos());
-        if (block == null) return;
-        UUID id = link(block, block.getPersistentData());
-        if (id != null && UnleashedVerdicts.get(level.getServer()).active(id, level.getServer().overworld().getGameTime()))
-            event.setCanceled(true);
+        var block = level.getBlockEntity(pos);
+        if (block == null) return false;
+        UUID id = link(block, PersistentData.of(block));
+        return id != null && UnleashedVerdicts.get(level.getServer()).active(id, level.getServer().overworld().getGameTime());
     }
 }
