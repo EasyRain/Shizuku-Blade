@@ -73,7 +73,7 @@ public class Shizukusa {
                 EntityDrive drive = Drive.doSlash(playerIn,
                         angle * 0.5f,
                         40,
-                        new Vec3(0, 0.5, 1).scale(0.8 + random.nextFloat() * 0.4),
+                        new Vec3(0.0, 0.5, 0.0).scale(0.8 + random.nextFloat() * 0.4),
                         true,
                         6.0,
                         speed * (0.9f + random.nextFloat() * 0.2f)
