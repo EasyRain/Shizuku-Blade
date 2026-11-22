@@ -40,8 +40,33 @@ public final class JudgmentScreen extends Screen {
     private final java.util.List<IntSetting> intRowSetting = new java.util.ArrayList<>();
     private long previewAt = -Ymsa.END_TICK * 50L;
 
+    /** 从 Mods 列表的「配置」按钮进来时，父界面是 ModListScreen，关闭要回到它。 */
+    private final Screen parent;
+
     public JudgmentScreen() {
+        this(null, false);
+    }
+
+    /** 供 Forge 的 ConfigScreenFactory 使用：直接落在「配置」页签。 */
+    public JudgmentScreen(Screen parent) {
+        this(parent, true);
+    }
+
+    private JudgmentScreen(Screen parent, boolean startOnConfig) {
         super(label("title"));
+        this.parent = parent;
+        if (startOnConfig) {
+            this.tab = Tab.CONFIG;
+        }
+    }
+
+    @Override
+    public void onClose() {
+        if (this.parent != null) {
+            this.minecraft.setScreen(this.parent);
+        } else {
+            super.onClose();
+        }
     }
 
     @Override

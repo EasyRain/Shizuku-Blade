@@ -161,6 +161,12 @@ public class shizuku {
         SOUND_EVENTS.register(modEventBus);
         if (FMLEnvironment.dist.isClient()) {
             ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, JudgmentVisuals.CONFIG);
+            // Mods 列表里的「配置」按钮：注册 Forge 的配置界面扩展点，直接打开我们自己的配置页
+            // （以前没注册 ⇒ 按钮是灰的；Forge 1.20.1 只认这个扩展点，不认 GUI 工厂之类的约定）
+            ModLoadingContext.get().registerExtensionPoint(
+                net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory.class,
+                () -> new net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory(
+                    (mc, parent) -> new com.buwan.shizuku.client.screen.JudgmentScreen(parent)));
             modEventBus.addListener(SynthwaveShaderRegister::registerShaders);
             modEventBus.addListener(CosmicShaders.ModEvents::onRegisterShaders);
             modEventBus.addListener(CosmicShaders.ModEvents::onTextureStitch);
