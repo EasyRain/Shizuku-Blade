@@ -130,7 +130,11 @@ public final class JudgmentScreen extends Screen {
      * 每行左边是名称、右边是控件（开关 / - 值 +）。
      */
     private void buildConfigTab() {
-        int rowY = configRowsStart();
+        boolRowY.clear();
+        boolRowKey.clear();
+        intRowY.clear();
+        intRowSetting.clear();
+        int rowY = configRowsStart() + 1;
         int rowHeight = configRowHeight();
         int controlHeight = Math.max(14, Math.min(22, rowHeight - 5));
         if (rowHeight < 12) {
@@ -318,14 +322,14 @@ public final class JudgmentScreen extends Screen {
     private void renderConfig(GuiGraphics graphics) {
         int rowHeight = configRowHeight();
         int rows = configRowCount();
-        int boxHeight = rowHeight * rows;
         int boxY = configRowsStart();
+        int boxHeight = rowHeight * rows + 2;   // 外框 1px + rows*rowHeight + 外框 1px
 
         // 一个圆角框包住所有行，行间用横线分隔（与「概览」页的表格同样的画法）
         rounded(graphics, contentX, boxY, contentWidth, boxHeight, 6, LINE);
         rounded(graphics, contentX + 1, boxY + 1, contentWidth - 2, boxHeight - 2, 5, PAPER);
         for (int i = 1; i < rows; i++) {
-            int y = boxY + rowHeight * i;
+            int y = boxY + 1 + rowHeight * i;
             graphics.fill(contentX + 1, y, contentX + contentWidth - 1, y + 1, LINE);
         }
 
@@ -348,7 +352,7 @@ public final class JudgmentScreen extends Screen {
             graphics.drawString(font, valueText, valueX, textY, INK, false);
         }
         if (!serverConfigEditable()) {
-            int y = boxY + rowHeight * 3 + (rowHeight - 8) / 2;
+            int y = boxY + 1 + rowHeight * 3 + (rowHeight - 8) / 2;
             graphics.drawString(font, fit(label("server_only"), contentWidth - textPad * 2), contentX + textPad, y, MUTED, false);
         }
     }
