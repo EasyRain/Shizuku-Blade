@@ -80,6 +80,4 @@
   "screen.shizuku.judgment.obs_ticks_hint": "How long (in ticks) a target or encounter is remembered. 24000 ticks = 20 minutes.",
   "screen.shizuku.judgment.phase_ticks_hint": "Window (in ticks) used to link a nearby boss to a cast when it has no encounter id.",
   "screen.shizuku.judgment.phase_radius_hint": "Radius (in blocks) used when linking a nearby boss without an encounter id.",
-  "screen.shizuku.judgment.meow_chance_hint": "Percent chance (0-100) that a hostile mob drops a Meow Stone. 0 disables the drop.",
-  "screen.shizuku.judgment.op_hint": "(server operators only)",
-  "screen.shizuku.judgment.op_only": "(server operators only)"}
+  "screen.shizuku.judgment.meow_chance_hint": "Percent chance (0-100) that a hostile mob drops a Meow Stone. 0 disables the drop."}
