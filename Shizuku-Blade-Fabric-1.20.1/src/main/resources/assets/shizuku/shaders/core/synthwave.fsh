@@ -6,8 +6,6 @@ uniform sampler2D MainDepthSampler;
 uniform mat4 U_InverseProjectionMatrix;
 uniform mat4 U_InverseViewMatrix;
 uniform vec3 U_CameraPosition;
-// 0=完全透明，1=完全不透明：由 SynthwaveShaderManager 按「开启后 200ms 延迟 + 100ms 淡入」设置
-uniform float U_FadeIn;
 
 in vec2 texCoord;
 out vec4 fragColor;
@@ -184,6 +182,5 @@ void main() {
 
     synthColor += scanColor;
 
-    // 延迟 + 淡入：轻点右键时 U_FadeIn 还是 0，画面上完全看不见，只有按住才会渐显
-    fragColor = vec4(synthColor, alphaMask * clamp(U_FadeIn, 0.0, 1.0));
+    fragColor = vec4(synthColor, alphaMask);
 }

@@ -74,8 +74,11 @@ public final class JudgmentVisuals {
     private JudgmentVisuals() {}
 
     /**
-     * Fabric 没有 RegisterShadersEvent：直接用资源管理器按 id 构造 ShaderInstance（与合成波同一种做法），
-     * 第一次渲染时懒加载，失败就置空不再重试。
+     * Fabric 没有 RegisterShadersEvent：直接按名字构造 ShaderInstance（与 cosmic/synthwave 同一种做法）。
+     *
+     * <p>注意 1.20.1 的构造器把参数当作**路径**，会拼成 {@code minecraft:shaders/core/<name>.json}，
+     * 传 {@code "shizuku:judgment_rift"} 会因为 ':' 非法而抛异常（已踩过），
+     * 所以 shader 资源必须放在 {@code assets/minecraft/shaders/core/} 下并只传裸名字。</p>
      */
     private static boolean shadersTried;
     private static boolean shadersFailed;
@@ -91,8 +94,8 @@ public final class JudgmentVisuals {
         shadersTried = true;
         try {
             var resourceManager = Minecraft.getInstance().getResourceManager();
-            shader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_rift").toString(), DefaultVertexFormat.POSITION_TEX);
-            skyShader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_domain").toString(), DefaultVertexFormat.POSITION_TEX);
+            shader = new ShaderInstance(resourceManager, "judgment_rift", DefaultVertexFormat.POSITION_TEX);
+            skyShader = new ShaderInstance(resourceManager, "judgment_domain", DefaultVertexFormat.POSITION_TEX);
         } catch (Exception e) {
             shadersFailed = true;
             shader = null;
