@@ -12,6 +12,23 @@ public final class CosmicBladeRenderer {
     private CosmicBladeRenderer() {
     }
 
+    /** GUI 图标渲染的嵌套计数（快捷栏/背包/JEI 都是 GUI 上下文，需要固定视角）。 */
+    private static int guiItemDepth;
+
+    public static void enterGuiItemRender(boolean guiContext) {
+        if (!guiContext) return;
+        if (guiItemDepth++ == 0) {
+            com.buwan.shizuku.client.shader.CosmicShaders.inventoryRender = true;
+        }
+    }
+
+    public static void exitGuiItemRender(boolean guiContext) {
+        if (!guiContext) return;
+        if (guiItemDepth > 0 && --guiItemDepth == 0) {
+            com.buwan.shizuku.client.shader.CosmicShaders.inventoryRender = false;
+        }
+    }
+
     @SubscribeEvent
     public static void onRenderOverride(RenderOverrideEvent event) {
         ItemStack stack = event.getStack();

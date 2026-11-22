@@ -13,8 +13,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(LivingEntity.class)
 public class LivingEntityDropMixin {
+    /** 1.21 的 dropAllDeathLoot 多了 ServerLevel 参数。 */
     @Inject(method = "dropAllDeathLoot", at = @At("RETURN"), require = 0)
-    private void ymsa$dropsProcessed(DamageSource source, CallbackInfo ci) {
+    private void ymsa$dropsProcessed(net.minecraft.server.level.ServerLevel level, DamageSource source, CallbackInfo ci) {
         Ymsa.handleDropsProcessed((LivingEntity)(Object)this);
     }
 }

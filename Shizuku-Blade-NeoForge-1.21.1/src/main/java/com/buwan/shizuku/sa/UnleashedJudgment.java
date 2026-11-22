@@ -125,17 +125,9 @@ public final class UnleashedJudgment {
             }
             return false;
         }
-        return world.isClientSide && ClientCoverage.contains(world, pos);
+        return world.isClientSide && JudgmentClientFlags.covers(pos.x, pos.y, pos.z);
     }
 
-    private static final class ClientCoverage {
-        static boolean contains(net.minecraft.world.level.Level world, net.minecraft.world.phys.Vec3 pos) {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
-            return player != null && player.level() == world
-                && com.buwan.shizuku.client.JudgmentVisuals.UNLEASHED.get()
-                && player.getBoundingBox().inflate(320).contains(pos);
-        }
-    }
 
     public static void tick(MinecraftServer server) {
         if (uses.isEmpty()) return;

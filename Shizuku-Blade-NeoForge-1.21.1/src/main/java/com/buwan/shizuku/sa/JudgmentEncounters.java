@@ -177,11 +177,12 @@ public final class JudgmentEncounters {
         }
     }
 
-    @SubscribeEvent public static void onSpawn(MobSpawnEvent.FinalizeSpawn event) {
+    @SubscribeEvent public static void onSpawn(net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent event) {
         var spawner = event.getSpawner();
         if (spawner == null || !(event.getEntity().level() instanceof ServerLevel level)) return;
-        BlockEntity block = spawner.getSpawnerBlockEntity();
-        Entity cart = spawner.getSpawnerEntity();
+        // 1.21：FinalizeSpawnEvent#getSpawner 变成 Either<BlockEntity, Entity>
+        BlockEntity block = event.getSpawner().left().orElse(null);
+        Entity cart = event.getSpawner().right().orElse(null);
         if (block == null && cart == null) return;
         CompoundTag data = block != null ? block.getPersistentData() : cart.getPersistentData();
         UUID source = link(block != null ? block : cart, data);

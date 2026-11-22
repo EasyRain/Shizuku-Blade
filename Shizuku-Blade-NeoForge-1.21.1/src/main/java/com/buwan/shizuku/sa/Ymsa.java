@@ -701,7 +701,7 @@ public class Ymsa {
         }
     }
 
-    private static void handleServerTickEnd(MinecraftServer server) {
+    public static void handleServerTickEnd(MinecraftServer server) {
         YmsaLogic.tickCleanups(RESPAWN_TRACKER);
         YmsaLogic.tickTypeSuppression(TYPE_SUPPRESSION);
         processPendingPhysicalRemovals(server);
@@ -782,6 +782,10 @@ public class Ymsa {
     public static void openRift(net.minecraft.server.level.ServerPlayer player) { }
     public static void verdictTick(net.minecraft.server.level.ServerPlayer player) { }
     public static void clearUnleashedArea(java.util.UUID id) { }
+    public static void finishChaosEncounter(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity boss) {
+        if (boss instanceof net.minecraft.world.entity.LivingEntity living) living.setHealth(0.0F);
+    }
+
     public static boolean isChaosWither(net.minecraft.world.entity.Entity entity) {
         var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return key != null && "chaoswither".equals(key.getNamespace());

@@ -83,12 +83,9 @@ public final class JudgmentExecution {
             SynchedEntityData data = target.getEntityData();
             Object map = UnsafeAccess.getObject(data, OFF_ITEMS_BY_ID);
             if (map == null) return false;
-            EntityDataAccessor<Float> healthId = LivingEntityAccessor.shizuku$getDataHealthId();
-            Object item = INT_MAP_GET.invoke(map, healthId.getId());
-            if (item == null) return false;
-            boolean ok = UnsafeAccess.setObject(item, OFF_DATA_VALUE, Float.valueOf(value));
-            UnsafeAccess.fullFence();
-            return ok;
+            // 1.21 移除了 EntityDataAccessor#getId()，这条「直写 SynchedEntityData 内部 map」的路径不可用，
+            // 直接返回 false 让调用方回退到普通 API（setHealth / hurt）。
+            return false;
         } catch (Throwable ignored) {
             return false;
         }

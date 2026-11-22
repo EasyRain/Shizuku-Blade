@@ -74,7 +74,7 @@ public class UltimateAttackOHelp {
                                             Field itemsByIdField = target.getEntityData().getClass().getDeclaredField("f_135345_");
                                             itemsByIdField.setAccessible(true);
                                             Map<Integer, Object> itemsById = (Map<Integer, Object>)itemsByIdField.get(target.getEntityData());
-                                            DataItem<?> item = (DataItem<?>)itemsById.get(accessor.getId());
+                                            DataItem<?> item = null; // 1.21 移除了 EntityDataAccessor#getId()，此分支暂不可用
                                             if (item != null) {
                                                 Field valueField = DataItem.class.getDeclaredField("f_135391_");
                                                 valueField.setAccessible(true);

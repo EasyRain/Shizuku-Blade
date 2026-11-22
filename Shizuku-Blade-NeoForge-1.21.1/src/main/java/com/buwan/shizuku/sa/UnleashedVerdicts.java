@@ -56,8 +56,9 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     static UnleashedVerdicts get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(UnleashedVerdicts::load,
-            UnleashedVerdicts::new, "shizuku_unleashed_verdicts");
+        return server.overworld().getDataStorage().computeIfAbsent(
+            new SavedData.Factory<>(UnleashedVerdicts::new, UnleashedVerdicts::load),
+            "shizuku_unleashed_verdicts");
     }
 
     void record(UUID caster, Entity entity, boolean boss) {
@@ -268,7 +269,7 @@ final class UnleashedVerdicts extends SavedData {
         return new Locks(ids, encounterIds);
     }
 
-    private static UnleashedVerdicts load(CompoundTag root) {
+    private static UnleashedVerdicts load(CompoundTag root, net.minecraft.core.HolderLookup.Provider registries) {
         var data = new UnleashedVerdicts();
         data.casts = root.getCompound("Casts");
         var list = root.getList("Targets", Tag.TAG_COMPOUND);
@@ -285,7 +286,7 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag root) {
+    public CompoundTag save(CompoundTag root, net.minecraft.core.HolderLookup.Provider registries) {
         var list = new ListTag();
         for (var owners : targets.values()) for (Target t : owners) {
             var tag = new CompoundTag();
