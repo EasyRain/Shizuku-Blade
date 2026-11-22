@@ -87,7 +87,7 @@ public final class JudgmentEncounters {
     }
 
     @Nullable static Adapter adapter(Entity entity) {
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         return type == null ? null : ADAPTERS.get(type.getNamespace());
     }
 
@@ -110,7 +110,7 @@ public final class JudgmentEncounters {
     }
 
     static boolean identifies(Entity entity) {
-        ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (key == null) return false;
         if (entity.getType().is(Ymsa.BOSS_TYPES)) return true;
         Adapter adapter = adapter(entity);

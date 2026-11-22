@@ -5,10 +5,10 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class JudgmentConfig {
     public static final ModConfigSpec SPEC;
-    static final ModConfigSpec.IntValue RETENTION, PHASE_WINDOW, RADIUS;
+    static final ModConfigSpec.ConfigValue<Integer> RETENTION, PHASE_WINDOW, RADIUS;
     static final ModConfigSpec.ConfigValue<List<? extends String>> TYPES, NAMESPACES, KEYWORDS, ENCOUNTER_KEYS;
     /** 喵石掉落概率（百分比）。放在同一个 spec 里，因为 Forge 1.20.1 一个 mod 同类型只能有一个默认文件名的配置。 */
-    static final ModConfigSpec.IntValue MEOW_STONE_DROP_PERCENT;
+    static final ModConfigSpec.ConfigValue<Integer> MEOW_STONE_DROP_PERCENT;
 
     static {
         var builder = new ModConfigSpec.Builder();

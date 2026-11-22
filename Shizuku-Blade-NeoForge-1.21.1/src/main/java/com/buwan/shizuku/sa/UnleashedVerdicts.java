@@ -62,7 +62,7 @@ final class UnleashedVerdicts extends SavedData {
 
     void record(UUID caster, Entity entity, boolean boss) {
         var level = (ServerLevel)entity.level();
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (type == null) return;
         add(new Target(caster, entity.getUUID(), level.dimension().location(), type,
             entity.position(), level.getServer().overworld().getGameTime(), boss));
@@ -125,7 +125,7 @@ final class UnleashedVerdicts extends SavedData {
         if (encounter != null && active(encounter, now)) return true;
         if (tag.hasUUID("shizuku:spawn_source") && active(tag.getUUID("shizuku:spawn_source"), now)) return true;
         if (!(entity instanceof LivingEntity living)) return false;
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         for (Target t : encounters.getOrDefault(level.dimension().location(), List.of())) {
             long age = now - t.start;
             if (age >= JudgmentConfig.RETENTION.get() || t.caster.equals(owner) || type == null
@@ -203,7 +203,7 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     private static void appendLock(ListTag list, Entity entity) {
-        var key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (key == null) return;
         var tag = new CompoundTag();
         tag.putUUID("UUID", entity.getUUID());

@@ -45,10 +45,10 @@ import org.joml.Matrix4f;
 
 @EventBusSubscriber(modid = "shizuku", value = Dist.CLIENT)
 public final class JudgmentVisuals {
-    public static final ForgeConfigSpec.ConfigValue<Boolean> SCREEN_EFFECT;
-    public static final ForgeConfigSpec.BooleanValue UNLEASHED;
-    public static final ForgeConfigSpec.BooleanValue DAMAGE_PLAYERS;
-    public static final ForgeConfigSpec CONFIG;
+    public static final ModConfigSpec.ConfigValue<Boolean> SCREEN_EFFECT;
+    public static final ModConfigSpec.BooleanValue UNLEASHED;
+    public static final ModConfigSpec.BooleanValue DAMAGE_PLAYERS;
+    public static final ModConfigSpec CONFIG;
     private static final ItemStack DIAMOND_SWORD = new ItemStack(Items.DIAMOND_SWORD);
     private static final float SWORD_SCALE = 20;
     private static final float DROP_HEIGHT = 25;
@@ -72,7 +72,7 @@ public final class JudgmentVisuals {
     }
 
     static {
-        ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
+        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
         SCREEN_EFFECT = builder.define("judgmentScreenEffect", true);
         UNLEASHED = builder.define("judgmentUnleashed", false);
         DAMAGE_PLAYERS = builder.define("judgmentDamagePlayers", false);

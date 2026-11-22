@@ -41,9 +41,9 @@ public class SAStateManager {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent event) {
-        if (event.side != LogicalSide.CLIENT && event.phase == Phase.START) {
-            Player player = event.player;
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        {
+            Player player = event.getEntity();
             UUID uuid = player.getUUID();
             ResourceLocation currentDimension = player.level().dimension().location();
             ResourceLocation recordedDimension = playerDimensions.get(uuid);

@@ -22,7 +22,7 @@ public final class SuperSteveCompat {
     }
 
     public static boolean isBoss(LivingEntity entity) {
-        return BOSS.equals(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()));
+        return BOSS.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
     }
 
     public static boolean execute(LivingEntity entity) {

@@ -10,7 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.controls.ControlsScreen;
+import net.minecraft.client.gui.screens.options.controls.ControlsScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
@@ -191,7 +191,7 @@ public final class JudgmentScreen extends Screen {
     /** 配置页里的一行开关。 */
     private record NetToggle(String key, net.neoforged.neoforge.common.ModConfigSpec.ConfigValue<Boolean> setting) {}
 
-    /** 配置页里可改的服务端数值（步长与范围跟 ForgeConfigSpec 一致）。 */
+    /** 配置页里可改的服务端数值（步长与范围跟 ModConfigSpec 一致）。 */
     private record IntSetting(String labelKey, int min, int max, int step,
                               java.util.function.IntSupplier get, java.util.function.IntConsumer set) {}
 
