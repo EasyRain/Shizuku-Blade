@@ -14,8 +14,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
-
-@OnlyIn(Dist.CLIENT)
 public class TimeStopScreenEffect {
     private static final TimeStopScreenEffect INSTANCE = new TimeStopScreenEffect();
 

@@ -22,8 +22,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.client.event.TextureAtlasStitchedEvent;
-
-@OnlyIn(Dist.CLIENT)
 public final class CosmicShaders {
 
     /** 10 个星图 sprite 的 UV 矩阵（每个 mat2 两列：u0/v0, u1/v1） */

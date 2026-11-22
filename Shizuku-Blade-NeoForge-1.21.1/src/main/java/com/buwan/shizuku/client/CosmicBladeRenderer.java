@@ -8,8 +8,6 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
-
-@OnlyIn(Dist.CLIENT)
 public final class CosmicBladeRenderer {
     private CosmicBladeRenderer() {
     }

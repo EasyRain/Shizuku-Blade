@@ -12,8 +12,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import org.lwjgl.glfw.GLFW;
-
-@OnlyIn(Dist.CLIENT)
 public final class FieldActivateInput {
     private FieldActivateInput() {
     }

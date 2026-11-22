@@ -21,8 +21,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-@OnlyIn(Dist.CLIENT)
 @Mixin(SlashEffectRenderer.class)
 public abstract class SlashEffectRendererMixin {
     private static final ResourceLocation SLASH_MODEL = ResourceLocation.fromNamespaceAndPath("slashblade", "model/util/slash.obj");

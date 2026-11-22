@@ -21,8 +21,6 @@ import org.joml.Matrix4f;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
-@OnlyIn(Dist.CLIENT)
 public final class GalaxyFieldRenderer {
     private static final Map<UUID, ZoneData> activeZones = new ConcurrentHashMap<>();
 

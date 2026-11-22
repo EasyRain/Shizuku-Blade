@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * 客户端抹除标记集（3.5.0 的 YmsaClientErase）。
  * 服务端广播 YmsaForceRemovePacket 后，客户端将目标 UUID 记录在此，作为渲染/残留实体双保险标记。
  */
-@OnlyIn(Dist.CLIENT)
 public class YmsaClientErase {
 
     private static final Set<UUID> ERASED = ConcurrentHashMap.newKeySet();

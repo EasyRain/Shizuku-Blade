@@ -2,8 +2,6 @@ package com.buwan.shizuku.client;
 
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-
-@OnlyIn(Dist.CLIENT)
 public class TimeStopShaderManager {
     private static boolean shaderActive = false;
     private static float targetStrength = 0.0F;

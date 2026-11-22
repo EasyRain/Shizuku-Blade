@@ -20,8 +20,6 @@ public class ModMenus {
             "shizuku_craft_table",
             () -> IMenuTypeExtension.create(ShizukuCraftMenu::new)
     );
-
-    @OnlyIn(Dist.CLIENT)
     public static void onClientSetup(RegisterMenuScreensEvent event) {
         event.register(SHIZUKU_CRAFT_TABLE.get(), ShizukuCraftScreen::new);
     }

@@ -134,8 +134,6 @@ public class WorldsFavorite extends SpecialEffect {
     private static boolean hasWorldsFavorite(LivingEntity entity) {
         return hasWorldsFavoriteStatic(entity);
     }
-
-    @OnlyIn(Dist.CLIENT)
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onKeyInput(InputEvent.Key event) {
         Minecraft mc = Minecraft.getInstance();
@@ -157,8 +155,6 @@ public class WorldsFavorite extends SpecialEffect {
             }
         }
     }
-
-    @OnlyIn(Dist.CLIENT)
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onCoordinateShiftTick(ClientTickEvent.Post event) {
         Minecraft mc = Minecraft.getInstance();

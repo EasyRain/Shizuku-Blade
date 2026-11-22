@@ -20,8 +20,6 @@ import org.joml.Matrix4f;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-
-@OnlyIn(Dist.CLIENT)
 public class TimeStopRenderer {
     private static final TimeStopRenderer INSTANCE = new TimeStopRenderer();
     public static final Map<UUID, TimeStopZoneData> activeZones = new ConcurrentHashMap<>();

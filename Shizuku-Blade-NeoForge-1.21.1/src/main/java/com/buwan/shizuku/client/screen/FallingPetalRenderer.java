@@ -19,7 +19,6 @@ import java.util.Random;
 /**
  * 雫工作台 GUI 背景的飘落花瓣动画（1.21.1 移植）。
  */
-@OnlyIn(Dist.CLIENT)
 public class FallingPetalRenderer {
 
     private static final Random RNG = new Random();

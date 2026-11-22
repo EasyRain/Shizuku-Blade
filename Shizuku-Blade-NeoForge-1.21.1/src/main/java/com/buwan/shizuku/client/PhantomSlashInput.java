@@ -13,8 +13,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
-
-@OnlyIn(Dist.CLIENT)
 public final class PhantomSlashInput {
     private PhantomSlashInput() {
     }

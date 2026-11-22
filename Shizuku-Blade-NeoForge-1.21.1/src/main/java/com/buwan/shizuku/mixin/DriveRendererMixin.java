@@ -20,8 +20,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-@OnlyIn(Dist.CLIENT)
 @Mixin(DriveRenderer.class)
 public abstract class DriveRendererMixin {
     private static final ResourceLocation DAOGUANG_MODEL = ResourceLocation.fromNamespaceAndPath("shizuku", "model/util/daoguang.obj");
