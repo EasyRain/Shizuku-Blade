@@ -24,10 +24,15 @@ public final class UnleashedJudgment {
     private static final Set<UUID> damagePlayers = new HashSet<>();
     /** 广播审判阶段给附近客户端（Fabric 版：发 JudgmentImpactPacket 触发动画）。 */
     static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick) {
+        notePhase(player, phaseTick, player == null ? 0.0F : player.getYRot(), player == null ? 0.0F : player.getXRot());
+    }
+
+    /** 用指定朝向发包（审判期间锁定施法时的朝向，避免落剑跟着鼠标跑）。 */
+    static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick, float yaw, float pitch) {
         if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
         if (phaseTick == 1) return;
         com.buwan.shizuku.network.PacketHandler.sendToNearby(
-            com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick),
+            com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick, yaw, pitch),
             player, Ymsa.DOMAIN_RADIUS * 2.5);
     }
 

@@ -17,9 +17,19 @@ public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, V
     public static final ResourceLocation ID = new ResourceLocation("shizuku", "judgment_impact");
 
     public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick) {
+        return from(player, phaseTick, player.getYRot(), player.getXRot());
+    }
+
+    /**
+     * 用指定的朝向构造包。
+     *
+     * <p>审判的落剑是有延迟的：如果在施法到落剑之间转头，客户端会按「落剑那一刻」的朝向算落点，
+     * 而击杀范围其实在施法时就已经定了（以玩家为中心）——两者就对不上。所以服务端在
+     * {@code beginJudgment} 时把朝向锁定下来，后续阶段都用这份朝向发包。</p>
+     */
+    public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick, float yaw, float pitch) {
         long start = player.level().getGameTime() - phaseTick;
-        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, player.getEyePosition(),
-                player.getYRot(), player.getXRot());
+        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, player.getEyePosition(), yaw, pitch);
     }
 
     @Override

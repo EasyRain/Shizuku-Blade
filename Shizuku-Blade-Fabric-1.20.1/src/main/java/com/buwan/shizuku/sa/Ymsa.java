@@ -75,8 +75,11 @@ public class Ymsa {
 
     // ---- 3.8.0 解放（审判）入口：Fabric 侧先提供占位实现，服务端行为待移植 ----
     private static final java.util.Map<java.util.UUID, Long> UNLEASHED_UNTIL = new java.util.concurrent.ConcurrentHashMap<>();
+    /** 施法瞬间锁定的朝向（yaw, pitch）：落剑视觉与击杀范围都按这一刻来，避免落剑跟着鼠标跑。 */
+    private static final java.util.Map<java.util.UUID, float[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
+        AIM.put(player.getUUID(), new float[]{player.getYRot(), player.getXRot()});
         UnleashedJudgment.notePhase(player, 1);
     }
 
@@ -85,18 +88,29 @@ public class Ymsa {
             UnleashedVerdicts.get(player.serverLevel().getServer()).lockTargets(player);
         }
         protectMainHandBlade(player);
-        UnleashedJudgment.notePhase(player, STRIKE_TICK);
+        UnleashedJudgment.notePhase(player, STRIKE_TICK, aimYaw(player), aimPitch(player));
         player.level().playSound(null, player.blockPosition(),
             net.minecraft.sounds.SoundEvents.TRIDENT_THROW, net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 0.72F);
     }
 
     public static void verdictTick(net.minecraft.server.level.ServerPlayer player) {
-        UnleashedJudgment.notePhase(player, VERDICT_TICK);
+        UnleashedJudgment.notePhase(player, VERDICT_TICK, aimYaw(player), aimPitch(player));
         player.level().playSound(null, player.blockPosition(),
             net.minecraft.sounds.SoundEvents.BELL_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, 1.4F, 0.65F);
     }
 
+    private static float aimYaw(net.minecraft.server.level.ServerPlayer player) {
+        float[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getYRot() : aim[0];
+    }
+
+    private static float aimPitch(net.minecraft.server.level.ServerPlayer player) {
+        float[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getXRot() : aim[1];
+    }
+
     public static void clearUnleashedArea(java.util.UUID id) {
+        AIM.remove(id);
         UNLEASHED_UNTIL.remove(id);
     }
 
