@@ -57,6 +57,20 @@ import java.util.stream.Stream;
  * 深层实体管理器直删与客户端 accessor mixin 已由 1.21.1 公共 API（removeEntity/discard）替代。
  */
 public class Ymsa {
+    // 3.8.0 起审判动画的时序（与 Forge 版一致）
+    public static final int STRIKE_TICK = 8;
+    public static final int RIFT_CLOSED_TICK = 38;
+    public static final int VERDICT_TICK = 42;
+    public static final int DOMAIN_RADIUS = 128;
+    public static final int SHEATH_TICK = 54;
+    public static final int END_TICK = 60;
+    public static final int RECOVERY_FRAME = END_TICK * 3 / 2;
+    public static final net.minecraft.resources.ResourceLocation MOTION =
+        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("shizuku", "combostate/judgment.vmd");
+    static final net.minecraft.tags.TagKey<net.minecraft.world.entity.EntityType<?>> BOSS_TYPES =
+        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE,
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("shizuku", "judgment_bosses"));
+
 
     private static final double KILL_RADIUS = 256.0;
     private static final float KILL_DAMAGE = Float.MAX_VALUE;
@@ -763,4 +777,18 @@ public class Ymsa {
         boolean forcedDrops;
         boolean annihilated;
     }
+
+    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) { }
+    public static void openRift(net.minecraft.server.level.ServerPlayer player) { }
+    public static void verdictTick(net.minecraft.server.level.ServerPlayer player) { }
+    public static void clearUnleashedArea(java.util.UUID id) { }
+    public static boolean isChaosWither(net.minecraft.world.entity.Entity entity) {
+        var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        return key != null && "chaoswither".equals(key.getNamespace());
+    }
+    public static boolean isUnleashedBoss(net.minecraft.world.entity.LivingEntity entity) {
+        return isChaosWither(entity) || entity.getType().is(BOSS_TYPES);
+    }
+    public static boolean blocksChaosSpawn(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 pos) { return false; }
+    public static boolean blocksUnleashedJoin(net.minecraft.world.entity.Entity entity) { return false; }
 }

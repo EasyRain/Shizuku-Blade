@@ -29,8 +29,8 @@ public class EntityRenderDispatcherMixin {
         int packedLight,
         CallbackInfo ci
     ) {
-        YmsaRenderKiller.reassert((EntityRenderDispatcher)(Object)this);
-        if (YmsaClientErase.isErased(entity)) {
+        
+        if (YmsaClientErase.isErased(entity.getUUID())) {
             ci.cancel();
         }
     }

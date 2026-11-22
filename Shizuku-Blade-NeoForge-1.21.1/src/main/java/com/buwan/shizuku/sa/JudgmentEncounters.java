@@ -22,7 +22,7 @@ import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.Mod.EventBusSubscriber;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 /** A single encounter UUID may be shared by a core, its phases, a summoner and its SavedData owner. */
@@ -201,7 +201,7 @@ public final class JudgmentEncounters {
     }
 
     static boolean blockedItem(ServerLevel level, ItemStack stack) {
-        UUID id = link(stack, stack.getTag());
+        UUID id = link(stack, com.buwan.shizuku.util.ItemNbt.get(stack));
         return id != null && UnleashedVerdicts.get(level.getServer()).active(id, level.getServer().overworld().getGameTime());
     }
 

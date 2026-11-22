@@ -34,12 +34,12 @@ public class UnleashedInputMixin {
         if (shizuku$connection == null || mc.player == null) return;
         boolean damagePlayers = JudgmentVisuals.DAMAGE_PLAYERS.get();
         if (damagePlayers != shizuku$damagePlayers) {
-            PacketHandler.INSTANCE.sendToServer(new UnleashedInputPacket(damagePlayers ? Action.DAMAGE_PLAYERS_ON : Action.DAMAGE_PLAYERS_OFF));
+            PacketHandler.sendToServer(new UnleashedInputPacket(damagePlayers ? Action.DAMAGE_PLAYERS_ON : Action.DAMAGE_PLAYERS_OFF));
             shizuku$damagePlayers = damagePlayers;
         }
         boolean enabled = JudgmentVisuals.UNLEASHED.get();
         if (enabled != shizuku$enabled) {
-            PacketHandler.INSTANCE.sendToServer(new UnleashedInputPacket(enabled ? Action.ENABLE : Action.DISABLE));
+            PacketHandler.sendToServer(new UnleashedInputPacket(enabled ? Action.ENABLE : Action.DISABLE));
             shizuku$enabled = enabled;
         }
         boolean eligible = enabled && mc.screen == null && mc.isWindowActive() && !mc.isPaused()
@@ -51,7 +51,7 @@ public class UnleashedInputMixin {
             : key.getType() == InputConstants.Type.KEYSYM && key.getValue() >= 0
                 ? InputConstants.isKeyDown(window, key.getValue()) : mc.options.keyUse.isDown());
         if (down != shizuku$held) {
-            PacketHandler.INSTANCE.sendToServer(new UnleashedInputPacket(down ? Action.PRESS : eligible ? Action.RELEASE : Action.CANCEL));
+            PacketHandler.sendToServer(new UnleashedInputPacket(down ? Action.PRESS : eligible ? Action.RELEASE : Action.CANCEL));
             shizuku$held = down;
         }
     }

@@ -57,9 +57,9 @@ public final class UnleashedJudgment {
             }
             enabled.add(id);
             var blade = player.getMainHandItem();
-            if (!uses.containsKey(id) && isBlade(blade) && blade.hasTag() && blade.getTag().hasUUID("shizuku:cast_blade")) {
+            if (!uses.containsKey(id) && isBlade(blade) && com.buwan.shizuku.util.ItemNbt.has(blade) && com.buwan.shizuku.util.ItemNbt.get(blade).hasUUID("shizuku:cast_blade")) {
                 var data = UnleashedVerdicts.get(player.serverLevel().getServer());
-                int age = data.savedAge(id, blade.getTag().getUUID("shizuku:cast_blade"));
+                int age = data.savedAge(id, com.buwan.shizuku.util.ItemNbt.get(blade).getUUID("shizuku:cast_blade"));
                 if (age >= 0 && age < Ymsa.END_TICK && player.isAlive() && !player.isSpectator())
                     uses.put(id, new Use(player, blade, player.serverLevel().getServer().overworld().getGameTime() - age, true));
             }
@@ -89,7 +89,7 @@ public final class UnleashedJudgment {
             if (use.player != player || use.blade != blade) return;
             BladeStateAccess.of(blade).ifPresent(state -> {
                 if (now - use.start < state.getFullChargeTicks(player)) return;
-                var tag = blade.getOrCreateTag();
+                var tag = com.buwan.shizuku.util.ItemNbt.edit(blade, t -> {});
                 if (!tag.hasUUID("shizuku:cast_blade")) tag.putUUID("shizuku:cast_blade", UUID.randomUUID());
                 UnleashedVerdicts.get(player.serverLevel().getServer()).beginCast(id, tag.getUUID("shizuku:cast_blade"));
                 uses.put(id, new Use(player, blade, now, true));

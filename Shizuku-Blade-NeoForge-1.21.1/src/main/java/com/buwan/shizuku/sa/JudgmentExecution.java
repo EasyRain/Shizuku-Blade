@@ -83,7 +83,7 @@ public final class JudgmentExecution {
             SynchedEntityData data = target.getEntityData();
             Object map = UnsafeAccess.getObject(data, OFF_ITEMS_BY_ID);
             if (map == null) return false;
-            EntityDataAccessor<Float> healthId = LivingEntityAccessor.ymsa$getDataHealthId();
+            EntityDataAccessor<Float> healthId = LivingEntityAccessor.shizuku$getDataHealthId();
             Object item = INT_MAP_GET.invoke(map, healthId.getId());
             if (item == null) return false;
             boolean ok = UnsafeAccess.setObject(item, OFF_DATA_VALUE, Float.valueOf(value));

@@ -255,8 +255,8 @@ final class UnleashedVerdicts extends SavedData {
             var t = locked.getCompound(i);
             UUID uuid = t.getUUID("UUID");
             var position = new Vec3(t.getDouble("X"), t.getDouble("Y"), t.getDouble("Z"));
-            add(new Target(player.getUUID(), uuid, new ResourceLocation(t.getString("Dimension")),
-                new ResourceLocation(t.getString("Type")), position, now, true));
+            add(new Target(player.getUUID(), uuid, ResourceLocation.parse(t.getString("Dimension")),
+                ResourceLocation.parse(t.getString("Type")), position, now, true));
             if (t.hasUUID("Encounter")) {
                 encounterIds.add(t.getUUID("Encounter"));
                 recordController(player.getUUID(), player.serverLevel(), t.getUUID("Encounter"), position);

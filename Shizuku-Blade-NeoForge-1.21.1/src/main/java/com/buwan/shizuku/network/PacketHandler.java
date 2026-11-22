@@ -21,6 +21,9 @@ public class PacketHandler {
         // 3.6.0：星河领域开关（C2S）
         // 注意：PhantomSlashPacket/PhantomSlashInput 为原作者取消左键幻影斩后遗留的代码，原版不注册，这里保持一致
         registrar.playToServer(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC, FieldActivatePacket::handle);
+        // 3.8.0：审判落剑（S2C）与解放输入（C2S）
+        registrar.playToClient(JudgmentImpactPacket.TYPE, JudgmentImpactPacket.STREAM_CODEC, JudgmentImpactPacket::handle);
+        registrar.playToServer(UnleashedInputPacket.TYPE, UnleashedInputPacket.STREAM_CODEC, UnleashedInputPacket::handle);
     }
 
     public static void sendToServer(Object packet) {
