@@ -228,12 +228,7 @@ public class Ymsa {
             }
         }
 
-        int playersKilled = 0;
-        for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, area, e -> e != player)) {
-            if (killPlayerTarget(other, player, level)) {
-                playersKilled++;
-            }
-        }
+        int playersKilled = damageNearbyPlayers(player, area);
 
         int projectilesCleared = clearHostileProjectiles(level, area);
         int objectsCleared = sweepBossObjects(player, level);
@@ -260,6 +255,26 @@ public class Ymsa {
             }
         }
         return cleared;
+    }
+
+    /**
+     * 对范围内允许交战的玩家造成伤害（对应上游 3.8.0 的同名方法）。
+     *
+     * <p>玩家**不进入**审判处决流程（{@link #shouldKill} 对玩家恒 false），
+     * 这里的 PvP 伤害只在「伤害玩家」开关打开时、经由审判专属伤害源单独结算。</p>
+     */
+    static int damageNearbyPlayers(ServerPlayer caster, AABB area) {
+        if (!UnleashedJudgment.canDamagePlayers(caster)) return 0;
+        ServerLevel level = caster.serverLevel();
+        DamageSource source = ymsaKillSource(level, caster);
+        if (source.getEntity() == null) source = level.damageSources().playerAttack(caster);
+        int killed = 0;
+        for (ServerPlayer target : level.getEntitiesOfClass(ServerPlayer.class, area,
+                player -> player != caster && player.isAlive())) {
+            if (!caster.canHarmPlayer(target) || UnleashedJudgment.isCasting(target)) continue;
+            if (target.hurt(source, KILL_DAMAGE) && target.isDeadOrDying()) killed++;
+        }
+        return killed;
     }
 
     private static boolean killPlayerTarget(ServerPlayer target, ServerPlayer attacker, ServerLevel level) {

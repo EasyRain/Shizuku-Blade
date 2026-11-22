@@ -1,6 +1,5 @@
 package com.buwan.shizuku.sa;
 
-import com.buwan.shizuku.util.DamageCalculator;
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
@@ -19,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TsubameGaeshi {
+    private static final float DAMAGE_SCALE = 1.60F;
     private static final int SWALLOW_COLOR = 4286945;
     private static final int SLASH_INTERVAL = 6;
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
@@ -27,7 +27,7 @@ public class TsubameGaeshi {
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
-                float damage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
+                float damage = DAMAGE_SCALE;
                 int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(SWALLOW_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.5F, 0.8F);
                 SlashData slashData = new SlashData(damage, colorCode);

@@ -59,7 +59,7 @@
   "screen.shizuku.judgment.power_on": "解放能力(慎开) 开",
   "screen.shizuku.judgment.power_off": "解放能力(慎开) 关",
   "screen.shizuku.judgment.pvp": "伤害玩家",
-  "screen.shizuku.judgment.pvp_hint": "落剑时攻击范围内允许交战的其他玩家。遵守服务器 PvP 与队伍友伤设置。",
+  "screen.shizuku.judgment.pvp_hint": "落剑时处决范围内允许交战的玩家，包括创造和旁观模式。遵守服务器 PvP 与队伍友伤设置。",
   "screen.shizuku.judgment.setting_on": "%s　开",
   "screen.shizuku.judgment.setting_off": "%s　关",
   "screen.shizuku.judgment.power_hint": "主手持无铭「有名」，蓄满后松开使用键。解放审判覆盖 512 格，玩家伤害由独立开关控制。仅服务器 OP 可开启。",

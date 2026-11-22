@@ -1,6 +1,5 @@
 package com.buwan.shizuku.sa;
 
-import com.buwan.shizuku.util.DamageCalculator;
 import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState;
 import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
@@ -19,6 +18,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MoonlightSlash {
+    private static final float DAMAGE_SCALE = 1.60F;
     private static final int MOONLIGHT_COLOR = 14743295;
     private static final int SLASH_INTERVAL = 8;
     private static final Map<UUID, SlashData> activeSlashes = new ConcurrentHashMap<>();
@@ -27,7 +27,7 @@ public class MoonlightSlash {
         if (!entity.level().isClientSide()) {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
-                float damage = DamageCalculator.calculateRefinedDamage(entity, 1.0F);
+                float damage = DAMAGE_SCALE;
                 int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(MOONLIGHT_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.3F);
                 SlashData slashData = new SlashData(damage, colorCode);

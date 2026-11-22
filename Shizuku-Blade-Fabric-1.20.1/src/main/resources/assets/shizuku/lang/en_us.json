@@ -59,7 +59,7 @@
   "screen.shizuku.judgment.power_on": "Unleash power (caution) on",
   "screen.shizuku.judgment.power_off": "Unleash power (caution) off",
   "screen.shizuku.judgment.pvp": "Damage players",
-  "screen.shizuku.judgment.pvp_hint": "Strike eligible players when the sword lands. Server PvP and team friendly-fire rules apply.",
+  "screen.shizuku.judgment.pvp_hint": "Execute eligible players when the sword lands, including Creative and Spectator players. Server PvP and team friendly-fire rules apply.",
   "screen.shizuku.judgment.setting_on": "%s · On",
   "screen.shizuku.judgment.setting_off": "%s · Off",
   "screen.shizuku.judgment.power_hint": "Charge and release Use while holding Nameless. Unleashed Judgment reaches 512 blocks. Damage players is a separate setting. Server operators only.",
