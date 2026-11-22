@@ -136,7 +136,7 @@ public final class JudgmentScreen extends Screen {
         intRowSetting.clear();
         int rowY = configRowsStart() + 1;
         int rowHeight = configRowHeight();
-        int controlHeight = Math.max(14, Math.min(22, rowHeight - 5));
+        int controlHeight = controlHeight(rowHeight);
         if (rowHeight < 12) {
             return;
         }
@@ -227,7 +227,8 @@ public final class JudgmentScreen extends Screen {
 
     private int configRowHeight() {
         int available = configAreaBottom() - configRowsStart();
-        return Math.max(14, Math.min(30, available / configRowCount()));
+        int raw = Math.max(18, Math.min(30, available / configRowCount()));
+        return raw & ~1;   // 取偶数：控件高度也是偶数时，上下留白才会完全相等
     }
 
     /** 配置页的卡片高度：每行内居中的 22px 卡片会贴边，所以统一按 rowHeight-4 收紧。 */
@@ -235,9 +236,22 @@ public final class JudgmentScreen extends Screen {
         return Math.max(14, configRowHeight() - 4);
     }
 
-    /** 步进按钮的边长（要够宽才放得下 + / -：PanelButton 会把文字按 width-16 截断）。 */
+    /** 步进按钮宽度：固定值，不随窗口/分辨率变化（太长会显得笨重）。 */
     private int stepperWidth() {
-        return compact ? 24 : 28;
+        return 26;
+    }
+
+    /**
+     * 控件高度：默认固定 {@link #CONTROL_HEIGHT}，不随分辨率拉伸；
+     * 只有行高不足（窗口太小）时才退回「行高-6」，保证还能塞得下。
+     */
+    private static final int CONTROL_HEIGHT = 18;
+
+    private static int controlHeight(int rowHeight) {
+        if (rowHeight - CONTROL_HEIGHT >= 6) {
+            return CONTROL_HEIGHT;
+        }
+        return Math.max(10, (rowHeight - 6)) & ~1;
     }
 
     private void addSetting(int y, int height, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
