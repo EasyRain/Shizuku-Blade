@@ -166,17 +166,17 @@ public final class JudgmentScreen extends Screen {
         if (!serverConfigEditable()) {
             return;
         }
-        int stepper = stepperWidth();
+        int stepper = stepperSize(rowHeight);
         int gap = 6;
         IntSetting[] intRows = new IntSetting[]{CONFIG_INTS[0], CONFIG_INTS[1], CONFIG_INTS[2], MEOW_STONE};
         for (IntSetting setting : intRows) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
-            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, controlHeight,
-                Component.literal("+"),
-                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
+            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, stepper,
+                Component.empty(),
+                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.PLUS, Icon.NONE));
             addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper * 2 - gap, controlY, stepper,
-                controlHeight, Component.literal("\u2212"),
-                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
+                stepper, Component.empty(),
+                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.MINUS, Icon.NONE));
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
@@ -236,22 +236,17 @@ public final class JudgmentScreen extends Screen {
         return Math.max(14, configRowHeight() - 4);
     }
 
-    /** 步进按钮宽度：固定值，不随窗口/分辨率变化（太长会显得笨重）。 */
-    private int stepperWidth() {
-        return 26;
+    /** 步进按钮的边长：横竖相等（正方形），随行高缩放但不改变比例。 */
+    private int stepperSize(int rowHeight) {
+        return Math.max(14, Math.min(22, rowHeight - 6)) & ~1;
     }
 
     /**
-     * 控件高度：默认固定 {@link #CONTROL_HEIGHT}，不随分辨率拉伸；
-     * 只有行高不足（窗口太小）时才退回「行高-6」，保证还能塞得下。
+     * 控件高度：跟着行高走但保持偶数，且比行高小 6（描边 1px 之外上下各 2px）。
+     * 步进按钮用同一数值作边长 ⇒ 任何分辨率下都是正方形，不会被拉成长方形。
      */
-    private static final int CONTROL_HEIGHT = 18;
-
     private static int controlHeight(int rowHeight) {
-        if (rowHeight - CONTROL_HEIGHT >= 6) {
-            return CONTROL_HEIGHT;
-        }
-        return Math.max(10, (rowHeight - 6)) & ~1;
+        return Math.max(14, Math.min(22, rowHeight - 6)) & ~1;
     }
 
     private void addSetting(int y, int height, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
@@ -347,7 +342,7 @@ public final class JudgmentScreen extends Screen {
             graphics.fill(contentX + 1, y, contentX + contentWidth - 1, y + 1, LINE);
         }
 
-        int stepper = stepperWidth();
+        int stepper = stepperSize(rowHeight);
         int textPad = 10;
         int i = 0;
         for (String key : boolRowKey) {
@@ -482,7 +477,7 @@ public final class JudgmentScreen extends Screen {
 
     private enum Icon { CLOSE, KEYBOARD, PLAY, NONE }
 
-    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER, SWITCH }
+    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER, SWITCH, PLUS, MINUS }
 
     private final class PanelButton extends Button {
         private final ButtonStyle style;
@@ -529,7 +524,17 @@ public final class JudgmentScreen extends Screen {
                 rounded(graphics, x, y, width, height, 5, fill);
             }
 
-            if (style == ButtonStyle.SWITCH) {
+            if (style == ButtonStyle.PLUS || style == ButtonStyle.MINUS) {
+                // 自己画 + / −，这样按钮可以是任意正方形（字体在窄按钮里会被裁掉）
+                int arm = Math.max(4, Math.min(width, height) / 2);
+                int thickness = Math.max(1, Math.min(width, height) / 9);
+                int cx = x + width / 2;
+                int cy = y + height / 2;
+                graphics.fill(cx - arm / 2, cy - thickness / 2, cx + (arm + 1) / 2, cy + (thickness + 1) / 2, foreground);
+                if (style == ButtonStyle.PLUS) {
+                    graphics.fill(cx - thickness / 2, cy - arm / 2, cx + (thickness + 1) / 2, cy + (arm + 1) / 2, foreground);
+                }
+            } else if (style == ButtonStyle.SWITCH) {
                 boolean on = switchState != null && switchState.getAsBoolean();
                 int trackY = y + (height - 12) / 2;
                 int trackX = x + (width - 22) / 2;
