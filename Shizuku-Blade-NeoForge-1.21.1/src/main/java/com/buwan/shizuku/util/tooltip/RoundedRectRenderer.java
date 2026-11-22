@@ -1,24 +1,29 @@
 package com.buwan.shizuku.util.tooltip;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
 import org.joml.Matrix4f;
 import org.joml.Vector4i;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * 圆角矩形绘制（1.20.1）—— 与原版一致的多边形实现。
+ * 圆角矩形绘制（1.21 版）。
  *
- * <p>用 {@code graphics.bufferSource().getBuffer(RenderType.gui())} 直接写顶点：
- * 圆角由若干段圆弧点组成凸多边形，填充走「中心三角扇」，描边走「外圈点 − 内圈点」的四边形环。
- * 因为边界是真实的斜线段，圆角是**光滑的多边形弧**，而不是逐行扫描线的整数台阶，
- * 所以观感与原版一致。</p>
+ * <p><b>为什么不用 {@code graphics.bufferSource().getBuffer(RenderType.gui())}：</b>
+ * {@code RenderType.gui()} 的顶点模式是 <b>QUADS</b>（每 4 个顶点一个四边形），
+ * 而圆角扇/环天然是三角形（每 3 个顶点）。把三角形顶点塞进 QUADS 会被解析错位，
+ * 表现就是「底色缺块 + 一条斜的横条」（1.21 端口曾经的老 bug）。</p>
  *
- * <p>注意：1.20.1 的 {@code BufferBuilder} 必须调用 {@code endVertex()} 才算提交顶点；
- * 1.21 起改为 {@code addVertex(...).setColor(...)}（本文件就是 1.21 版）。</p>
+ * <p>所以这里照原版 Forge 的做法：**自建 BufferBuilder 并显式声明 {@code Mode.TRIANGLES}**，
+ * 用 {@code position_color} shader 直接上传绘制。顶点数与模式严格一致，几何不会错位。</p>
  */
 public final class RoundedRectRenderer {
 
@@ -36,10 +41,7 @@ public final class RoundedRectRenderer {
         return Math.min(MAX_SEGMENTS, Math.max(MIN_SEGMENTS, segments));
     }
 
-    /**
-     * 圆角矩形的边界点（顺时针，从左上角圆弧起点开始）。
-     * 相邻圆弧之间自动形成直线段，因此只需按顺序连接即可得到完整轮廓。
-     */
+    /** 圆角矩形的边界点（顺时针，从左上角圆弧起点开始）。 */
     private static List<float[]> boundary(float x, float y, float w, float h,
                                           float tl, float tr, float br, float bl, int n) {
         float maxR = Math.min(w, h) / 2.0F;
@@ -64,28 +66,28 @@ public final class RoundedRectRenderer {
         }
     }
 
-    /** 四边形写入（四个顶点，逆时针/顺时针均可，RenderType 已关闭剔除）。 */
-    private static void quad(VertexConsumer vc, Matrix4f m,
-                             float x0, float y0, float x1, float y1,
-                             float x2, float y2, float x3, float y3, int color) {
-        int r = color >> 16 & 0xFF;
-        int g = color >> 8 & 0xFF;
-        int b = color & 0xFF;
-        int a = color >>> 24;
-        vc.addVertex(m, x0, y0, 0.0F).setColor(r, g, b, a);
-        vc.addVertex(m, x1, y1, 0.0F).setColor(r, g, b, a);
-        vc.addVertex(m, x2, y2, 0.0F).setColor(r, g, b, a);
-        vc.addVertex(m, x3, y3, 0.0F).setColor(r, g, b, a);
+    private static void vertex(BufferBuilder b, Matrix4f m, float x, float y, int argb) {
+        b.addVertex(m, x, y, 0.0F).setColor(argb >> 16 & 0xFF, argb >> 8 & 0xFF, argb & 0xFF, argb >>> 24);
     }
 
-    /** 凸多边形填充：以中心点为扇心。 */
+    /** 自建 TRIANGLES 缓冲区并立即绘制（与 Forge 端实现一致）。 */
+    private static void draw(GuiGraphics graphics, int color, java.util.function.Consumer<BufferBuilder> emitter) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        Matrix4f m = graphics.pose().last().pose();
+        BufferBuilder builder = Tesselator.getInstance().begin(Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+        emitter.accept(builder);
+        BufferUploader.drawWithShader(builder.buildOrThrow());
+        RenderSystem.disableBlend();
+    }
+
+    /** 凸多边形填充：以中心点为扇心，每个三角形用 3 个顶点。 */
     private static void fillPolygon(GuiGraphics graphics, List<float[]> pts, int color) {
         int n = pts.size();
         if (n < 3) {
             return;
         }
-        Matrix4f m = graphics.pose().last().pose();
-        VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
         float cx = 0.0F;
         float cy = 0.0F;
         for (float[] p : pts) {
@@ -94,29 +96,41 @@ public final class RoundedRectRenderer {
         }
         cx /= (float) n;
         cy /= (float) n;
-        for (int i = 0; i < n; i++) {
-            float[] p0 = pts.get(i);
-            float[] p1 = pts.get((i + 1) % n);
-            // 第四个点与第三个点重合，使第二个三角形退化为零面积（不产生二次混合）
-            quad(vc, m, cx, cy, p0[0], p0[1], p1[0], p1[1], p1[0], p1[1], color);
-        }
+        final float fcx = cx;
+        final float fcy = cy;
+        draw(graphics, color, b -> {
+            Matrix4f m = graphics.pose().last().pose();
+            for (int i = 0; i < n; i++) {
+                float[] p0 = pts.get(i);
+                float[] p1 = pts.get((i + 1) % n);
+                vertex(b, m, fcx, fcy, color);
+                vertex(b, m, p0[0], p0[1], color);
+                vertex(b, m, p1[0], p1[1], color);
+            }
+        });
     }
 
-    /** 环形描边：外圈点与内圈点一一对应，构成一串四边形。 */
+    /** 环形描边：外圈点与内圈点一一对应，每段两个三角形。 */
     private static void strokeRing(GuiGraphics graphics, List<float[]> outer, List<float[]> inner, int color) {
         int n = Math.min(outer.size(), inner.size());
         if (n < 2) {
             return;
         }
-        Matrix4f m = graphics.pose().last().pose();
-        VertexConsumer vc = graphics.bufferSource().getBuffer(RenderType.gui());
-        for (int i = 0; i < n; i++) {
-            float[] o0 = outer.get(i);
-            float[] o1 = outer.get((i + 1) % n);
-            float[] i0 = inner.get(i);
-            float[] i1 = inner.get((i + 1) % n);
-            quad(vc, m, o0[0], o0[1], o1[0], o1[1], i1[0], i1[1], i0[0], i0[1], color);
-        }
+        draw(graphics, color, b -> {
+            Matrix4f m = graphics.pose().last().pose();
+            for (int i = 0; i < n; i++) {
+                float[] o0 = outer.get(i);
+                float[] o1 = outer.get((i + 1) % n);
+                float[] i0 = inner.get(i);
+                float[] i1 = inner.get((i + 1) % n);
+                vertex(b, m, o0[0], o0[1], color);
+                vertex(b, m, o1[0], o1[1], color);
+                vertex(b, m, i1[0], i1[1], color);
+                vertex(b, m, o0[0], o0[1], color);
+                vertex(b, m, i1[0], i1[1], color);
+                vertex(b, m, i0[0], i0[1], color);
+            }
+        });
     }
 
     public static void renderRoundedRect(GuiGraphics graphics, float x, float y, float width, float height,
@@ -133,6 +147,7 @@ public final class RoundedRectRenderer {
                                                  float topLeft, float topRight, float bottomRight, float bottomLeft,
                                                  GradientConfig gradient, Vector4i fallbackColor, int segments,
                                                  RenderType renderType) {
+        // 渐变版本暂用纯色（与旧实现行为一致：回退到 fallbackColor）
         renderRoundedRect(graphics, x, y, width, height, topLeft, topRight, bottomRight, bottomLeft,
                 fallbackColor, segments);
     }
