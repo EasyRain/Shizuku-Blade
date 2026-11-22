@@ -33,18 +33,9 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RegisterShadersEvent;
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.client.event.RenderGuiEvent;
-import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.joml.Matrix4f;
 
-@EventBusSubscriber(modid = "shizuku", value = Dist.CLIENT)
 public final class JudgmentVisuals {
     public static final ForgeConfigSpec.ConfigValue<Boolean> SCREEN_EFFECT;
     public static final ForgeConfigSpec.BooleanValue UNLEASHED;
@@ -82,14 +73,23 @@ public final class JudgmentVisuals {
 
     private JudgmentVisuals() {}
 
-    @EventBusSubscriber(modid = "shizuku", value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
-    public static final class Shaders {
-        @SubscribeEvent
-        public static void register(RegisterShadersEvent event) throws IOException {
-            event.registerShader(new ShaderInstance(event.getResourceProvider(), shizuku.prefix("judgment_rift"),
-                DefaultVertexFormat.POSITION_TEX), loaded -> shader = loaded);
-            event.registerShader(new ShaderInstance(event.getResourceProvider(), shizuku.prefix("judgment_domain"),
-                DefaultVertexFormat.POSITION_TEX), loaded -> skyShader = loaded);
+    /**
+     * Fabric 没有 RegisterShadersEvent：直接用资源管理器按 id 构造 ShaderInstance（与合成波同一种做法），
+     * 第一次渲染时懒加载，失败就置空不再重试。
+     */
+    private static boolean shadersTried;
+
+    private static void ensureShaders() {
+        if (shadersTried) return;
+        shadersTried = true;
+        try {
+            var resourceManager = Minecraft.getInstance().getResourceManager();
+            shader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_rift"), DefaultVertexFormat.POSITION_TEX);
+            skyShader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_domain"), DefaultVertexFormat.POSITION_TEX);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger("shizuku/judgment").warn("judgment shaders unavailable: {}", e.toString());
+            shader = null;
+            skyShader = null;
         }
     }
 
@@ -123,9 +123,7 @@ public final class JudgmentVisuals {
         return ground.getType() == HitResult.Type.BLOCK ? ground.getLocation() : target.add(0, -1.6, 0);
     }
 
-    @SubscribeEvent
-    public static void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
+    public static void tick() {
         changeLevel(Minecraft.getInstance().level);
         if (currentLevel != null && !casts.isEmpty()) {
             long now = currentLevel.getGameTime();
@@ -133,15 +131,12 @@ public final class JudgmentVisuals {
         }
     }
 
-    @SubscribeEvent
-    public static void renderWorld(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || casts.isEmpty()
-                || !SCREEN_EFFECT.get() || currentLevel == null) return;
-        Vec3 camera = event.getCamera().getPosition();
-        PoseStack pose = event.getPoseStack();
+    public static void renderWorld(PoseStack pose, Vec3 camera, float partialTick) {
+        if (casts.isEmpty() || !SCREEN_EFFECT.get() || currentLevel == null) return;
+        ensureShaders();
         for (Cast active : casts.values()) {
             JudgmentImpactPacket cast = active.packet;
-            float tick = currentLevel.getGameTime() - active.localStart + event.getPartialTick();
+            float tick = currentLevel.getGameTime() - active.localStart + partialTick;
             float opacity = strength(active, tick);
             if (opacity <= 0) continue;
             drawDomain(pose, active.center.subtract(camera), tick, opacity);
@@ -190,21 +185,9 @@ public final class JudgmentVisuals {
         return amount;
     }
 
-    @SubscribeEvent
-    public static void fog(ViewportEvent.ComputeFogColor event) {
-        float amount = immersion(event.getCamera().getPosition(), (float)event.getPartialTick()) * 0.94F;
-        if (amount > 0) {
-            event.setRed(Mth.lerp(amount, event.getRed(), 0.20F));
-            event.setGreen(Mth.lerp(amount, event.getGreen(), 0.012F));
-            event.setBlue(Mth.lerp(amount, event.getBlue(), 0.047F));
-        }
-    }
-
-    @SubscribeEvent
-    public static void shade(RenderGuiEvent.Pre event) {
-        float amount = immersion(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition(), event.getPartialTick());
+    public static void shade(GuiGraphics g, float partialTick) {
+        float amount = immersion(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition(), partialTick);
         if (amount <= 0) return;
-        GuiGraphics g = event.getGuiGraphics();
         int red = ((int)(amount * 95) << 24) | 0x360517;
         int dark = ((int)(amount * 138) << 24) | 0x140612;
         g.fillGradient(0, 0, g.guiWidth(), g.guiHeight(), red, dark);

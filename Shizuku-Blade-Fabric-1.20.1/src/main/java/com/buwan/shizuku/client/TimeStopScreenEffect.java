@@ -7,20 +7,14 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent.Pre;
-import net.minecraftforge.client.event.ViewportEvent.ComputeFogColor;
-import net.minecraftforge.event.TickEvent.ClientTickEvent;
-import net.minecraftforge.event.TickEvent.Phase;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 /**
- * 时停的屏幕后处理：雾色变冷、整体去饱和 + 轻微暗角。
+ * 时停的屏幕后处理：整体去饱和 + 轻微暗角。
  *
- * 订阅 ComputeFogColor 改雾色，并在 RenderGameOverlay 的 Pre 阶段叠加颜色层。
+ * <p>Fabric 版：每帧由 {@code HudRenderCallback} 调 {@link #renderOverlay()}，
+ * 每 tick 由 {@code ClientTickEvents.END_CLIENT_TICK} 调 {@link #tick()}。
+ * Forge 的雾色事件在 Fabric 没有等价回调，这里不再改雾色（只保留屏幕叠加层）。</p>
  */
-@OnlyIn(Dist.CLIENT)
 public class TimeStopScreenEffect {
     private static final TimeStopScreenEffect INSTANCE = new TimeStopScreenEffect();
 
@@ -28,29 +22,11 @@ public class TimeStopScreenEffect {
         return INSTANCE;
     }
 
-    @SubscribeEvent
-    public void onClientTick(ClientTickEvent event) {
-        if (event.phase == Phase.END) {
-            TimeStopShaderManager.updateStrength();
-        }
+    public void tick() {
+        TimeStopShaderManager.updateStrength();
     }
 
-    @SubscribeEvent
-    public void onFogColor(ComputeFogColor event) {
-        if (TimeStopShaderManager.isActive()) {
-            float[] tint = TimeStopShaderManager.getTimeStopTint();
-            float strength = TimeStopShaderManager.getCurrentStrength();
-            float r = (float)(event.getRed() * (1.0 - strength * 0.1) + tint[0] * strength * 0.1);
-            float g = (float)(event.getGreen() * (1.0 - strength * 0.1) + tint[1] * strength * 0.1);
-            float b = (float)(event.getBlue() * (1.0 - strength * 0.1) + tint[2] * strength * 0.1);
-            event.setRed(r);
-            event.setGreen(g);
-            event.setBlue(b);
-        }
-    }
-
-    @SubscribeEvent
-    public void onRenderGameOverlay(Pre event) {
+    public void renderOverlay(net.minecraft.client.gui.GuiGraphics graphics) {
         if (TimeStopShaderManager.isActive()) {
             float strength = TimeStopShaderManager.getCurrentStrength();
             if (!(strength < 0.001F)) {

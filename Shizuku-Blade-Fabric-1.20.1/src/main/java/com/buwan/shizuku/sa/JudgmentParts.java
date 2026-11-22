@@ -11,7 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.entity.PartEntity;
+import com.buwan.shizuku.compat.PartEntity;
 
 final class JudgmentParts {
     private static final TagKey<EntityType<?>> LINKED_PARTS = TagKey.create(Registries.ENTITY_TYPE,

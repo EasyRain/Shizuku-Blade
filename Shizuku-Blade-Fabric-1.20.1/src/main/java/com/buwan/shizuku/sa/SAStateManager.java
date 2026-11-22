@@ -5,45 +5,35 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.event.TickEvent.Phase;
-import net.minecraftforge.event.TickEvent.PlayerTickEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 
 /**
  * SA 的全局状态：记录玩家所在维度（用于跨维度时重置状态），
  * 在玩家登录/登出/每 tick 时维护，避免换维度后 SA 状态泄漏。
+ *
+ * <p>Fabric 版由 {@code ServerPlayConnectionEvents.JOIN/DISCONNECT} 与
+ * {@code ServerTickEvents.END_SERVER_TICK} 调用下面三个静态方法。</p>
  */
-@EventBusSubscriber
 public class SAStateManager {
     private static final Map<UUID, ResourceLocation> playerDimensions = new ConcurrentHashMap<>();
 
-    @SubscribeEvent
-    public static void onPlayerLoggedIn(PlayerLoggedInEvent event) {
-        if (!event.getEntity().level().isClientSide()) {
-            Player player = event.getEntity();
+    public static void onPlayerLoggedIn(Player player) {
+        if (player != null && !player.level().isClientSide()) {
             ResourceLocation dimension = player.level().dimension().location();
             playerDimensions.put(player.getUUID(), dimension);
         }
     }
 
-    @SubscribeEvent
-    public static void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
-        if (!event.getEntity().level().isClientSide()) {
-            Player player = event.getEntity();
+    public static void onPlayerLoggedOut(Player player) {
+        if (player != null && !player.level().isClientSide()) {
             UUID uuid = player.getUUID();
             playerDimensions.remove(uuid);
             clearAllSAStates(uuid);
         }
     }
 
-    @SubscribeEvent
-    public static void onPlayerTick(PlayerTickEvent event) {
-        if (event.side != LogicalSide.CLIENT && event.phase == Phase.START) {
-            Player player = event.player;
+    /** 服务端每 tick 对每个玩家调用（相当于 Forge 的 PlayerTickEvent START）。 */
+    public static void onPlayerTick(Player player) {
+        if (player != null) {
             UUID uuid = player.getUUID();
             ResourceLocation currentDimension = player.level().dimension().location();
             ResourceLocation recordedDimension = playerDimensions.get(uuid);

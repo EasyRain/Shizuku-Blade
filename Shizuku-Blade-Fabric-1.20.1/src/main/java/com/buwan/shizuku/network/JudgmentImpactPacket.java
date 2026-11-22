@@ -1,22 +1,34 @@
 package com.buwan.shizuku.network;
 
-import com.buwan.shizuku.client.JudgmentVisuals;
 import java.util.UUID;
-import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent.Context;
 
-public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, Vec3 origin, float yaw, float pitch) {
+/**
+ * S2C：审判落剑的位置/朝向，客户端据此播放斩击动画。
+ *
+ * <p>Fabric 版：客户端接收在 {@code ShizukuFabricClient#registerClientReceivers()} 里注册，
+ * 直接调用 {@code JudgmentVisuals.play(this)}（不需要 Forge 的 DistExecutor）。</p>
+ */
+public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, Vec3 origin, float yaw, float pitch)
+        implements ShizukuPacket {
+    public static final ResourceLocation ID = new ResourceLocation("shizuku", "judgment_impact");
+
     public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick) {
         long start = player.level().getGameTime() - phaseTick;
-        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, player.getEyePosition(), player.getYRot(), player.getXRot());
+        return new JudgmentImpactPacket(player.getUUID(), start, phaseTick, player.getEyePosition(),
+                player.getYRot(), player.getXRot());
     }
 
-    public void encode(FriendlyByteBuf buf) {
+    @Override
+    public ResourceLocation id() {
+        return ID;
+    }
+
+    @Override
+    public void write(FriendlyByteBuf buf) {
         buf.writeUUID(caster);
         buf.writeLong(startTick);
         buf.writeVarInt(phaseTick);
@@ -27,13 +39,8 @@ public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, V
         buf.writeFloat(pitch);
     }
 
-    public static JudgmentImpactPacket decode(FriendlyByteBuf buf) {
+    public static JudgmentImpactPacket read(FriendlyByteBuf buf) {
         return new JudgmentImpactPacket(buf.readUUID(), buf.readLong(), buf.readVarInt(),
-            new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble()), buf.readFloat(), buf.readFloat());
-    }
-
-    public void handle(Supplier<Context> ctx) {
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> JudgmentVisuals.play(this));
-        ctx.get().setPacketHandled(true);
+                new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble()), buf.readFloat(), buf.readFloat());
     }
 }

@@ -7,8 +7,8 @@ import java.lang.invoke.MethodType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.registries.BuiltInRegistries;
 import org.slf4j.Logger;
 
 public final class SuperSteveCompat {
@@ -22,7 +22,7 @@ public final class SuperSteveCompat {
     }
 
     public static boolean isBoss(LivingEntity entity) {
-        return BOSS.equals(ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()));
+        return BOSS.equals(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()));
     }
 
     public static boolean execute(LivingEntity entity) {
@@ -48,7 +48,7 @@ public final class SuperSteveCompat {
         private static final MethodHandle KILL = resolve();
 
         private static MethodHandle resolve() {
-            if (!ModList.get().isLoaded(BOSS.getNamespace())) {
+            if (!FabricLoader.getInstance().isModLoaded(BOSS.getNamespace())) {
                 return null;
             }
             try {

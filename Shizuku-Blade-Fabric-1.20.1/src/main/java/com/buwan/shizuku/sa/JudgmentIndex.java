@@ -13,7 +13,7 @@ import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.entity.EntitySection;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.entity.PartEntity;
+import com.buwan.shizuku.compat.PartEntity;
 
 /** Snapshot the loaded server stores once per pass, including sections outside entity-ticking range. */
 final class JudgmentIndex {
@@ -37,7 +37,7 @@ final class JudgmentIndex {
         entities.addAll(lookup.ymsa$getByUuid().values());
         entities.addAll(lookup.ymsa$getById().values());
         entities.addAll(ticking.ymsa$getActive().values());
-        entities.addAll(level.getPartEntities());
+        entities.addAll(com.buwan.shizuku.compat.Multiparts.of(level));
         for (Object entry : chunks.ymsa$getEntityMap().values()) entities.add(((TrackedEntityAccessor)entry).shizuku$entity());
         var storage = manager.ymsa$getSectionStorage();
         for (long chunk : storage.getAllChunksWithExistingSections()) {
@@ -47,7 +47,7 @@ final class JudgmentIndex {
             }));
         }
         for (Entity candidate : entities) {
-            if (candidate instanceof net.minecraftforge.entity.PartEntity<?> part)
+            if (candidate instanceof PartEntity part)
                 parts.computeIfAbsent(part.getParent(), ignored -> new ArrayList<>()).add(part);
         }
     }

@@ -32,6 +32,11 @@ public class PacketHandler {
     /** 服务端接收（common init 调用）。 */
     public static void registerServer() {
         registerUnleashedInput();
+        ServerPlayNetworking.registerGlobalReceiver(PhantomSlashPacket.ID,
+                (srv, player, handler, buf, sender) -> {
+                    PhantomSlashPacket packet = PhantomSlashPacket.read(buf);
+                    srv.execute(() -> packet.handle(player));
+                });
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.ID,
                 (srv, player, handler, buf, sender) -> srv.execute(() -> {
                     boolean mosmic = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())

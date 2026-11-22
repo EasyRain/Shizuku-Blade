@@ -21,8 +21,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
-import net.minecraftforge.entity.PartEntity;
-import net.minecraftforge.registries.ForgeRegistries;
+import com.buwan.shizuku.compat.PartEntity;
+import net.minecraft.core.registries.BuiltInRegistries;
 
 /** Server-thread only. Overworld game time is shared by all encounter dimensions. */
 final class UnleashedVerdicts extends SavedData {
@@ -62,7 +62,7 @@ final class UnleashedVerdicts extends SavedData {
 
     void record(UUID caster, Entity entity, boolean boss) {
         var level = (ServerLevel)entity.level();
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (type == null) return;
         add(new Target(caster, entity.getUUID(), level.dimension().location(), type,
             entity.position(), level.getServer().overworld().getGameTime(), boss));
@@ -111,7 +111,7 @@ final class UnleashedVerdicts extends SavedData {
         if (targets.isEmpty() || entity instanceof Player) return false;
         if (entity instanceof ItemEntity drop) return JudgmentEncounters.blockedItem(level, drop.getItem());
         UUID owner = null;
-        if (entity instanceof PartEntity<?> part) owner = part.getParent().getUUID();
+        if (entity instanceof PartEntity part) owner = part.getParent().getUUID();
         else if (entity instanceof com.buwan.shizuku.mixin.JudgmentProjectileAccessor projectile) owner = projectile.shizuku$ownerUUID();
         else if (entity instanceof OwnableEntity ownable) owner = ownable.getOwnerUUID();
         else if (entity instanceof TraceableEntity traceable) {
@@ -125,7 +125,7 @@ final class UnleashedVerdicts extends SavedData {
         if (encounter != null && active(encounter, now)) return true;
         if (tag.hasUUID("shizuku:spawn_source") && active(tag.getUUID("shizuku:spawn_source"), now)) return true;
         if (!(entity instanceof LivingEntity living)) return false;
-        var type = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var type = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         for (Target t : encounters.getOrDefault(level.dimension().location(), List.of())) {
             long age = now - t.start;
             if (age >= JudgmentConfig.RETENTION.get() || t.caster.equals(owner) || type == null
@@ -152,7 +152,7 @@ final class UnleashedVerdicts extends SavedData {
         var chunks = (com.buwan.shizuku.mixin.ChunkMapAccessor)level.getChunkSource().chunkMap;
         for (Object record : chunks.ymsa$getEntityMap().values())
             if (matches(level, ((com.buwan.shizuku.mixin.TrackedEntityAccessor)record).shizuku$entity())) return true;
-        for (Entity part : level.getPartEntities()) if (matches(level, part)) return true;
+        for (Entity part : com.buwan.shizuku.compat.Multiparts.of(level)) if (matches(level, part)) return true;
         var storage = manager.ymsa$getSectionStorage();
         for (long chunk : storage.getAllChunksWithExistingSections()) {
             if (storage.getExistingSectionsInChunk(chunk).flatMap(section -> section.getEntities())
@@ -203,7 +203,7 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     private static void appendLock(ListTag list, Entity entity) {
-        var key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        var key = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
         if (key == null) return;
         var tag = new CompoundTag();
         tag.putUUID("UUID", entity.getUUID());
