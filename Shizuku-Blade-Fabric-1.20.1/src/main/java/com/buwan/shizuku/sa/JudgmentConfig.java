@@ -18,11 +18,11 @@ public final class JudgmentConfig {
         PHASE_WINDOW = builder.comment("Ticks to associate a nearby boss without an encounter identity.")
             .defineInRange("phaseTicks", 200, 0, Integer.MAX_VALUE);
         RADIUS = builder.defineInRange("phaseRadius", 24, 1, 320);
-        TYPES = builder.defineListAllowEmpty("bossTypes", List.of(), v -> v instanceof String s && !s.isBlank());
-        NAMESPACES = builder.defineListAllowEmpty("bossNamespaces", List.of(), v -> v instanceof String s && !s.isBlank());
-        KEYWORDS = builder.defineListAllowEmpty("bossNameKeywords", List.of("boss"), v -> v instanceof String s && !s.isBlank());
+        TYPES = builder.defineList("bossTypes", List.of(), v -> v instanceof String s && !s.isBlank());
+        NAMESPACES = builder.defineList("bossNamespaces", List.of(), v -> v instanceof String s && !s.isBlank());
+        KEYWORDS = builder.defineList("bossNameKeywords", List.of("boss"), v -> v instanceof String s && !s.isBlank());
         ENCOUNTER_KEYS = builder.comment("Additional UUID fields on entity ForgeData or summoner item NBT identifying a shared boss encounter.")
-            .defineListAllowEmpty("encounterUuidKeys", List.of(), v -> v instanceof String s && !s.isBlank());
+            .defineList("encounterUuidKeys", List.of(), v -> v instanceof String s && !s.isBlank());
         builder.pop();
         builder.push("drops");
         MEOW_STONE_DROP_PERCENT = builder

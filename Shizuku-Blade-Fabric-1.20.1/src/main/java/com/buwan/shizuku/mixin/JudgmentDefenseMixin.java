@@ -41,7 +41,7 @@ public abstract class JudgmentDefenseMixin {
         callback.cancel();
         if (level instanceof ServerLevel server) server.getServer().execute(() -> {
             if (Ymsa.blocksChaosSpawn(server, pos)) return;
-            var type = BuiltInRegistries.ENTITY_TYPES.getValue(new ResourceLocation("chaoswither", "chaos_wither"));
+            var type = BuiltInRegistries.ENTITY_TYPE.get(new ResourceLocation("chaoswither", "chaos_wither"));
             if (type == null) return;
             Entity boss = type.create(server);
             if (boss != null) {

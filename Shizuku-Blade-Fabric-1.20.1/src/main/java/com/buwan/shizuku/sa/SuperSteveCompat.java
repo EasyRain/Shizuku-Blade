@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 
 public final class SuperSteveCompat {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation BOSS = ResourceLocation.fromNamespaceAndPath("supersteve", "super_steve");
+    private static final ResourceLocation BOSS = new ResourceLocation("supersteve", "super_steve");
 
     private SuperSteveCompat() {}
 

@@ -84,8 +84,8 @@ public final class JudgmentVisuals {
         shadersTried = true;
         try {
             var resourceManager = Minecraft.getInstance().getResourceManager();
-            shader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_rift"), DefaultVertexFormat.POSITION_TEX);
-            skyShader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_domain"), DefaultVertexFormat.POSITION_TEX);
+            shader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_rift").toString(), DefaultVertexFormat.POSITION_TEX);
+            skyShader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_domain").toString(), DefaultVertexFormat.POSITION_TEX);
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger("shizuku/judgment").warn("judgment shaders unavailable: {}", e.toString());
             shader = null;

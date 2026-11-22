@@ -35,11 +35,11 @@ final class JudgmentParts {
     static Entity root(Entity hit) {
         Entity current = hit;
         Set<Entity> visited = null;
-        while (current instanceof PartEntity<?> || current.getType().is(LINKED_PARTS)) {
+        while (current instanceof PartEntity || current.getType().is(LINKED_PARTS)) {
             if (visited == null) visited = new HashSet<>();
             if (!visited.add(current)) return hit;
             Entity parent;
-            if (current instanceof PartEntity<?> part) parent = part.getParent();
+            if (current instanceof PartEntity part) parent = part.getParent();
             else {
                 var handle = PARENT.get(current.getClass());
                 if (handle.isEmpty()) return current;

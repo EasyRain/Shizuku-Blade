@@ -1,7 +1,6 @@
 package com.buwan.shizuku.mixin;
 
 import com.buwan.shizuku.client.YmsaClientErase;
-import com.buwan.shizuku.client.YmsaRenderKiller;
 import net.minecraft.client.Minecraft;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,12 +16,10 @@ public class ClientCleanupMixin {
     @Inject(method = "clearLevel()V", at = @At("HEAD"), require = 0)
     private void ymsa$clearLevel(CallbackInfo ci) {
         YmsaClientErase.clear();
-        YmsaRenderKiller.clear();
     }
 
     @Inject(method = "stop", at = @At("HEAD"), require = 0)
     private void ymsa$stop(CallbackInfo ci) {
         YmsaClientErase.clear();
-        YmsaRenderKiller.clear();
     }
 }

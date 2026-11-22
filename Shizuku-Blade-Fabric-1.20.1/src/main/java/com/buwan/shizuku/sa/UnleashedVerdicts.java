@@ -66,10 +66,10 @@ final class UnleashedVerdicts extends SavedData {
         if (type == null) return;
         add(new Target(caster, entity.getUUID(), level.dimension().location(), type,
             entity.position(), level.getServer().overworld().getGameTime(), boss));
-        UUID encounter = JudgmentEncounters.link(entity, entity.getPersistentData());
+        UUID encounter = JudgmentEncounters.link(entity, com.buwan.shizuku.util.PersistentData.of(entity));
         if (encounter != null) recordController(caster, level, encounter, entity.position());
-        if (boss && entity.getPersistentData().hasUUID("shizuku:spawn_source"))
-            recordController(caster, level, entity.getPersistentData().getUUID("shizuku:spawn_source"), entity.position());
+        if (boss && com.buwan.shizuku.util.PersistentData.of(entity).hasUUID("shizuku:spawn_source"))
+            recordController(caster, level, com.buwan.shizuku.util.PersistentData.of(entity).getUUID("shizuku:spawn_source"), entity.position());
         setDirty();
     }
 
@@ -120,7 +120,7 @@ final class UnleashedVerdicts extends SavedData {
         }
         long now = level.getServer().overworld().getGameTime();
         if (active(entity.getUUID(), now) || (owner != null && active(owner, now))) return true;
-        var tag = entity.getPersistentData();
+        var tag = com.buwan.shizuku.util.PersistentData.of(entity);
         UUID encounter = JudgmentEncounters.link(entity, tag);
         if (encounter != null && active(encounter, now)) return true;
         if (tag.hasUUID("shizuku:spawn_source") && active(tag.getUUID("shizuku:spawn_source"), now)) return true;
@@ -212,7 +212,7 @@ final class UnleashedVerdicts extends SavedData {
         tag.putDouble("X", entity.getX());
         tag.putDouble("Y", entity.getY());
         tag.putDouble("Z", entity.getZ());
-        UUID link = JudgmentEncounters.link(entity, entity.getPersistentData());
+        UUID link = JudgmentEncounters.link(entity, com.buwan.shizuku.util.PersistentData.of(entity));
         if (link != null) tag.putUUID("Encounter", link);
         list.add(tag);
     }
@@ -240,7 +240,7 @@ final class UnleashedVerdicts extends SavedData {
         boolean matches(Entity candidate) {
             if (entities.contains(candidate.getUUID())) return true;
             if (encounters.isEmpty()) return false;
-            var link = JudgmentEncounters.link(candidate, candidate.getPersistentData());
+            var link = JudgmentEncounters.link(candidate, com.buwan.shizuku.util.PersistentData.of(candidate));
             return link != null && encounters.contains(link);
         }
     }

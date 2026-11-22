@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.util.AttackManager;
 import net.minecraft.network.chat.Component;
@@ -21,10 +22,19 @@ public final class UnleashedJudgment {
     private static final Map<UUID, Use> uses = new HashMap<>();
     private static final Set<UUID> enabled = new HashSet<>();
     private static final Set<UUID> damagePlayers = new HashSet<>();
+    /** 广播审判阶段给附近客户端（Fabric 版：发 JudgmentImpactPacket 触发动画）。 */
+    static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick) {
+        if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
+        if (phaseTick == 1) return;
+        com.buwan.shizuku.network.PacketHandler.sendToNearby(
+            com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick),
+            player, Ymsa.DOMAIN_RADIUS * 2.5);
+    }
+
     private UnleashedJudgment() {}
 
     public static boolean isBlade(ItemStack stack) {
-        return stack.getItem() instanceof ItemSlashBlade && stack.getCapability(ItemSlashBlade.BLADESTATE)
+        return stack.getItem() instanceof ItemSlashBlade && CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
             .map(state -> "item.shizuku.ymblade".equals(state.getTranslationKey())).orElse(false);
     }
 
@@ -86,7 +96,7 @@ public final class UnleashedJudgment {
         } else if (use != null) {
             uses.remove(id);
             if (use.player != player || use.blade != blade) return;
-            blade.getCapability(ItemSlashBlade.BLADESTATE).ifPresent(state -> {
+            CapabilitySlashBlade.BLADESTATE.maybeGet(blade).ifPresent(state -> {
                 if (now - use.start < state.getFullChargeTicks(player)) return;
                 var tag = blade.getOrCreateTag();
                 if (!tag.hasUUID("shizuku:cast_blade")) tag.putUUID("shizuku:cast_blade", UUID.randomUUID());

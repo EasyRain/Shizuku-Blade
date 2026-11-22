@@ -59,6 +59,69 @@ import java.util.stream.Stream;
 public class Ymsa {
 
     private static final double KILL_RADIUS = 256.0;
+    // 3.8.0 起审判动画的时序（与 Forge 版保持一致）
+    public static final int STRIKE_TICK = 8;
+    public static final int RIFT_CLOSED_TICK = 38;
+    public static final int VERDICT_TICK = 42;
+    public static final int DOMAIN_RADIUS = 128;
+    public static final int SHEATH_TICK = 54;
+    public static final int END_TICK = 60;
+    public static final int RECOVERY_FRAME = END_TICK * 3 / 2;
+
+
+    // ---- 3.8.0 解放（审判）入口：Fabric 侧先提供占位实现，服务端行为待移植 ----
+    private static final java.util.Map<java.util.UUID, Long> UNLEASHED_UNTIL = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
+        UnleashedJudgment.notePhase(player, 1);
+    }
+
+    public static void openRift(net.minecraft.server.level.ServerPlayer player) {
+        UnleashedJudgment.notePhase(player, STRIKE_TICK);
+    }
+
+    public static void verdictTick(net.minecraft.server.level.ServerPlayer player) {
+        UnleashedJudgment.notePhase(player, VERDICT_TICK);
+    }
+
+    public static void clearUnleashedArea(java.util.UUID id) {
+        UNLEASHED_UNTIL.remove(id);
+    }
+
+    public static boolean isUnleashedBoss(net.minecraft.world.entity.LivingEntity entity) {
+        return isChaosWither(entity) || entity.getType().is(BOSS_TYPES);
+    }
+
+    /** 3.8.0 审判系统用到的「boss 类型」标签；Fabric 侧先只认 chaoswither（与原逻辑一致）。 */
+    static final net.minecraft.tags.TagKey<net.minecraft.world.entity.EntityType<?>> BOSS_TYPES =
+        net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ENTITY_TYPE,
+            new net.minecraft.resources.ResourceLocation("shizuku", "judgment_bosses"));
+
+    /** 混沌凋灵判定（Fabric 版）：按实体 id 的命名空间判断。 */
+    public static boolean isChaosWither(net.minecraft.world.entity.Entity entity) {
+        var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        return key != null && "chaoswither".equals(key.getNamespace());
+    }
+
+    /** 结束混沌凋灵的遭遇：Fabric 侧暂无该前置，直接清理血条。 */
+    static void finishChaosEncounter(net.minecraft.server.level.ServerLevel level,
+                                     net.minecraft.world.entity.Entity boss) {
+        if (boss instanceof net.minecraft.world.entity.LivingEntity living) {
+            living.setHealth(0.0F);
+        }
+    }
+
+    /** 审判进行中是否阻止在该位置生成混沌凋灵（Fabric 侧暂无生成钩子，恒 false）。 */
+    public static boolean blocksChaosSpawn(net.minecraft.server.level.ServerLevel level,
+                                           net.minecraft.world.phys.Vec3 position) {
+        return false;
+    }
+
+    /** 审判进行中是否阻止该实体加入世界（Fabric 侧暂无该钩子，恒 false）。 */
+    public static boolean blocksUnleashedJoin(net.minecraft.world.entity.Entity entity) {
+        return false;
+    }
+
     private static final float KILL_DAMAGE = Float.MAX_VALUE;
     private static final int RESPAWN_TRACK_TICKS = 1200;
     private static final int BOSS_SUPPRESS_TICKS = 1200;
@@ -660,7 +723,7 @@ public class Ymsa {
         }
     }
 
-    private static void handleServerTickEnd(MinecraftServer server) {
+    public static void handleServerTickEnd(MinecraftServer server) {
         YmsaLogic.tickCleanups(RESPAWN_TRACKER);
         YmsaLogic.tickTypeSuppression(TYPE_SUPPRESSION);
         processPendingPhysicalRemovals(server);

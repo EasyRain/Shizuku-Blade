@@ -49,6 +49,32 @@ public class ShizukuFabricClient implements ClientModInitializer {
         });
 
         // S2C：抹除广播
+
+        // ---- 3.8.0 审判：键位、输入、视觉、时停屏幕特效、落剑包 ----
+        com.buwan.shizuku.client.JudgmentControls.register();
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            com.buwan.shizuku.client.JudgmentControls.tick();
+            com.buwan.shizuku.client.PhantomSlashInput.tick();
+            com.buwan.shizuku.client.JudgmentVisuals.tick();
+            com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().tick();
+        });
+        net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+            var pose = context.matrixStack();
+            var camera = context.camera().getPosition();
+            if (pose != null) {
+                com.buwan.shizuku.client.JudgmentVisuals.renderWorld(pose, camera, context.tickDelta());
+            }
+        });
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register((graphics, tickDelta) -> {
+            com.buwan.shizuku.client.JudgmentVisuals.shade(graphics, tickDelta);
+            com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().renderOverlay(graphics);
+        });
+        ClientPlayNetworking.registerGlobalReceiver(com.buwan.shizuku.network.JudgmentImpactPacket.ID,
+                (client, handler, buf, sender) -> {
+                    var packet = com.buwan.shizuku.network.JudgmentImpactPacket.read(buf);
+                    client.execute(() -> com.buwan.shizuku.client.JudgmentVisuals.play(packet));
+                });
+
         ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.ID, (client, handler, buf, sender) -> {
             YmsaForceRemovePacket msg = new YmsaForceRemovePacket(buf);
             client.execute(() -> YmsaClientReceiver.handle(msg));

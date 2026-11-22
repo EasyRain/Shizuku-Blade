@@ -1,7 +1,6 @@
 package com.buwan.shizuku.mixin;
 
 import com.buwan.shizuku.client.YmsaClientErase;
-import com.buwan.shizuku.client.YmsaRenderKiller;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -29,8 +28,7 @@ public class EntityRenderDispatcherMixin {
         int packedLight,
         CallbackInfo ci
     ) {
-        YmsaRenderKiller.reassert((EntityRenderDispatcher)(Object)this);
-        if (YmsaClientErase.isErased(entity)) {
+        if (YmsaClientErase.isErased(entity.getUUID())) {
             ci.cancel();
         }
     }

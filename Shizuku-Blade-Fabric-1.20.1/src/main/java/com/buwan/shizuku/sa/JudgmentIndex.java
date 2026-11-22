@@ -46,10 +46,8 @@ final class JudgmentIndex {
                 sections.computeIfAbsent(entity, ignored -> new ArrayList<>(1)).add(section);
             }));
         }
-        for (Entity candidate : entities) {
-            if (candidate instanceof PartEntity part)
-                parts.computeIfAbsent(part.getParent(), ignored -> new ArrayList<>()).add(part);
-        }
+        // Fabric 没有 Forge 的多部件实体（MutablePartEntity）体系，parts 表恒为空。
+        // 保留字段与访问器，等将来接等价前置再填。
     }
 
     Set<Entity> verdictTargets(AABB area, UUID caster) {
@@ -60,7 +58,7 @@ final class JudgmentIndex {
             if (root instanceof Player || root instanceof OwnableEntity pet && caster.equals(pet.getOwnerUUID())) continue;
             roots.add(root);
             // Some mods register each segment as a separate living entity with its own lifecycle.
-            if (root != hit && !(hit instanceof PartEntity<?>)) roots.add(hit);
+            if (root != hit && !(hit instanceof PartEntity)) roots.add(hit);
         }
         return roots;
     }

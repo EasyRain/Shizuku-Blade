@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;

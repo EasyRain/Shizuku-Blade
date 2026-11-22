@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.buwan.shizuku.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "JudgmentDefenseMixin",
+    "JudgmentMixinAudit"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
