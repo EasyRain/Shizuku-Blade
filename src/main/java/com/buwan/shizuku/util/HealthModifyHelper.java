@@ -22,6 +22,7 @@ import net.minecraft.world.entity.player.Player;
  * 并额外提供 traversalModify 沿「主人/召唤者」链找真正的血量载体。
  */
 public class HealthModifyHelper {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/healthmodifyhelper");
     private static final UUID HEALTH_MODIFIER_UUID = UUID.fromString("78364952-8455-5678-9abc-785463259abc");
 
     public static boolean entityDataModify(Entity target, float newValue) {
@@ -74,7 +75,7 @@ public class HealthModifyHelper {
                     return true;
                 } catch (Throwable var17) {
                     System.err.println("[HealthModifyHelper] entityDataModify \u5f02\u5e38: " + var17.getMessage());
-                    var17.printStackTrace();
+                    LOGGER.debug("unexpected error", var17);
                     return false;
                 }
             }

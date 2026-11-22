@@ -29,6 +29,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
  * 并通过 TimeStopPacket / TimeStopShaderPacket 同步客户端观感。
  */
 public class TimeSlash {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/timeslash");
     private static final int TIME_COLOR = 16766720;
     private static final double FREEZE_RANGE = 12.0;
     private static final int FREEZE_DURATION = 100;
@@ -142,8 +143,7 @@ public class TimeSlash {
         }
 
         if (validTargets < totalTargets) {
-            System.out
-                .println(
+            LOGGER.debug(
                     "[TimeSlash] \u7edf\u8ba1: \u51bb\u7ed3 "
                         + totalTargets
                         + " \u4e2a\u76ee\u6807\uff0c\u5b9e\u9645\u4f24\u5bb3 "

@@ -25,5 +25,48 @@ public final class JudgmentConfig {
         SPEC = builder.build();
     }
 
+    /** 配置是否已被 Forge 载入（多人客户端上没有服务端配置，读值会抛异常）。 */
+    public static boolean isLoaded() {
+        return SPEC.isLoaded();
+    }
+
+    public static int observationTicks() {
+        return RETENTION.get();
+    }
+
+    public static void observationTicks(int value) {
+        RETENTION.set(value);
+        RETENTION.save();
+    }
+
+    public static int phaseTicks() {
+        return PHASE_WINDOW.get();
+    }
+
+    public static void phaseTicks(int value) {
+        PHASE_WINDOW.set(value);
+        PHASE_WINDOW.save();
+    }
+
+    public static int phaseRadius() {
+        return RADIUS.get();
+    }
+
+    public static void phaseRadius(int value) {
+        RADIUS.set(value);
+        RADIUS.save();
+    }
+
+    /** 列表类配置的只读摘要（这些只能在配置文件里改）。 */
+    public static String listSummary() {
+        if (!SPEC.isLoaded()) {
+            return "-";
+        }
+        return "bossTypes=" + TYPES.get().size()
+            + ", namespaces=" + NAMESPACES.get().size()
+            + ", keywords=" + KEYWORDS.get().size()
+            + ", encounterKeys=" + ENCOUNTER_KEYS.get().size();
+    }
+
     private JudgmentConfig() {}
 }

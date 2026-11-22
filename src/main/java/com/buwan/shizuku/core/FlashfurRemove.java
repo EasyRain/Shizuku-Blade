@@ -15,6 +15,7 @@ import sun.misc.Unsafe;
  * 已知问题（上游行为）：这里是 hardcode 的第三方类名，对方改名/改结构时只会静默失败。
  */
 public class FlashfurRemove {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/flashfurremove");
     public static void forceCleanList() {
         try {
             Class<?> clazz = Class.forName("flashfur.omnimobs.entities.metapotent_flashfur.MetapotentFlashfurLevel");
@@ -33,7 +34,7 @@ public class FlashfurRemove {
             }
         } catch (ClassNotFoundException var8) {
         } catch (Exception var9) {
-            var9.printStackTrace();
+            LOGGER.debug("unexpected error", var9);
         }
     }
 
@@ -45,7 +46,7 @@ public class FlashfurRemove {
                 le.hurt(damageSource, Float.MAX_VALUE);
                 return true;
             } catch (Exception var4) {
-                var4.printStackTrace();
+                LOGGER.debug("unexpected error", var4);
                 return false;
             }
         } else {

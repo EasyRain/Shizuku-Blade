@@ -36,11 +36,6 @@ public class PacketHandler {
             .decoder(VoidPrisonPacket::decode)
             .consumerMainThread(VoidPrisonPacket::handle)
             .add();
-        INSTANCE.messageBuilder(SynthwaveShaderPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
-            .encoder(SynthwaveShaderPacket::encode)
-            .decoder(SynthwaveShaderPacket::decode)
-            .consumerMainThread(SynthwaveShaderPacket::handle)
-            .add();
         INSTANCE.messageBuilder(YmsaForceRemovePacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
             .encoder(YmsaForceRemovePacket::encode)
             .decoder(YmsaForceRemovePacket::decode)

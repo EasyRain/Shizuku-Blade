@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(ItemStack.class)
 public class ItemStackMixin {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/itemstackmixin");
     @Inject(method = "hurtAndBreak", at = @At("HEAD"), cancellable = true, require = 0)
     private void onHurtAndBreak(int amount, LivingEntity entity, Consumer<LivingEntity> onBroken, CallbackInfo ci) {
         ItemStack stack = (ItemStack)(Object)this;
@@ -32,7 +33,7 @@ public class ItemStackMixin {
                 return;
             }
         } catch (IllegalArgumentException var7) {
-            var7.printStackTrace();
+            LOGGER.debug("unexpected error", var7);
             ci.cancel();
         }
     }

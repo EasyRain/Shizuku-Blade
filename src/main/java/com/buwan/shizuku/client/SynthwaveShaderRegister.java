@@ -31,7 +31,7 @@ public class SynthwaveShaderRegister {
             });
         } catch (Exception var2) {
             LOGGER.error("Failed to register Synthwave shader", var2);
-            var2.printStackTrace();
+            LOGGER.debug("unexpected error", var2);
         }
     }
 }

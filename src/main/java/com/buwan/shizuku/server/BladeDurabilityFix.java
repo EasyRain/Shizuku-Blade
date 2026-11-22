@@ -14,6 +14,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
  */
 @EventBusSubscriber
 public class BladeDurabilityFix {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/bladedurabilityfix");
     @SubscribeEvent
     public static void onLivingAttack(LivingAttackEvent event) {
         if (event.getSource().getEntity() instanceof LivingEntity attacker) {
@@ -35,8 +36,7 @@ public class BladeDurabilityFix {
                             if (level < 0) {
                                 hasNegativeLevel = true;
                                 enchantmentTag.putInt("lvl", 0);
-                                System.out
-                                    .println(
+                                LOGGER.debug(
                                         "[BladeDurabilityFix] \u4fee\u590d\u8d1f\u6570\u9644\u9b54\u7b49\u7ea7: "
                                             + enchantmentTag.getString("id")
                                             + " \u4ece "
@@ -48,11 +48,11 @@ public class BladeDurabilityFix {
                     }
 
                     if (hasNegativeLevel) {
-                        System.out.println("[BladeDurabilityFix] \u5df2\u4fee\u590d\u62d4\u5200\u5251\u9644\u9b54: " + stack.getHoverName().getString());
+                        LOGGER.debug("[BladeDurabilityFix] \u5df2\u4fee\u590d\u62d4\u5200\u5251\u9644\u9b54: " + stack.getHoverName().getString());
                     }
                 }
             } catch (Exception var6) {
-                var6.printStackTrace();
+                LOGGER.debug("unexpected error", var6);
             }
         }
     }

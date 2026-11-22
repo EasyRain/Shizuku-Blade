@@ -18,6 +18,7 @@ import net.minecraft.world.entity.LivingEntity;
  * 用于血量藏在自定义字段、getHealth 又拿不到的 boss。
  */
 public class UltimateAttackOHelp {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/ultimateattackohelp");
     public static void smartModifyMode(LivingEntity target, float referenceHealth, float newValue, boolean titan, boolean lock) {
         try {
             float lowerBound = referenceHealth * 0.95F;
@@ -44,7 +45,7 @@ public class UltimateAttackOHelp {
                 }
             }
         } catch (Exception var12) {
-            var12.printStackTrace();
+            LOGGER.debug("unexpected error", var12);
         }
     }
 
@@ -132,7 +133,7 @@ public class UltimateAttackOHelp {
             } catch (Exception var19) {
             }
         } catch (Exception var21) {
-            var21.printStackTrace();
+            LOGGER.debug("unexpected error", var21);
         }
 
         return (List<UltimateAttackOHelp.FieldInfo>)(!exactMatches.isEmpty() ? exactMatches : candidates);
@@ -199,7 +200,7 @@ public class UltimateAttackOHelp {
                 field.set(target, (byte)newValue);
             }
         } catch (Exception var4) {
-            var4.printStackTrace();
+            LOGGER.debug("unexpected error", var4);
         }
     }
 

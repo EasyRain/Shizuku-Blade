@@ -65,5 +65,10 @@
   "screen.shizuku.judgment.effect_label": "Screen effect",
   "screen.shizuku.judgment.effect_on": "Effect on",
   "screen.shizuku.judgment.effect_off": "Effect off",
-  "screen.shizuku.judgment.close": "Close"
+  "screen.shizuku.judgment.close": "Close",
+  "screen.shizuku.judgment.config": "Config",
+  "screen.shizuku.judgment.obs_ticks": "Observation ticks",
+  "screen.shizuku.judgment.phase_ticks": "Encounter window (ticks)",
+  "screen.shizuku.judgment.phase_radius": "Encounter radius (blocks)",
+  "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml)."
 }

@@ -35,6 +35,7 @@ import net.minecraftforge.registries.ForgeRegistries;
  * playerTick 里按时间轴推进每一段。
  */
 public class SummerSlash {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/summerslash");
     private static final Map<UUID, SummerSlash.SummerSlashData> activeSlashes = new ConcurrentHashMap<>();
     private static final int SLASH_INTERVAL = 3;
 
@@ -264,7 +265,7 @@ public class SummerSlash {
             }
         } catch (Exception var19) {
             System.err.println("[SummerSlash] \u5e94\u7528\u767e\u5206\u6bd4\u771f\u4f24\u5f02\u5e38: " + var19.getMessage());
-            var19.printStackTrace();
+            LOGGER.debug("unexpected error", var19);
             if (attacker instanceof Player) {
                 target.hurt(level.damageSources().playerAttack((Player)attacker), 1000.0F);
             } else {

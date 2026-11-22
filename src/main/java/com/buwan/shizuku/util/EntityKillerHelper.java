@@ -33,6 +33,7 @@ import net.minecraft.world.phys.Vec3;
  * 最后交给 UltimateEntityRemover」，并在删除前补掉落与死亡音效。
  */
 public class EntityKillerHelper {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/entitykillerhelper");
     private static final Map<UUID, Integer> PENDING_FORCE_REMOVALS = new ConcurrentHashMap<>();
 
     public static void killEntity(Entity entity, Player player) {
@@ -372,13 +373,13 @@ public class EntityKillerHelper {
                                 }
                             }
                         } catch (Exception var21) {
-                            var21.printStackTrace();
+                            LOGGER.debug("unexpected error", var21);
                             scheduler.shutdown();
                         }
                     }
                 }, 50L, 50L, TimeUnit.MILLISECONDS);
             } catch (Exception var6) {
-                var6.printStackTrace();
+                LOGGER.debug("unexpected error", var6);
             }
         }
     }
@@ -428,7 +429,7 @@ public class EntityKillerHelper {
             entity.discard();
             entity.getPassengers().forEach(e -> e.remove(RemovalReason.DISCARDED));
         } catch (Exception var3) {
-            var3.printStackTrace();
+            LOGGER.debug("unexpected error", var3);
         }
 
         return true;
@@ -511,11 +512,10 @@ public class EntityKillerHelper {
             Method method = clazz.getMethod("revelaionfix$setApollyonHealth", float.class);
             method.setAccessible(true);
             method.invoke(target, 0.0F);
-            System.out
-                .println("\u2713[SA] \u4f7f\u7528 revelaionfix$setApollyonHealth \u65b9\u6cd5\u6210\u529f\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
+            LOGGER.debug("\u2713[SA] \u4f7f\u7528 revelaionfix$setApollyonHealth \u65b9\u6cd5\u6210\u529f\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
             success = true;
         } catch (Exception var9) {
-            System.out.println("\u2717[SA] revelaionfix$setApollyonHealth \u65b9\u6cd5\u4e0d\u5b58\u5728\u6216\u8c03\u7528\u5931\u8d25: " + var9.getMessage());
+            LOGGER.debug("\u2717[SA] revelaionfix$setApollyonHealth \u65b9\u6cd5\u4e0d\u5b58\u5728\u6216\u8c03\u7528\u5931\u8d25: " + var9.getMessage());
         }
 
         if (!success) {
@@ -524,16 +524,16 @@ public class EntityKillerHelper {
                 healthAccessorField.setAccessible(true);
                 EntityDataAccessor<Float> healthAccessor = (EntityDataAccessor<Float>)healthAccessorField.get(null);
                 target.getEntityData().set(healthAccessor, 0.0F);
-                System.out.println("\u2713[SA] \u4f7f\u7528 EntityDataAccessor \u6210\u529f\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
+                LOGGER.debug("\u2713[SA] \u4f7f\u7528 EntityDataAccessor \u6210\u529f\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
                 success = true;
             } catch (Exception var8) {
-                System.out.println("\u2717[SA] EntityDataAccessor \u65b9\u6cd5\u5931\u8d25: " + var8.getMessage());
+                LOGGER.debug("\u2717[SA] EntityDataAccessor \u65b9\u6cd5\u5931\u8d25: " + var8.getMessage());
             }
         }
 
         if (!success) {
             AgentHealthMethodHelper.forceSetHealth((Entity)target, 0.0F, 0.0F);
-            System.out.println("\u2713[SA] \u4f7f\u7528 AgentHealthMethodHelper \u5f3a\u5236\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
+            LOGGER.debug("\u2713[SA] \u4f7f\u7528 AgentHealthMethodHelper \u5f3a\u5236\u8bbe\u7f6e\u4e9a\u6ce2\u4f26\u5065\u5eb7\u503c");
             success = true;
         }
 
@@ -552,14 +552,13 @@ public class EntityKillerHelper {
                 } catch (Exception var6) {
                 }
 
-                System.out
-                    .println(
+                LOGGER.debug(
                         "\u2713[SA] \u4e9a\u6ce2\u4f26\u8840\u91cf\u5df2\u6539\u4e3a0\uff0c\u8ba9Minecraft\u81ea\u7136\u5904\u7406\u6b7b\u4ea1\u6d41\u7a0b\u548c\u6389\u843d"
                     );
                 return true;
             } catch (Exception var7) {
                 System.err.println("\u2717[SA] \u4e9a\u6ce2\u4f26\u6b7b\u4ea1\u6d41\u7a0b\u89e6\u53d1\u5931\u8d25: " + var7.getMessage());
-                var7.printStackTrace();
+                LOGGER.debug("unexpected error", var7);
                 return false;
             }
         } else {

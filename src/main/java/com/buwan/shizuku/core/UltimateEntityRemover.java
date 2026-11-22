@@ -48,6 +48,7 @@ import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
  * 注意：这里大量使用反射与内部字段名，是硬编码的版本相关逻辑。
  */
 public class UltimateEntityRemover {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/ultimateentityremover");
     public static void remove(Entity entity, Level level) {
         if (!(entity instanceof Player)) {
             setEntityPos(entity);
@@ -91,12 +92,12 @@ public class UltimateEntityRemover {
                             removeFromPersistentManager(entity, level);
                             removeFromTransientManager(entity, level);
                         } catch (Exception var8) {
-                            var8.printStackTrace();
+                            LOGGER.debug("unexpected error", var8);
                         }
                     });
                 }
             } catch (InterruptedException var31) {
-                var31.printStackTrace();
+                LOGGER.debug("unexpected error", var31);
             }
         }).start();
     }
@@ -149,7 +150,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var15) {
-            var15.printStackTrace();
+            LOGGER.debug("unexpected error", var15);
         }
     }
 
@@ -295,7 +296,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var26) {
-            var26.printStackTrace();
+            LOGGER.debug("unexpected error", var26);
         }
     }
 
@@ -447,7 +448,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var25) {
-            var25.printStackTrace();
+            LOGGER.debug("unexpected error", var25);
         }
     }
 
@@ -493,12 +494,12 @@ public class UltimateEntityRemover {
                         Thread.sleep(2L);
                         level.getServer().execute(() -> clearAllBossEventsViaServer(level));
                     } catch (InterruptedException var2x) {
-                        var2x.printStackTrace();
+                        LOGGER.debug("unexpected error", var2x);
                     }
                 }).start();
             }
         } catch (Exception var16) {
-            var16.printStackTrace();
+            LOGGER.debug("unexpected error", var16);
         }
     }
 
@@ -514,7 +515,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var8) {
-            var8.printStackTrace();
+            LOGGER.debug("unexpected error", var8);
         }
     }
 
@@ -543,7 +544,7 @@ public class UltimateEntityRemover {
             entity.kill();
             entity.remove(RemovalReason.DISCARDED);
         } catch (Exception var3) {
-            var3.printStackTrace();
+            LOGGER.debug("unexpected error", var3);
         }
     }
 
@@ -566,7 +567,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var10) {
-            var10.printStackTrace();
+            LOGGER.debug("unexpected error", var10);
         }
     }
 
@@ -594,7 +595,7 @@ public class UltimateEntityRemover {
                 }
             }
         } catch (Exception var7) {
-            var7.printStackTrace();
+            LOGGER.debug("unexpected error", var7);
         }
     }
 

@@ -2,6 +2,7 @@ package com.buwan.shizuku.client.screen;
 
 import com.buwan.shizuku.client.JudgmentControls;
 import com.buwan.shizuku.client.JudgmentVisuals;
+import com.buwan.shizuku.sa.JudgmentConfig;
 import com.buwan.shizuku.sa.Ymsa;
 import java.util.List;
 import net.minecraft.Util;
@@ -32,9 +33,11 @@ public final class JudgmentScreen extends Screen {
     private int contentX;
     private int contentWidth;
     private int footerY;
-    private enum Tab { OVERVIEW, VISUALS }
+    private enum Tab { OVERVIEW, VISUALS, CONFIG }
     private Tab tab = Tab.OVERVIEW;
     private boolean compact;
+    private final java.util.List<Integer> intRowY = new java.util.ArrayList<>();
+    private final java.util.List<IntSetting> intRowSetting = new java.util.ArrayList<>();
     private long previewAt = -Ymsa.END_TICK * 50L;
 
     public JudgmentScreen() {
@@ -50,7 +53,9 @@ public final class JudgmentScreen extends Screen {
         compact = panelWidth < 390 || panelHeight < 220;
         Component overviewLabel = label("overview");
         Component animationLabel = label("visuals");
-        int navTextWidth = Math.max(font.width(title), Math.max(font.width(overviewLabel), font.width(animationLabel)));
+        Component configLabel = label("config");
+        int navTextWidth = Math.max(font.width(title),
+            Math.max(font.width(overviewLabel), Math.max(font.width(animationLabel), font.width(configLabel))));
         sidebarWidth = panelWidth < 305 ? navTextWidth + 28 : compact ? 96 : 120;
         int gutter = compact ? 12 : 24;
         contentX = left + sidebarWidth + gutter;
@@ -61,6 +66,8 @@ public final class JudgmentScreen extends Screen {
             b -> select(Tab.OVERVIEW), tab == Tab.OVERVIEW ? ButtonStyle.SELECTED : ButtonStyle.NAV, Icon.NONE));
         addRenderableWidget(new PanelButton(left + 6, top + HEADER_HEIGHT + 34, navWidth, animationLabel,
             b -> select(Tab.VISUALS), tab == Tab.VISUALS ? ButtonStyle.SELECTED : ButtonStyle.NAV, Icon.NONE));
+        addRenderableWidget(new PanelButton(left + 6, top + HEADER_HEIGHT + 60, navWidth, configLabel,
+            b -> select(Tab.CONFIG), tab == Tab.CONFIG ? ButtonStyle.SELECTED : ButtonStyle.NAV, Icon.NONE));
         addRenderableWidget(new PanelButton(left + panelWidth - 30, top + 5, 22, label("close"),
             b -> onClose(), ButtonStyle.NAV, Icon.CLOSE)).setTooltip(Tooltip.create(label("close")));
 
@@ -75,6 +82,8 @@ public final class JudgmentScreen extends Screen {
                 JudgmentVisuals.SCREEN_EFFECT.save();
                 b.setMessage(effectLabel());
             }, ButtonStyle.TOGGLE, Icon.NONE)).setTooltip(Tooltip.create(label("effect_label")));
+        } else if (tab == Tab.CONFIG) {
+            buildConfigTab();
         } else {
             addSetting(footerY - 27, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
             addRenderableWidget(new PanelButton(contentX, footerY - 52, contentWidth, unleashLabel(), b -> {
@@ -89,6 +98,72 @@ public final class JudgmentScreen extends Screen {
         }
     }
 
+    /** 配置页：客户端三项开关 + 服务端三项数值（单机/集成服务器里可改，多人只读）。 */
+    private void buildConfigTab() {
+        int rowY = configRowsStart();
+        int rowHeight = configRowHeight();
+        if (rowHeight < 12) {
+            return;
+        }
+        addSetting(rowY, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
+        rowY += rowHeight;
+        addRenderableWidget(new PanelButton(contentX, rowY, contentWidth, unleashLabel(), b -> {
+            JudgmentVisuals.UNLEASHED.set(!JudgmentVisuals.UNLEASHED.get());
+            JudgmentVisuals.UNLEASHED.save();
+            b.setMessage(unleashLabel());
+        }, ButtonStyle.OUTLINE, Icon.NONE)).setTooltip(Tooltip.create(label("power_hint")));
+        rowY += rowHeight;
+        addRenderableWidget(new PanelButton(contentX, rowY, contentWidth, effectLabel(), b -> {
+            JudgmentVisuals.SCREEN_EFFECT.set(!JudgmentVisuals.SCREEN_EFFECT.get());
+            JudgmentVisuals.SCREEN_EFFECT.save();
+            b.setMessage(effectLabel());
+        }, ButtonStyle.OUTLINE, Icon.NONE)).setTooltip(Tooltip.create(label("effect_label")));
+        rowY += rowHeight;
+
+        if (!serverConfigEditable()) {
+            return;
+        }
+        int button = compact ? 16 : 18;
+        for (IntSetting setting : CONFIG_INTS) {
+            addRenderableWidget(new PanelButton(contentX, rowY, button, Component.literal("-"),
+                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
+            addRenderableWidget(new PanelButton(contentX + contentWidth - button, rowY, button, Component.literal("+"),
+                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
+            intRowY.add(rowY);
+            intRowSetting.add(setting);
+            rowY += rowHeight;
+        }
+    }
+
+    /** 配置页里可改的服务端数值（步长与范围跟 ForgeConfigSpec 一致）。 */
+    private record IntSetting(String labelKey, int min, int max, int step,
+                              java.util.function.IntSupplier get, java.util.function.IntConsumer set) {}
+
+    private static final IntSetting[] CONFIG_INTS = new IntSetting[]{
+        new IntSetting("obs_ticks", 1, Integer.MAX_VALUE, 200,
+            JudgmentConfig::observationTicks, JudgmentConfig::observationTicks),
+        new IntSetting("phase_ticks", 0, Integer.MAX_VALUE, 20,
+            JudgmentConfig::phaseTicks, JudgmentConfig::phaseTicks),
+        new IntSetting("phase_radius", 1, 320, 4,
+            JudgmentConfig::phaseRadius, JudgmentConfig::phaseRadius),
+    };
+
+    private void setInt(IntSetting setting, int value) {
+        setting.set().accept(Math.max(setting.min(), Math.min(setting.max(), value)));
+    }
+
+    private static boolean serverConfigEditable() {
+        return net.minecraft.client.Minecraft.getInstance().hasSingleplayerServer() && JudgmentConfig.isLoaded();
+    }
+
+    private int configRowsStart() {
+        return top + HEADER_HEIGHT + (compact ? 26 : 40);
+    }
+
+    private int configRowHeight() {
+        return Math.min(compact ? 18 : 24, (footerY - configRowsStart()) / 6);
+    }
+
     private void addSetting(int y, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
         Component text = label(setting.get() ? "setting_on" : "setting_off", label(key));
         addRenderableWidget(new PanelButton(contentX, y, contentWidth, text, b -> {
@@ -101,6 +176,8 @@ public final class JudgmentScreen extends Screen {
     private void select(Tab selected) {
         if (tab != selected) {
             tab = selected;
+            intRowY.clear();
+            intRowSetting.clear();
             previewAt = -Ymsa.END_TICK * 50L;
             rebuildWidgets();
         }
@@ -145,15 +222,39 @@ public final class JudgmentScreen extends Screen {
         graphics.fill(left + sidebarWidth + 1, top + HEADER_HEIGHT, left + panelWidth, top + HEADER_HEIGHT + 1, LINE);
 
         graphics.drawString(font, title, left + 14, top + 12, INK, false);
-        graphics.drawString(font, label(switch (tab) { case OVERVIEW -> "overview"; case VISUALS -> "visuals"; }), contentX, top + 12, MUTED, false);
+        graphics.drawString(font, label(switch (tab) {
+            case OVERVIEW -> "overview";
+            case VISUALS -> "visuals";
+            case CONFIG -> "config";
+        }), contentX, top + 12, MUTED, false);
         graphics.fill(contentX, footerY, contentX + contentWidth, footerY + 1, LINE);
 
         if (tab == Tab.VISUALS) {
             renderPreview(graphics);
+        } else if (tab == Tab.CONFIG) {
+            renderConfig(graphics);
         } else {
             renderOverview(graphics);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    private void renderConfig(GuiGraphics graphics) {
+        int rowHeight = configRowHeight();
+        int button = compact ? 16 : 18;
+        for (int i = 0; i < intRowY.size(); i++) {
+            IntSetting setting = intRowSetting.get(i);
+            int y = intRowY.get(i);
+            int value = setting.get().getAsInt();
+            String valueText = Integer.toString(value);
+            graphics.drawString(font, label(setting.labelKey()), contentX + button + 6, y + rowHeight / 2 - 4, MUTED, false);
+            graphics.drawString(font, valueText,
+                contentX + contentWidth - button - 6 - font.width(valueText), y + rowHeight / 2 - 4, INK, false);
+        }
+        if (!serverConfigEditable()) {
+            int y = configRowsStart() + configRowHeight() * 3;
+            graphics.drawString(font, fit(label("server_only"), contentWidth), contentX, y + 2, MUTED, false);
+        }
     }
 
     private void renderOverview(GuiGraphics graphics) {

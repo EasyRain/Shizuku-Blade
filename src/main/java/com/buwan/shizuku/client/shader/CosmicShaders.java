@@ -41,6 +41,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
  */
 @OnlyIn(Dist.CLIENT)
 public final class CosmicShaders {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/cosmicshaders");
     public static final float[] COSMIC_UVS = new float[40];
     public static TextureAtlasSprite[] COSMIC_SPRITES = new TextureAtlasSprite[10];
     public static ShaderInstance COSMIC_SHADER;
@@ -204,7 +205,7 @@ public final class CosmicShaders {
                     CosmicShaders.cosmicUVs = CosmicShaders.COSMIC_SHADER.getUniform("cosmicuvs");
                 });
             } catch (Exception var2) {
-                var2.printStackTrace();
+                LOGGER.debug("unexpected error", var2);
             }
         }
 
