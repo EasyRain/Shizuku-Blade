@@ -6,7 +6,7 @@
 >
 > **不在本清单**的内容：
 > - **机械 API 迁移**（Forge→NeoForge、SRG→Mojmap、编译/运行报错修复、19 mixin→事件重构、网络包 等）→ 见同目录 `PORTING_GUIDE.md`（= 迁移/运行修复实录）。
-> - **通用跨项目经验** → `D:\DshWorkSpace\MCMOD\WORKSPACE_MEMORY.md` 通用区（§11 Mixin、§15 资源目录/数据包、§20 渲染着色器、§21 光影、§16 反编译）。
+> - **通用跨项目经验** → `D:\DshWorkSpace\Minecraft\WORKSPACE_MEMORY.md` 通用区（§11 Mixin、§15 资源目录/数据包、§20 渲染着色器、§21 光影、§16 反编译）。
 >
 > **上游基线（反编译源码，重移植时对照用）**：`.ref\decompiled\own-mods\modrinth34`(3.4.0) / `modrinth35`(3.5.0) / `modrinth36`(3.6.0) / `modrinth36fix2` / `modrinth37`(3.7.0，**当前基线**)。
 > 原版 jar 在 `minecraft\.minecraft\versions\1.20.1-Forge\mods\shizuku-blade-<版本>.jar`。

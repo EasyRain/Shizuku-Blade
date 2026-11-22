@@ -1,12 +1,12 @@
 # Shizuku-Blade 3.4.0 → 1.21.1 移植指南（子代理必读）
 
 ## 目标与目录
-- 反编译源码（1.20.1，Forge，SRG 混淆名）：`D:\DshWorkSpace\MCMOD\.ref\decompiled\own-mods\modrinth34\src\com\buwan\shizuku\`
-- 移植目标工程（NeoForge 21.1.228 / Minecraft 1.21.1 / Java 21 / **Mojang 映射名**）：`D:\DshWorkSpace\MCMOD\Shizuku-Blade\Shizuku-Blade-NeoForge-1.21.1\src\main\java\com\buwan\shizuku\`
-- 原版+NeoForge 1.21.1 源码参考：`D:\DshWorkSpace\MCMOD\.ref\decompiled\minecraft\vanilla\`（部分已解压）；完整源码在 jar 内：
-  `D:\DshWorkSpace\MCMOD\Shizuku-Blade\Shizuku-Blade-NeoForge-1.21.1\build\moddev\artifacts\neoforge-21.1.228-minecraft-sources.jar`
+- 反编译源码（1.20.1，Forge，SRG 混淆名）：`D:\DshWorkSpace\Minecraft\.ref\decompiled\own-mods\modrinth34\src\com\buwan\shizuku\`
+- 移植目标工程（NeoForge 21.1.228 / Minecraft 1.21.1 / Java 21 / **Mojang 映射名**）：`D:\DshWorkSpace\Minecraft\Shizuku-Blade\Shizuku-Blade-NeoForge-1.21.1\src\main\java\com\buwan\shizuku\`
+- 原版+NeoForge 1.21.1 源码参考：`D:\DshWorkSpace\Minecraft\.ref\decompiled\minecraft\vanilla\`（部分已解压）；完整源码在 jar 内：
+  `D:\DshWorkSpace\Minecraft\Shizuku-Blade\Shizuku-Blade-NeoForge-1.21.1\build\moddev\artifacts\neoforge-21.1.228-minecraft-sources.jar`
   解压命令：`"C:\Program Files\Zulu\zulu-21\bin\jar.exe" xf <那个jar> net/...` （在工作目录里解压后阅读，勿提交到 src）
-- 拔刀剑 1.21.1 API 源码参考：`D:\DshWorkSpace\MCMOD\SlashBlade_Resharped\src\main\java\mods\flammpfeil\slashblade\`（我们的 fork，`1.21.1` 分支）
+- 拔刀剑 1.21.1 API 源码参考：`D:\DshWorkSpace\Minecraft\SlashBlade_Resharped\src\main\java\mods\flammpfeil\slashblade\`（我们的 fork，`1.21.1` 分支）
 
 ## 硬性规则
 1. 只写目标工程目录，不得改动 `SlashBlade_Resharped`（我们的 fork，1.21.1 分支）与 `.ref` 下的文件。
