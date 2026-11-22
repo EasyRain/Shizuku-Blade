@@ -171,12 +171,17 @@ public final class JudgmentScreen extends Screen {
         IntSetting[] intRows = new IntSetting[]{CONFIG_INTS[0], CONFIG_INTS[1], CONFIG_INTS[2], MEOW_STONE};
         for (IntSetting setting : intRows) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
-            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, stepper,
+            Tooltip hint = Tooltip.create(label(setting.labelKey() + "_hint"));
+            PanelButton plus = new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, stepper,
                 Component.literal("+"),
-                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.KEYCAP, Icon.NONE));
-            addRenderableWidget(new PanelButton(contentX + contentWidth - 10 - stepper * 2 - gap, controlY, stepper,
+                b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.KEYCAP, Icon.NONE);
+            plus.setTooltip(hint);
+            addRenderableWidget(plus);
+            PanelButton minus = new PanelButton(contentX + contentWidth - 10 - stepper * 2 - gap, controlY, stepper,
                 stepper, Component.literal("\u2212"),
-                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.KEYCAP, Icon.NONE));
+                b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.KEYCAP, Icon.NONE);
+            minus.setTooltip(hint);
+            addRenderableWidget(minus);
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
