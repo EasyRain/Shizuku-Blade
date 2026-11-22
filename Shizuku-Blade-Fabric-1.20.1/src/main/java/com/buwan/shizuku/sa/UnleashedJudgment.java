@@ -28,6 +28,16 @@ public final class UnleashedJudgment {
     }
 
     /** 用指定朝向发包（审判期间锁定施法时的朝向，避免落剑跟着鼠标跑）。 */
+    /** 用锁定朝向 + 锁定位置发包。 */
+    static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick,
+                          float yaw, float pitch, double ox, double oy, double oz) {
+        if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
+        if (phaseTick == 1) return;
+        com.buwan.shizuku.network.PacketHandler.sendToNearby(
+            com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick, yaw, pitch, ox, oy, oz),
+            player, Ymsa.DOMAIN_RADIUS * 2.5);
+    }
+
     static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick, float yaw, float pitch) {
         if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
         if (phaseTick == 1) return;

@@ -79,11 +79,16 @@ public class Ymsa {
 
     // ---- 3.8.0 解放（审判）入口：Fabric 侧先提供占位实现，服务端行为待移植 ----
     private static final java.util.Map<java.util.UUID, Long> UNLEASHED_UNTIL = new java.util.concurrent.ConcurrentHashMap<>();
-    /** 施法瞬间锁定的朝向（yaw, pitch）：落剑视觉与击杀范围都按这一刻来，避免落剑跟着鼠标跑。 */
-    private static final java.util.Map<java.util.UUID, float[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * 施法瞬间锁定的朝向与眼睛位置（yaw, pitch, x, y, z）。
+     *
+     * <p>落剑有 42 tick 延迟：朝向不锁会跟着鼠标转，位置不锁会因为施法过程中走动而漂移。</p>
+     */
+    private static final java.util.Map<java.util.UUID, double[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
-        AIM.put(player.getUUID(), new float[]{player.getYRot(), player.getXRot()});
+        AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
+                player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
         UnleashedJudgment.notePhase(player, 1);
     }
 
@@ -92,25 +97,42 @@ public class Ymsa {
             UnleashedVerdicts.get(player.serverLevel().getServer()).lockTargets(player);
         }
         protectMainHandBlade(player);
-        UnleashedJudgment.notePhase(player, STRIKE_TICK, aimYaw(player), aimPitch(player));
+        UnleashedJudgment.notePhase(player, STRIKE_TICK, aimYaw(player), aimPitch(player),
+            aimX(player), aimY(player), aimZ(player));
         player.level().playSound(null, player.blockPosition(),
             net.minecraft.sounds.SoundEvents.TRIDENT_THROW, net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 0.72F);
     }
 
     public static void verdictTick(net.minecraft.server.level.ServerPlayer player) {
-        UnleashedJudgment.notePhase(player, VERDICT_TICK, aimYaw(player), aimPitch(player));
+        UnleashedJudgment.notePhase(player, VERDICT_TICK, aimYaw(player), aimPitch(player),
+            aimX(player), aimY(player), aimZ(player));
         player.level().playSound(null, player.blockPosition(),
             net.minecraft.sounds.SoundEvents.BELL_RESONATE, net.minecraft.sounds.SoundSource.PLAYERS, 1.4F, 0.65F);
     }
 
+    private static double aimX(net.minecraft.server.level.ServerPlayer player) {
+        double[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getEyePosition().x : aim[2];
+    }
+
+    private static double aimY(net.minecraft.server.level.ServerPlayer player) {
+        double[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getEyePosition().y : aim[3];
+    }
+
+    private static double aimZ(net.minecraft.server.level.ServerPlayer player) {
+        double[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getEyePosition().z : aim[4];
+    }
+
     private static float aimYaw(net.minecraft.server.level.ServerPlayer player) {
-        float[] aim = AIM.get(player.getUUID());
-        return aim == null ? player.getYRot() : aim[0];
+        double[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getYRot() : (float) aim[0];
     }
 
     private static float aimPitch(net.minecraft.server.level.ServerPlayer player) {
-        float[] aim = AIM.get(player.getUUID());
-        return aim == null ? player.getXRot() : aim[1];
+        double[] aim = AIM.get(player.getUUID());
+        return aim == null ? player.getXRot() : (float) aim[1];
     }
 
     public static void clearUnleashedArea(java.util.UUID id) {
