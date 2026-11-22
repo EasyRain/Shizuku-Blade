@@ -59,6 +59,10 @@ import java.util.stream.Stream;
 public class Ymsa {
 
     private static final double KILL_RADIUS = 256.0;
+    /** 过载（审判执行层已 arm）时的处决半径，与上游一致。 */
+    private static final double OVERDRIVE_RADIUS = 512.0;
+    /** 解放（蓄力审判）但未过载时的半径。 */
+    private static final double UNLEASHED_RADIUS = 320.0;
     // 3.8.0 起审判动画的时序（与 Forge 版保持一致）
     /** 审判姿态动画（combostate/judgment.vmd）。 */
     public static final net.minecraft.resources.ResourceLocation MOTION =
@@ -224,7 +228,12 @@ public class Ymsa {
 
     private static void performYmsaCast(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
-        AABB area = player.getBoundingBox().inflate(KILL_RADIUS);
+        // 对齐上游：普通 256 / 解放 320 / 过载 512
+        boolean unleashed = UnleashedJudgment.isCasting(player);
+        double radius = unleashed
+                ? (JudgmentExecution.armed() ? OVERDRIVE_RADIUS : UNLEASHED_RADIUS)
+                : KILL_RADIUS;
+        AABB area = player.getBoundingBox().inflate(radius);
         int killed = 0;
         int forcedDrops = 0;
         int annihilated = 0;
