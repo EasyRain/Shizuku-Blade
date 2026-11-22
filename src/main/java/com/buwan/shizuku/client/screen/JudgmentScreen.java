@@ -148,18 +148,18 @@ public final class JudgmentScreen extends Screen {
         if (!serverConfigEditable()) {
             return;
         }
-        rowY += Math.max(6, rowHeight / 3);   // 客户端/服务端两段之间留白，别让边框贴着上一行
         int stepper = stepperWidth();
-        int stepperY = rowY + Math.max(0, (rowHeight - 22) / 2);
+        int stepperHeight = stepperHeight();
         for (IntSetting setting : CONFIG_INTS) {
-            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, Component.literal("\u2212"),
+            int stepperY = rowY + (rowHeight - stepperHeight) / 2;
+            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, stepperHeight, Component.literal("\u2212"),
                 b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
-            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, Component.literal("+"),
+            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, stepperHeight,
+                Component.literal("+"),
                 b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
             intRowY.add(rowY);
             intRowSetting.add(setting);
             rowY += rowHeight;
-            stepperY = rowY + Math.max(0, (rowHeight - 22) / 2);
         }
     }
 
@@ -190,7 +190,12 @@ public final class JudgmentScreen extends Screen {
 
     private int configRowHeight() {
         int available = footerY - configRowsStart();
-        return Math.max(20, Math.min(28, available / 6));
+        return Math.max(16, Math.min(28, available / 6));
+    }
+
+    /** 步进按钮高度：跟着行高走，保证 6 行都塞得进内容区、且按钮边框不互相压。 */
+    private int stepperHeight() {
+        return Math.max(14, Math.min(22, configRowHeight() - 4));
     }
 
     /** 步进按钮的边长（要够宽才放得下 + / -：PanelButton 会把文字按 width-16 截断）。 */
@@ -281,13 +286,13 @@ public final class JudgmentScreen extends Screen {
             int y = intRowY.get(i);
             int value = setting.get().getAsInt();
             String valueText = Integer.toString(value);
-            int textY = y + Math.max(0, (rowHeight - 22) / 2) + 7;
+            int textY = y + (rowHeight - 8) / 2;
             graphics.drawString(font, label(setting.labelKey()), contentX + stepper + 6, textY, MUTED, false);
             graphics.drawString(font, valueText,
                 contentX + contentWidth - stepper - 6 - font.width(valueText), textY, INK, false);
         }
         if (!serverConfigEditable()) {
-            int y = configRowsStart() + configRowHeight() * 4;
+            int y = configRowsStart() + configRowHeight() * 3;
             graphics.drawString(font, fit(label("server_only"), contentWidth), contentX, y + 2, MUTED, false);
         }
     }
@@ -410,7 +415,11 @@ public final class JudgmentScreen extends Screen {
         private final Icon icon;
 
         private PanelButton(int x, int y, int width, Component text, OnPress onPress, ButtonStyle style, Icon icon) {
-            super(x, y, width, 22, text, onPress, DEFAULT_NARRATION);
+            this(x, y, width, 22, text, onPress, style, icon);
+        }
+
+        private PanelButton(int x, int y, int width, int height, Component text, OnPress onPress, ButtonStyle style, Icon icon) {
+            super(x, y, width, height, text, onPress, DEFAULT_NARRATION);
             this.style = style;
             this.icon = icon;
             if (width <= 25 && icon != Icon.NONE) {
