@@ -78,6 +78,13 @@ public final class JudgmentVisuals {
      * 第一次渲染时懒加载，失败就置空不再重试。
      */
     private static boolean shadersTried;
+    private static boolean shadersFailed;
+
+    /** 审判 shader 是否可用（不可用时不要单独画红屏，否则只剩「糊脸」没有斩痕）。 */
+    public static boolean shadersReady() {
+        ensureShaders();
+        return !shadersFailed;
+    }
 
     private static void ensureShaders() {
         if (shadersTried) return;
@@ -87,9 +94,12 @@ public final class JudgmentVisuals {
             shader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_rift").toString(), DefaultVertexFormat.POSITION_TEX);
             skyShader = new ShaderInstance(resourceManager, shizuku.prefix("judgment_domain").toString(), DefaultVertexFormat.POSITION_TEX);
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger("shizuku/judgment").warn("judgment shaders unavailable: {}", e.toString());
+            shadersFailed = true;
             shader = null;
             skyShader = null;
+            org.slf4j.LoggerFactory.getLogger("shizuku/judgment")
+                    .warn("[shizuku] judgment shaders unavailable ({}); the screen tint is skipped so the cut marks are never shown alone",
+                            e.toString());
         }
     }
 
@@ -186,6 +196,9 @@ public final class JudgmentVisuals {
     }
 
     public static void shade(GuiGraphics g, float partialTick) {
+        if (!shadersReady()) {
+            return;
+        }
         float amount = immersion(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition(), partialTick);
         if (amount <= 0) return;
         int red = ((int)(amount * 95) << 24) | 0x360517;
