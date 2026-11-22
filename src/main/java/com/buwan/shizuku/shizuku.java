@@ -148,6 +148,7 @@ public class shizuku {
     public shizuku() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, com.buwan.shizuku.sa.JudgmentConfig.SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, com.buwan.shizuku.config.ShizukuConfig.SPEC);
         CREATIVE_MODE_TABS.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModTileEntities.BLOCK_ENTITIES.register(modEventBus);
@@ -221,7 +222,8 @@ public class shizuku {
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         LivingEntity entity = event.getEntity();
-        if (this.isHostileMob(entity) && entity.getRandom().nextFloat() < 0.01F) {
+        // 概率可在游戏内配置页 / config/shizuku-server.toml 里调（0 表示关闭）
+        if (this.isHostileMob(entity) && entity.getRandom().nextFloat() < com.buwan.shizuku.config.ShizukuConfig.meowStoneDropChance()) {
             entity.spawnAtLocation((ItemLike)MEOW_STONE.get());
         }
     }

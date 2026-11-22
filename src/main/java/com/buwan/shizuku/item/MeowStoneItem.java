@@ -23,6 +23,7 @@ public class MeowStoneItem extends Item {
         super.appendHoverText(stack, level, tooltip, flag);
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip"));
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip2"));
-        tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip3"));
+        tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip3",
+            com.buwan.shizuku.config.ShizukuConfig.meowStoneDropPercent()));
     }
 }

@@ -36,7 +36,7 @@
   "item.shizuku.meow_stone": "Meow Stone",
   "item.shizuku.meow_stone.tooltip": "§7A rare material dropped by vanilla hostile mobs",
   "item.shizuku.meow_stone.tooltip2": "...",
-  "item.shizuku.meow_stone.tooltip3": "§8Drop chance: 1%",
+  "item.shizuku.meow_stone.tooltip3": "§8Drop chance: %s%%",
   "se.shizuku.leise": "§fThunderclap~",
   "death.attack.ymsa_kill": "%1$s was erased by judgment",
   "death.attack.ymsa_kill.player": "%1$s was erased by %2$s's judgment",
@@ -70,4 +70,5 @@
   "screen.shizuku.judgment.obs_ticks": "Observation ticks",
   "screen.shizuku.judgment.phase_ticks": "Encounter window (ticks)",
   "screen.shizuku.judgment.phase_radius": "Encounter radius (blocks)",
-  "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml)."}
+  "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml).",
+  "screen.shizuku.judgment.meow_chance": "Meow Stone drop chance (%)"}

@@ -36,7 +36,7 @@
   "item.shizuku.meow_stone": "喵石",
   "item.shizuku.meow_stone.tooltip": "§7从原版敌对生物身上掉落的稀有材料",
   "item.shizuku.meow_stone.tooltip2": "...",
-  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: 1%",
+  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: %s%%",
   "se.shizuku.leise": "§f大雷~",
   "death.attack.ymsa_kill": "%1$s 被审判抹除了",
   "death.attack.ymsa_kill.player": "%1$s 被 %2$s 的审判抹除了",
@@ -70,4 +70,5 @@
   "screen.shizuku.judgment.obs_ticks": "目标保留时长（tick）",
   "screen.shizuku.judgment.phase_ticks": "关联窗口（tick）",
   "screen.shizuku.judgment.phase_radius": "关联半径（格）",
-  "screen.shizuku.judgment.server_only": "服务端数值：单人存档内可直接修改（或编辑 config/shizuku-server.toml）。"}
+  "screen.shizuku.judgment.server_only": "服务端数值：单人存档内可直接修改（或编辑 config/shizuku-server.toml）。",
+  "screen.shizuku.judgment.meow_chance": "喵石掉落概率（%）"}

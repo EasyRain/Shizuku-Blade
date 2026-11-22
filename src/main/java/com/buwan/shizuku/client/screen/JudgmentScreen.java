@@ -194,6 +194,12 @@ public final class JudgmentScreen extends Screen {
             JudgmentConfig::phaseRadius, JudgmentConfig::phaseRadius),
     };
 
+    /** 喵石掉落概率（百分比，0~100，步长 1）。它是通用配置，不属于审判。 */
+    private static final IntSetting MEOW_STONE =
+        new IntSetting("meow_chance", 0, 100, 1,
+            com.buwan.shizuku.config.ShizukuConfig::meowStoneDropPercent,
+            com.buwan.shizuku.config.ShizukuConfig::meowStoneDropPercent);
+
     private void setInt(IntSetting setting, int value) {
         setting.set().accept(Math.max(setting.min(), Math.min(setting.max(), value)));
     }
@@ -206,9 +212,13 @@ public final class JudgmentScreen extends Screen {
         return top + HEADER_HEIGHT + (compact ? 26 : 40);
     }
 
+    private int configRowCount() {
+        return serverConfigEditable() ? 7 : 4;
+    }
+
     private int configRowHeight() {
         int available = footerY - configRowsStart();
-        return Math.max(16, Math.min(28, available / 6));
+        return Math.max(14, Math.min(28, available / configRowCount()));
     }
 
     /** 配置页的卡片高度：每行内居中的 22px 卡片会贴边，所以统一按 rowHeight-4 收紧。 */
@@ -300,7 +310,7 @@ public final class JudgmentScreen extends Screen {
 
     private void renderConfig(GuiGraphics graphics) {
         int rowHeight = configRowHeight();
-        int rows = 6;
+        int rows = configRowCount();
         int boxHeight = rowHeight * rows;
         int boxY = configRowsStart();
 
