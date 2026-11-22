@@ -80,4 +80,6 @@
   "screen.shizuku.judgment.obs_ticks_hint": "目标/遭遇身份的保留时长（tick）。24000 tick = 20 分钟。",
   "screen.shizuku.judgment.phase_ticks_hint": "没有遭遇 id 时，用多少 tick 内出现的附近 boss 来关联本次施法。",
   "screen.shizuku.judgment.phase_radius_hint": "没有遭遇 id 时，关联附近 boss 使用的半径（格）。",
-  "screen.shizuku.judgment.meow_chance_hint": "敌对生物掉落喵石的概率（百分比，0-100）。0 表示不掉落。"}
+  "screen.shizuku.judgment.meow_chance_hint": "敌对生物掉落喵石的概率（百分比，0-100）。0 表示不掉落。",
+  "screen.shizuku.judgment.op_hint": "（仅 OP 可修改）",
+  "screen.shizuku.judgment.op_only": "（仅限 OP 修改）"}

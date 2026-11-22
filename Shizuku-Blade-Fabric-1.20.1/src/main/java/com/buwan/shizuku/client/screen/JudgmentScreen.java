@@ -171,7 +171,9 @@ public final class JudgmentScreen extends Screen {
         IntSetting[] intRows = new IntSetting[]{CONFIG_INTS[0], CONFIG_INTS[1], CONFIG_INTS[2], MEOW_STONE};
         for (IntSetting setting : intRows) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
-            Tooltip hint = Tooltip.create(label(setting.labelKey() + "_hint"));
+            Tooltip hint = Tooltip.create(label(setting.labelKey() + "_hint").copy()
+                    .append(Component.literal("\n"))
+                    .append(label(isOperator() ? "op_hint" : "op_only")));
             PanelButton plus = new PanelButton(contentX + contentWidth - 10 - stepper, controlY, stepper, stepper,
                 Component.literal("+"),
                 b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.KEYCAP, Icon.NONE);
@@ -213,8 +215,31 @@ public final class JudgmentScreen extends Screen {
         setting.set().accept(Math.max(setting.min(), Math.min(setting.max(), value)));
     }
 
+    /**
+     * 服务端配置是否可改。
+     *
+     * <p>只有「单人存档的房主」或「服务器上拥有 OP（权限等级 ≥2）的玩家」能改；
+     * 普通玩家看到的是只读提示。<b>服务端配置只存在于服务端</b>，普通玩家即便点到也改不了
+     * 服务器的值（客户端没有对应网络包），这里的闸门是避免误操作与误解。</p>
+     */
     private static boolean serverConfigEditable() {
-        return net.minecraft.client.Minecraft.getInstance().hasSingleplayerServer() && JudgmentConfig.isLoaded();
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (!JudgmentConfig.isLoaded()) {
+            return false;
+        }
+        if (mc.hasSingleplayerServer()) {
+            return true;   // 单人存档：房主就是 op
+        }
+        return mc.player != null && mc.player.hasPermissions(2);
+    }
+
+    /** 当前玩家是否是 OP（用于给服务端配置行的 tooltip 标注「仅限 OP」）。 */
+    private static boolean isOperator() {
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.hasSingleplayerServer()) {
+            return true;
+        }
+        return mc.player != null && mc.player.hasPermissions(2);
     }
 
     private int configRowsStart() {
