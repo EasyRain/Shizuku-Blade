@@ -1,13 +1,15 @@
 package com.buwan.shizuku.util;
 
 /**
- * SA 伤害调试输出（默认关闭）。
+ * SA 伤害调试输出。
  *
- * <p>加了固定倍率之后，伤害数字在游戏里不直观（还要过护甲/附魔/暴击）。想核对具体数值时，
- * 给 JVM 加参数 {@code -Dshizuku.sa.debug=true}，日志里就会打印每一发 SA 实际设置的伤害值。</p>
+ * <p>⚠️ <b>临时测试代码</b>：目前**无条件输出**（用户反馈 -D 参数在自己的启动器里没生效），
+ * 为了能直接对比两个版本的伤害基准。测试完把 {@link #ENABLED} 改回
+ * {@code Boolean.getBoolean("shizuku.sa.debug")}，或者直接删掉 {@code SaDebug.log(...)} 调用即可。</p>
  */
 public final class SaDebug {
-    private static final boolean ENABLED = Boolean.getBoolean("shizuku.sa.debug");
+    /** 临时：无条件打印。正式版应改回 Boolean.getBoolean("shizuku.sa.debug")。 */
+    private static final boolean ENABLED = true;
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("shizuku/sa");
 
     private SaDebug() {}
@@ -24,7 +26,10 @@ public final class SaDebug {
      * 两个版本 basis 一样、最终伤害不同 ⇒ 差异在 MC/前置的伤害管线，不在本 mod。
      */
     public static void log(String saName, double damage, net.minecraft.world.entity.LivingEntity caster) {
-        if (!ENABLED || caster == null) {
+        if (!ENABLED) {
+            return;
+        }
+        if (caster == null) {
             log(saName, damage);
             return;
         }
