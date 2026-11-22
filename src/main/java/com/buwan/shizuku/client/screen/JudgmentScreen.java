@@ -197,8 +197,7 @@ public final class JudgmentScreen extends Screen {
     /** 喵石掉落概率（百分比，0~100，步长 1）。它是通用配置，不属于审判。 */
     private static final IntSetting MEOW_STONE =
         new IntSetting("meow_chance", 0, 100, 1,
-            com.buwan.shizuku.config.ShizukuConfig::meowStoneDropPercent,
-            com.buwan.shizuku.config.ShizukuConfig::meowStoneDropPercent);
+            JudgmentConfig::meowStoneDropPercent, JudgmentConfig::meowStoneDropPercent);
 
     private void setInt(IntSetting setting, int value) {
         setting.set().accept(Math.max(setting.min(), Math.min(setting.max(), value)));

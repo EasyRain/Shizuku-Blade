@@ -24,6 +24,6 @@ public class MeowStoneItem extends Item {
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip"));
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip2"));
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip3",
-            com.buwan.shizuku.config.ShizukuConfig.meowStoneDropPercent()));
+            com.buwan.shizuku.sa.JudgmentConfig.meowStoneDropPercent()));
     }
 }
