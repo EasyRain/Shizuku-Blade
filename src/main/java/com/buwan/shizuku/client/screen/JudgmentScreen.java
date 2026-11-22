@@ -137,8 +137,8 @@ public final class JudgmentScreen extends Screen {
             return;
         }
 
-        // 客户端三项：右侧一个小按钮显示 开/关
-        int toggleWidth = 44;
+        // 客户端三项：右侧直接画滑块开关（跟「概览」页同一种图形，省掉「开/关」文字）
+        int toggleWidth = 26;
         NetToggle[] toggles = new NetToggle[]{
             new NetToggle("pvp", JudgmentVisuals.DAMAGE_PLAYERS),
             new NetToggle("power", JudgmentVisuals.UNLEASHED),
@@ -146,14 +146,12 @@ public final class JudgmentScreen extends Screen {
         };
         for (NetToggle toggle : toggles) {
             int controlY = rowY + (rowHeight - controlHeight) / 2;
-            boolean[] state = {toggle.setting().get()};
             PanelButton button = new PanelButton(contentX + contentWidth - toggleWidth - 10, controlY, toggleWidth,
-                controlHeight, label(state[0] ? "value_on" : "value_off"), b -> {
+                controlHeight, Component.empty(), b -> {
                     boolean next = !toggle.setting().get();
                     toggle.setting().set(next);
                     toggle.setting().save();
-                    b.setMessage(label(next ? "value_on" : "value_off"));
-                }, ButtonStyle.OUTLINE, Icon.NONE);
+                }, ButtonStyle.SWITCH, Icon.NONE, () -> toggle.setting().get());
             button.setTooltip(Tooltip.create(label(toggle.key() + "_hint")));
             addRenderableWidget(button);
             boolRowY.add(rowY);
@@ -449,18 +447,27 @@ public final class JudgmentScreen extends Screen {
 
     private enum Icon { CLOSE, KEYBOARD, PLAY, NONE }
 
-    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER }
+    private enum ButtonStyle { NAV, SELECTED, PRIMARY, OUTLINE, TOGGLE, POWER, SWITCH }
 
     private final class PanelButton extends Button {
         private final ButtonStyle style;
         private final Icon icon;
+        /** SWITCH 样式下要显示的开关状态；其它样式忽略。 */
+        private java.util.function.BooleanSupplier switchState;
 
         private PanelButton(int x, int y, int width, Component text, OnPress onPress, ButtonStyle style, Icon icon) {
             this(x, y, width, 22, text, onPress, style, icon);
         }
 
-        private PanelButton(int x, int y, int width, int height, Component text, OnPress onPress, ButtonStyle style, Icon icon) {
+        private PanelButton(int x, int y, int width, int height, Component text, OnPress onPress, ButtonStyle style,
+                            Icon icon) {
+            this(x, y, width, height, text, onPress, style, icon, null);
+        }
+
+        private PanelButton(int x, int y, int width, int height, Component text, OnPress onPress, ButtonStyle style,
+                            Icon icon, java.util.function.BooleanSupplier switchState) {
             super(x, y, width, height, text, onPress, DEFAULT_NARRATION);
+            this.switchState = switchState;
             this.style = style;
             this.icon = icon;
             if (width <= 25 && icon != Icon.NONE) {
@@ -487,7 +494,13 @@ public final class JudgmentScreen extends Screen {
                 rounded(graphics, x, y, width, height, 5, fill);
             }
 
-            if (style == ButtonStyle.TOGGLE || style == ButtonStyle.POWER) {
+            if (style == ButtonStyle.SWITCH) {
+                boolean on = switchState != null && switchState.getAsBoolean();
+                int trackY = y + (height - 12) / 2;
+                int trackX = x + (width - 22) / 2;
+                rounded(graphics, trackX, trackY, 22, 12, 6, on ? INK : 0xFFC8CBD1);
+                rounded(graphics, trackX + (on ? 11 : 2), trackY + 2, 8, 8, 4, PAPER);
+            } else if (style == ButtonStyle.TOGGLE || style == ButtonStyle.POWER) {
                 boolean enabled = style == ButtonStyle.POWER ? JudgmentVisuals.UNLEASHED.get() : JudgmentVisuals.SCREEN_EFFECT.get();
                 rounded(graphics, x + 2, y + 5, 22, 12, 6, enabled ? INK : 0xFFC8CBD1);
                 rounded(graphics, x + (enabled ? 13 : 4), y + 7, 8, 8, 4, PAPER);

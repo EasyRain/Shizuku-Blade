@@ -70,6 +70,4 @@
   "screen.shizuku.judgment.obs_ticks": "目标保留时长（tick）",
   "screen.shizuku.judgment.phase_ticks": "关联窗口（tick）",
   "screen.shizuku.judgment.phase_radius": "关联半径（格）",
-  "screen.shizuku.judgment.server_only": "服务端数值：单人存档内可直接修改（或编辑 config/shizuku-server.toml）。",
-  "screen.shizuku.judgment.value_on": "开",
-  "screen.shizuku.judgment.value_off": "关"}
+  "screen.shizuku.judgment.server_only": "服务端数值：单人存档内可直接修改（或编辑 config/shizuku-server.toml）。"}
