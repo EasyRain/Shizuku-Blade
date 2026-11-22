@@ -72,7 +72,7 @@
   "screen.shizuku.judgment.phase_radius": "Encounter radius (blocks)",
   "screen.shizuku.judgment.server_only": "Server-side values: open a single-player world (or edit config/shizuku-server.toml).",
   "screen.shizuku.judgment.meow_chance": "Meow Stone drop chance (%)",
-  "screen.shizuku.judgment.effect_label_hint": "Toggle the slash-mark animation.",
+  "screen.shizuku.judgment.effect_label_hint": "Whether to play the slash animation when Nameless「Famous」casts Judgment.",
   "screen.shizuku.judgment.obs_ticks_hint": "How long (in ticks) a target or encounter is remembered. 24000 ticks = 20 minutes.",
   "screen.shizuku.judgment.phase_ticks_hint": "Window (in ticks) used to link a nearby boss to a cast when it has no encounter id.",
   "screen.shizuku.judgment.phase_radius_hint": "Radius (in blocks) used when linking a nearby boss without an encounter id.",
