@@ -142,7 +142,15 @@ public class shizuku {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(prefix(name)));
     }
 
-    public shizuku(IEventBus modEventBus) {
+    public shizuku(IEventBus modEventBus, net.neoforged.fml.ModContainer modContainer) {
+        // 配置必须在构造阶段用 ModContainer 注册，否则 client 侧读值会抛
+        // "Cannot get config value before config is loaded"
+        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER,
+                com.buwan.shizuku.sa.JudgmentConfig.SPEC);
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT,
+                    com.buwan.shizuku.client.JudgmentVisuals.CONFIG);
+        }
         CREATIVE_MODE_TABS.register(modEventBus);
         ModBlocks.BLOCKS.register(modEventBus);
         ModTileEntities.BLOCK_ENTITIES.register(modEventBus);

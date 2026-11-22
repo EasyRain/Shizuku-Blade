@@ -32,12 +32,12 @@ public class UnleashedInputMixin {
             shizuku$connection = mc.getConnection();
         }
         if (shizuku$connection == null || mc.player == null) return;
-        boolean damagePlayers = JudgmentVisuals.DAMAGE_PLAYERS.get();
+        boolean damagePlayers = JudgmentVisuals.DAMAGE_PLAYERS_SAFE();
         if (damagePlayers != shizuku$damagePlayers) {
             PacketHandler.sendToServer(new UnleashedInputPacket(damagePlayers ? Action.DAMAGE_PLAYERS_ON : Action.DAMAGE_PLAYERS_OFF));
             shizuku$damagePlayers = damagePlayers;
         }
-        boolean enabled = JudgmentVisuals.UNLEASHED.get();
+        boolean enabled = JudgmentVisuals.UNLEASHED_SAFE();
         if (enabled != shizuku$enabled) {
             PacketHandler.sendToServer(new UnleashedInputPacket(enabled ? Action.ENABLE : Action.DISABLE));
             shizuku$enabled = enabled;

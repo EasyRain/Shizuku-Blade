@@ -123,11 +123,36 @@ public final class JudgmentVisuals {
         return ground.getType() == HitResult.Type.BLOCK ? ground.getLocation() : target.add(0, -1.6, 0);
     }
 
+    /** 配置未加载时不要读值（NeoForge 会抛 "Cannot get config value before config is loaded"）。 */
+    private static boolean configReady() {
+        try {
+            return CONFIG.isLoaded();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static boolean sceneEffectEnabled() {
+        return configReady() && SCREEN_EFFECT.get();
+    }
+
+    public static boolean DAMAGE_PLAYERS_SAFE() {
+        return configReady() && DAMAGE_PLAYERS.get();
+    }
+
+    public static boolean UNLEASHED_SAFE() {
+        return configReady() && UNLEASHED.get();
+    }
+
+    private static boolean unleashedEnabled() {
+        return configReady() && UNLEASHED.get();
+    }
+
     @SubscribeEvent
     public static void tick(ClientTickEvent.Post event) {
         var player = Minecraft.getInstance().player;
-        if (player != null) {
-            com.buwan.shizuku.sa.JudgmentClientFlags.update(UNLEASHED.get(), player.getX(), player.getY(), player.getZ());
+        if (player != null && sceneEffectEnabled()) {
+            com.buwan.shizuku.sa.JudgmentClientFlags.update(unleashedEnabled(), player.getX(), player.getY(), player.getZ());
         } else {
             com.buwan.shizuku.sa.JudgmentClientFlags.clear();
         }
@@ -141,7 +166,7 @@ public final class JudgmentVisuals {
     @SubscribeEvent
     public static void renderWorld(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES || casts.isEmpty()
-                || !SCREEN_EFFECT.get() || currentLevel == null) return;
+                || !sceneEffectEnabled() || currentLevel == null) return;
         Vec3 camera = event.getCamera().getPosition();
         PoseStack pose = event.getPoseStack();
         for (Cast active : casts.values()) {
@@ -184,7 +209,7 @@ public final class JudgmentVisuals {
     }
 
     private static float immersion(Vec3 eye, float partial) {
-        if (casts.isEmpty() || currentLevel == null || !SCREEN_EFFECT.get()) return 0;
+        if (casts.isEmpty() || currentLevel == null || !sceneEffectEnabled()) return 0;
         float amount = 0;
         for (Cast cast : casts.values()) {
             float distance = (float) eye.distanceTo(cast.center);
