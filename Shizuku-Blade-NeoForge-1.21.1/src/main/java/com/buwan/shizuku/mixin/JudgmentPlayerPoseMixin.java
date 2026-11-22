@@ -2,6 +2,7 @@ package com.buwan.shizuku.mixin;
 
 import com.buwan.shizuku.registry.SAComboRegistry;
 import com.buwan.shizuku.sa.Ymsa;
+import mods.flammpfeil.slashblade.capability.slashblade.BladeStateAccess;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -18,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class JudgmentPlayerPoseMixin {
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("TAIL"), require = 0)
     private void shizuku$poseJudgment(LivingEntity player, float limbSwing, float limbAmount, float age, float yaw, float pitch, CallbackInfo ci) {
-        player.getMainHandItem().getCapability(ItemSlashBlade.BLADESTATE).ifPresent(state -> {
+        BladeStateAccess.of(player.getMainHandItem()).ifPresent(state -> {
             if (!SAComboRegistry.YMSA.getId().equals(state.getComboSeq())) {
                 return;
             }

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import mods.flammpfeil.slashblade.capability.slashblade.BladeStateAccess;
 import mods.flammpfeil.slashblade.item.ItemSlashBlade;
 import mods.flammpfeil.slashblade.util.AttackManager;
 import net.minecraft.network.chat.Component;
@@ -24,7 +25,7 @@ public final class UnleashedJudgment {
     private UnleashedJudgment() {}
 
     public static boolean isBlade(ItemStack stack) {
-        return stack.getItem() instanceof ItemSlashBlade && stack.getCapability(ItemSlashBlade.BLADESTATE)
+        return stack.getItem() instanceof ItemSlashBlade && BladeStateAccess.of(stack)
             .map(state -> "item.shizuku.ymblade".equals(state.getTranslationKey())).orElse(false);
     }
 
@@ -86,7 +87,7 @@ public final class UnleashedJudgment {
         } else if (use != null) {
             uses.remove(id);
             if (use.player != player || use.blade != blade) return;
-            blade.getCapability(ItemSlashBlade.BLADESTATE).ifPresent(state -> {
+            BladeStateAccess.of(blade).ifPresent(state -> {
                 if (now - use.start < state.getFullChargeTicks(player)) return;
                 var tag = blade.getOrCreateTag();
                 if (!tag.hasUUID("shizuku:cast_blade")) tag.putUUID("shizuku:cast_blade", UUID.randomUUID());

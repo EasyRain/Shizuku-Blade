@@ -18,11 +18,6 @@ import java.util.function.Consumer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.AABB;
-import net.neoforged.neoforge.capabilities.AutoRegisterCapability;
-import net.neoforged.neoforge.capabilities.Capability;
-import net.neoforged.neoforge.capabilities.CapabilityManager;
-import net.neoforged.neoforge.capabilities.CapabilityToken;
-import net.neoforged.neoforge.capabilities.ICapabilityProvider;
 import net.neoforged.neoforge.event.entity.living.MobSpawnEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
@@ -34,15 +29,15 @@ import net.minecraft.core.registries.BuiltInRegistries;
 @EventBusSubscriber(modid = "shizuku")
 public final class JudgmentEncounters {
     public static final String ENCOUNTER_ID = "shizuku:encounter_id";
-
-    @AutoRegisterCapability
     public interface Controller {
         UUID encounterId();
         /** Release this encounter's bars, phase queue and persistence. Must be idempotent. */
         void finish(ServerLevel level);
     }
-
-    public static final Capability<Controller> CONTROLLER = CapabilityManager.get(new CapabilityToken<>() {});
+    /** NeoForge 1.21 的能力系统换代，这里和 Fabric 版一致：直接用 instanceof 判断实现类。 */
+    static java.util.Optional<Controller> controller(Object holder) {
+        return holder instanceof Controller c ? java.util.Optional.of(c) : java.util.Optional.empty();
+    }
     private static final ClassValue<List<Field>> BARS = new ClassValue<>() {
         @Override protected List<Field> computeValue(Class<?> type) {
             var fields = new ArrayList<Field>();
@@ -93,8 +88,8 @@ public final class JudgmentEncounters {
 
     private JudgmentEncounters() {}
 
-    static UUID link(ICapabilityProvider provider, @Nullable CompoundTag data) {
-        var controller = provider.getCapability(CONTROLLER).resolve();
+    static UUID link(Object provider, @Nullable CompoundTag data) {
+        var controller = controller(provider);
         if (controller.isPresent()) return controller.get().encounterId();
         if (provider instanceof Entity entity) {
             Adapter adapter = adapter(entity);
@@ -115,7 +110,7 @@ public final class JudgmentEncounters {
         if (entity.getType().is(Ymsa.BOSS_TYPES)) return true;
         Adapter adapter = adapter(entity);
         if (adapter != null && adapter.isBoss(entity)) return true;
-        if (entity.getCapability(CONTROLLER).isPresent() || !BARS.get(entity.getClass()).isEmpty()) return true;
+        if (entity instanceof Controller || !BARS.get(entity.getClass()).isEmpty()) return true;
         if (JudgmentConfig.TYPES.get().contains(key.toString()) || JudgmentConfig.NAMESPACES.get().contains(key.getNamespace())) return true;
         String customName = entity.hasCustomName() && entity.getCustomName() != null ? entity.getCustomName().getString() : "";
         String name = (key.getPath() + " " + entity.getClass().getSimpleName() + " " + customName).toLowerCase(Locale.ROOT);
@@ -125,7 +120,7 @@ public final class JudgmentEncounters {
     static void finishEntity(ServerLevel level, Entity entity) {
         Adapter adapter = adapter(entity);
         if (adapter != null) adapter.finish(level, entity);
-        entity.getCapability(CONTROLLER).ifPresent(c -> c.finish(level));
+        if (entity instanceof Controller controller) controller.finish(level);
         for (Field f : BARS.get(entity.getClass())) {
             try {
                 if (f.get(entity) instanceof ServerBossEvent bar) {
@@ -151,10 +146,10 @@ public final class JudgmentEncounters {
                 if (chunk == null) continue;
                 for (BlockEntity block : List.copyOf(chunk.getBlockEntities().values())) {
                     if (!area.contains(block.getBlockPos().getCenter())) continue;
-                    block.getCapability(CONTROLLER).ifPresent(controller -> {
+                    if (block instanceof Controller controller) {
                         verdicts.recordController(caster, level, controller.encounterId(), block.getBlockPos().getCenter());
                         controller.finish(level);
-                    });
+                    }
                 }
             }
         }

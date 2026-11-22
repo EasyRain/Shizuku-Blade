@@ -15,7 +15,7 @@ import net.neoforged.neoforge.entity.PartEntity;
 
 final class JudgmentParts {
     private static final TagKey<EntityType<?>> LINKED_PARTS = TagKey.create(Registries.ENTITY_TYPE,
-        new ResourceLocation("shizuku", "judgment_linked_parts"));
+        ResourceLocation.fromNamespaceAndPath("shizuku", "judgment_linked_parts"));
     private static final ClassValue<Optional<MethodHandle>> PARENT = new ClassValue<>() {
         @Override protected Optional<MethodHandle> computeValue(Class<?> type) {
             try {

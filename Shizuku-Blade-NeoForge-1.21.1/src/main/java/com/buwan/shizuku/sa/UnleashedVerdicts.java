@@ -76,7 +76,7 @@ final class UnleashedVerdicts extends SavedData {
     void recordController(UUID caster, ServerLevel level, UUID id, Vec3 location) {
         long now = level.getServer().overworld().getGameTime();
         if (targets.getOrDefault(id, List.of()).stream().noneMatch(t -> t.caster.equals(caster) && t.start == now)) {
-            add(new Target(caster, id, level.dimension().location(), new ResourceLocation("shizuku", "controller"), location, now, false));
+            add(new Target(caster, id, level.dimension().location(), ResourceLocation.fromNamespaceAndPath("shizuku", "controller"), location, now, false));
             setDirty();
         }
     }
