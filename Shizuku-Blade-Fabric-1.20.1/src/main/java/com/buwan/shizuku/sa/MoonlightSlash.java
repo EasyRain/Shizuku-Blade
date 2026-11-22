@@ -28,6 +28,7 @@ public class MoonlightSlash {
             if (entity instanceof Player player) {
                 ServerLevel level = (ServerLevel) entity.level();
                 float damage = DAMAGE_SCALE;
+                com.buwan.shizuku.util.SaDebug.log("MoonlightSlash", damage);
                 int colorCode = CapabilitySlashBlade.BLADESTATE.maybeGet(entity.getMainHandItem()).map(ISlashBladeState::getColorCode).orElse(MOONLIGHT_COLOR);
                 level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.3F);
                 SlashData slashData = new SlashData(damage, colorCode);

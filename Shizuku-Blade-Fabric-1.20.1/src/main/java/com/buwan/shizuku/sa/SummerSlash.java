@@ -44,6 +44,7 @@ public class SummerSlash {
                 float angle = -30.0F + (float) i * 30.0F;
                 int color = interpolateColor(startColor, endColor, (float) i / 2.0F);
                 float damage = DAMAGE_SCALE;
+                com.buwan.shizuku.util.SaDebug.log("SummerSlash", damage);
                 slashes.add(new SlashData(angle * 0.5F, color, new Vec3(0.0, 0.2, 0.0), true, i == 1, damage));
             }
 

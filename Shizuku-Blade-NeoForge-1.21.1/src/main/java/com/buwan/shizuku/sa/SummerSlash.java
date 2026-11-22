@@ -2,7 +2,6 @@ package com.buwan.shizuku.sa;
 
 import com.buwan.shizuku.core.AgentHealthMethodHelper;
 import com.buwan.shizuku.core.EntityHelper;
-import com.buwan.shizuku.util.DamageCalculator;
 import com.buwan.shizuku.util.HealthModifyHelper;
 import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
 import mods.flammpfeil.slashblade.util.KnockBacks;
@@ -29,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.buwan.shizuku.shizuku.GLASS_BREAK_SOUND;
 
 public class SummerSlash {
+    private static final float DAMAGE_SCALE = 2.10F;
     private static final Map<UUID, SummerSlashData> activeSlashes = new ConcurrentHashMap<>();
     private static final int SLASH_INTERVAL = 3;
 
@@ -43,7 +43,8 @@ public class SummerSlash {
             for (int i = 0; i < 3; i++) {
                 float angle = -30.0F + (float) i * 30.0F;
                 int color = interpolateColor(startColor, endColor, (float) i / 2.0F);
-                float damage = DamageCalculator.calculateRefinedDamage(playerIn, 1.0F);
+                float damage = DAMAGE_SCALE;
+                com.buwan.shizuku.util.SaDebug.log("SummerSlash", damage);
                 slashes.add(new SlashData(angle * 0.5F, color, new Vec3(0.0, 0.2, 0.0), true, i == 1, damage));
             }
 
@@ -54,7 +55,7 @@ public class SummerSlash {
                 float angle = (float) i * 72.0F;
                 float height = 0.3F + (float) i * 0.15F;
                 int color = interpolateColor(group2Start, group2End, (float) i / 4.0F);
-                float damage = DamageCalculator.calculateRefinedDamage(playerIn, 1.1F + (float) i * 0.05F);
+                float damage = (1.1F + (float) i * 0.05F) * DAMAGE_SCALE;
                 slashes.add(new SlashData(angle * 0.3F, color, new Vec3(0.0, height, 0.0), true, i == 2, damage));
             }
 
@@ -64,7 +65,7 @@ public class SummerSlash {
                 float angle = -60.0F + (float) i * 30.0F;
                 float height = i % 2 == 0 ? 0.3F : 0.7F;
                 int color = colors[i];
-                float damage = DamageCalculator.calculateRefinedDamage(playerIn, 1.3F);
+                float damage = 1.3F * DAMAGE_SCALE;
                 slashes.add(new SlashData(angle * 0.5F, color, new Vec3(0.0, height, 0.0), true, i == 2, damage));
             }
 
