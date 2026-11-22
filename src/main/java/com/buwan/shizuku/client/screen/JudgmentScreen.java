@@ -517,7 +517,7 @@ public final class JudgmentScreen extends Screen {
                 case SELECTED -> SELECTED;
                 default -> hovered ? HOVER : 0;
             };
-            if (style == ButtonStyle.OUTLINE || isFocused()) {
+            if (style == ButtonStyle.OUTLINE) {
                 rounded(graphics, x - 1, y - 1, width + 2, height + 2, 6, isFocused() ? 0xFF929AA6 : LINE);
             }
             if (fill != 0) {
@@ -526,7 +526,8 @@ public final class JudgmentScreen extends Screen {
 
             if (style == ButtonStyle.KEYCAP) {
                 // 与「概览」页「面板快捷键 J」完全同一种键帽画法：4px 圆角浅灰底 + 居中文字，无描边
-                rounded(graphics, x, y, width, height, 4, hovered ? 0xFFE7E8EA : HOVER);
+                int keycapFill = isFocused() ? 0xFFD8DBE0 : hovered ? 0xFFE7E8EA : HOVER;
+                rounded(graphics, x, y, width, height, 4, keycapFill);
                 String glyph = getMessage().getString();
                 int glyphWidth = font.width(glyph);
                 graphics.drawString(font, glyph, x + (width - glyphWidth) / 2, y + (height - 8) / 2, INK, false);
