@@ -110,7 +110,7 @@ public final class JudgmentScreen extends Screen {
         } else if (tab == Tab.CONFIG) {
             buildConfigTab();
         } else {
-            addSetting(footerY - 27, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
+            addSetting(footerY - 27, 22, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
             addRenderableWidget(new PanelButton(contentX, footerY - 52, contentWidth, unleashLabel(), b -> {
                 JudgmentVisuals.UNLEASHED.set(!JudgmentVisuals.UNLEASHED.get());
                 JudgmentVisuals.UNLEASHED.save();
@@ -127,18 +127,22 @@ public final class JudgmentScreen extends Screen {
     private void buildConfigTab() {
         int rowY = configRowsStart();
         int rowHeight = configRowHeight();
-        if (rowHeight < 12) {
+        int cardHeight = configCardHeight();
+        if (cardHeight < 12) {
             return;
         }
-        addSetting(rowY, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
+        int cardY = rowY + (rowHeight - cardHeight) / 2;
+        addSetting(cardY, cardHeight, "pvp", JudgmentVisuals.DAMAGE_PLAYERS);
         rowY += rowHeight;
-        addRenderableWidget(new PanelButton(contentX, rowY, contentWidth, unleashLabel(), b -> {
+        cardY = rowY + (rowHeight - cardHeight) / 2;
+        addRenderableWidget(new PanelButton(contentX, cardY, contentWidth, cardHeight, unleashLabel(), b -> {
             JudgmentVisuals.UNLEASHED.set(!JudgmentVisuals.UNLEASHED.get());
             JudgmentVisuals.UNLEASHED.save();
             b.setMessage(unleashLabel());
         }, ButtonStyle.OUTLINE, Icon.NONE)).setTooltip(Tooltip.create(label("power_hint")));
         rowY += rowHeight;
-        addRenderableWidget(new PanelButton(contentX, rowY, contentWidth, effectLabel(), b -> {
+        cardY = rowY + (rowHeight - cardHeight) / 2;
+        addRenderableWidget(new PanelButton(contentX, cardY, contentWidth, cardHeight, effectLabel(), b -> {
             JudgmentVisuals.SCREEN_EFFECT.set(!JudgmentVisuals.SCREEN_EFFECT.get());
             JudgmentVisuals.SCREEN_EFFECT.save();
             b.setMessage(effectLabel());
@@ -149,12 +153,11 @@ public final class JudgmentScreen extends Screen {
             return;
         }
         int stepper = stepperWidth();
-        int stepperHeight = stepperHeight();
         for (IntSetting setting : CONFIG_INTS) {
-            int stepperY = rowY + (rowHeight - stepperHeight) / 2;
-            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, stepperHeight, Component.literal("\u2212"),
+            int stepperY = rowY + (rowHeight - cardHeight) / 2;
+            addRenderableWidget(new PanelButton(contentX, stepperY, stepper, cardHeight, Component.literal("\u2212"),
                 b -> setInt(setting, setting.get().getAsInt() - setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
-            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, stepperHeight,
+            addRenderableWidget(new PanelButton(contentX + contentWidth - stepper, stepperY, stepper, cardHeight,
                 Component.literal("+"),
                 b -> setInt(setting, setting.get().getAsInt() + setting.step()), ButtonStyle.OUTLINE, Icon.NONE));
             intRowY.add(rowY);
@@ -193,19 +196,19 @@ public final class JudgmentScreen extends Screen {
         return Math.max(16, Math.min(28, available / 6));
     }
 
-    /** 步进按钮高度：跟着行高走，保证 6 行都塞得进内容区、且按钮边框不互相压。 */
-    private int stepperHeight() {
-        return Math.max(14, Math.min(22, configRowHeight() - 4));
+    /** 配置页的卡片高度：每行内居中的 22px 卡片会贴边，所以统一按 rowHeight-4 收紧。 */
+    private int configCardHeight() {
+        return Math.max(14, configRowHeight() - 4);
     }
 
     /** 步进按钮的边长（要够宽才放得下 + / -：PanelButton 会把文字按 width-16 截断）。 */
     private int stepperWidth() {
-        return compact ? 22 : 26;
+        return compact ? 24 : 28;
     }
 
-    private void addSetting(int y, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
+    private void addSetting(int y, int height, String key, net.minecraftforge.common.ForgeConfigSpec.BooleanValue setting) {
         Component text = label(setting.get() ? "setting_on" : "setting_off", label(key));
-        addRenderableWidget(new PanelButton(contentX, y, contentWidth, text, b -> {
+        addRenderableWidget(new PanelButton(contentX, y, contentWidth, height, text, b -> {
             setting.set(!setting.get());
             setting.save();
             b.setMessage(label(setting.get() ? "setting_on" : "setting_off", label(key)));
