@@ -118,7 +118,7 @@ public final class UnleashedJudgment {
                 UnleashedVerdicts.get(player.serverLevel().getServer()).beginCast(id, tag.getUUID("shizuku:cast_blade"));
                 uses.put(id, new Use(player, blade, now, true));
                 // 时间轴在这里起步（不依赖连招状态活多久）
-                Ymsa.beginJudgment(player);
+                Ymsa.beginJudgment(player, now);
                 state.updateComboSeq(player, SAComboRegistry.YMSA.getId());
             });
         }

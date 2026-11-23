@@ -201,10 +201,15 @@ public class SAComboRegistry {
                     // 时间轴由 Ymsa.handleServerTickEnd 的服务端 tick 循环推进（连招状态会被
                     // SlashBlade 提前切走，实测只活 5~18 tick，撑不到 VERDICT_TICK=42）。
                     // 这里只负责在施法第一帧登记（beginJudgment 幂等）。
+                    // 时间轴由 Ymsa.handleServerTickEnd 的服务端 tick 循环推进（连招状态会被
+                    // SlashBlade 提前切走，实测只活 5~18 tick，撑不到 VERDICT_TICK=42）。
+                    // 这里只负责登记这次施法的起点；castStart 用 gameTime-elapsed 推出，
+                    // 所以同一次施法反复登记是幂等的，重新施法会自然替换。
                     .addTickAction(entity -> {
                         if (entity instanceof net.minecraft.server.level.ServerPlayer player
                                 && !com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
-                            Ymsa.beginJudgment(player);
+                            long elapsed = ComboState.getElapsed(entity);
+                            Ymsa.beginJudgment(player, player.serverLevel().getGameTime() - elapsed);
                         }
                     })
                     .releaseAction((user, elapsed) -> {
