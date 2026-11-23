@@ -83,7 +83,7 @@ public final class SaTimeline {
 
         public Consumer<LivingEntity> build() {
             Map<Integer, Step> plan = Map.copyOf(steps);
-            return entity -> schedule(entity, plan, null);
+            return entity -> schedule(entity, plan);
         }
     }
 
@@ -94,36 +94,43 @@ public final class SaTimeline {
      * @param steps  时间点 → 动作
      */
     public static void plan(LivingEntity entity, Map<Integer, Step> steps) {
-        schedule(entity, steps, null);
+        schedule(entity, steps);
     }
+
+    /**
+     * 时间轴「走完后」的宽限期：这段时间内同一张步骤表不再重新开始。
+     *
+     * <p>连招状态每 tick 都会来登记，而前置库会反复切走/切回我们的状态，
+     * 所以不能靠「状态实例」判断新的一轮，只能用时间窗：一轮走完再留 20 tick 余量。
+     * 这样同一招在窗口内不会被重新起一轮（否则第 3 tick 的一次性效果会连发，
+     * 实测过一次施法冒出 3~8 个雫草剑气就是这么来的），窗口过后再放就是新的一轮。</p>
+     */
+    private static final int REARM_GRACE = 20;
 
     /** 明确指定起点（解放路径在松手那一刻调用）。 */
     public static void start(LivingEntity entity, Map<Integer, Step> steps) {
-        schedule(entity, steps, 0L);
+        schedule(entity, steps);
     }
 
-    private static void schedule(LivingEntity entity, Map<Integer, Step> steps, Long explicitAge) {
+    /**
+     * 连招状态每 tick 调用；只有「新的一轮」才会真正重建计划。
+     *
+     * <p>起点一律取**登记那一刻**的 gameTime，不再用 {@code ComboState.getElapsed()}：
+     * 那个值会被前置库反复改写（实测一次施法里归零 10 次），拿它当去重键会导致
+     * 计划被反复重建、把已经执行过的 tick 再放一遍。</p>
+     */
+    private static void schedule(LivingEntity entity, Map<Integer, Step> steps) {
         if (entity == null || steps.isEmpty()) return;
         boolean client = entity.level().isClientSide();
         Map<UUID, Plan> plans = client ? CLIENT_PLANS : SERVER_PLANS;
         long now = entity.level().getGameTime();
-        long base = explicitAge != null
-                ? now - explicitAge
-                : now - mods.flammpfeil.slashblade.registry.combo.ComboState.getElapsed(entity);
         UUID id = entity.getUUID();
         Plan prev = plans.get(id);
-        // 同一次施法会被状态每 tick 重复登记：用「同一张步骤表 + 同一起点」去重。
-        // 但如果上一轮时间轴**已经走完**（age 超过最后一个时间点）还收到同一个起点的登记，
-        // 说明是「同一个剑技又放了一次、而库没有重置 elapsed」——必须当作新施法重来，
-        // 否则连发同一招时第二发会被静默吞掉。
-        if (prev != null && prev.steps == steps && prev.base == base
-                && now - prev.base <= prev.maxTick) {
-            return;
+        if (prev != null && prev.steps == steps
+                && now - prev.base <= prev.maxTick + REARM_GRACE) {
+            return;   // 这一轮还在跑（或刚跑完），不动
         }
-        if (prev != null && prev.steps == steps && prev.base == base) {
-            base = now;   // 重新开始计时
-        }
-        plans.put(id, new Plan(steps, base, entity.getMainHandItem(), slotOf(entity)));
+        plans.put(id, new Plan(steps, now, entity.getMainHandItem(), slotOf(entity)));
     }
 
     /** 取消某位玩家当前的时间轴（切刀、断线、关解放）。 */
