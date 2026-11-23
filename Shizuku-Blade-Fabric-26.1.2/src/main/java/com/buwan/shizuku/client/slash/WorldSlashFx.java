@@ -136,6 +136,11 @@ public final class WorldSlashFx {
             debugOnce("render-nolevel", "render() 提前返回：level/player 为 null");
             return;
         }
+        if (Boolean.getBoolean("shizuku.slashfx.probe_quad")) {
+            // 白块探针：只验证「这条世界阶段直绘路径能不能出像素」，与刀光数据无关
+            drawProbeQuad(event.getPoseStack());
+            return;
+        }
         Vec3 camera = event.getCamera().position();
         long now = mc.level.getGameTime();
         PoseStack poseStack = event.getPoseStack();
@@ -155,6 +160,20 @@ public final class WorldSlashFx {
                     Integer.toHexString(arc.color()));
             drawArc(poseStack, camera, arc, alpha);
         }
+    }
+
+    /** 诊断：在「视线正前方 2 格」画一个 1×1 白块（视图空间，不经世界变换）。 */
+    private static void drawProbeQuad(PoseStack poseStack) {
+        BufferBuilder buffer = Tesselator.getInstance().begin(
+                VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        var matrix = poseStack.last().pose();
+        buffer.addVertex(matrix, -0.5F, -0.5F, -2.0F).setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        buffer.addVertex(matrix, -0.5F, 0.5F, -2.0F).setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        buffer.addVertex(matrix, 0.5F, 0.5F, -2.0F).setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        buffer.addVertex(matrix, 0.5F, -0.5F, -2.0F).setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        debugOnce("probe-quad", "画白色 1x1 探针四边形（视线正前方 2 格）");
+        RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+        debugOnce("probe-quad-done", "探针四边形 draw() 完成");
     }
 
     private static void drawArc(PoseStack poseStack, Vec3 camera, Arc arc, float alpha) {
@@ -181,11 +200,12 @@ public final class WorldSlashFx {
                 return;
             }
             try {
-                // 与 TimeStopRenderer 完全同款的开始方式（POSITION_COLOR + 直接 draw）；
-                // 顶点模式用 TRIANGLES：不受 QUADS「每组必须 4 个顶点」的约束。
+                // ⚠️ 必须 QUADS：RenderTypes.debugQuads() 的 pipeline 顶点模式就是 QUADS
+                // （DEBUG_FILLED_SNIPPET + withCull(false)），喂 TRIANGLES 会被按 4 顶点重新分组
+                // = 退化三角形 = 屏幕上什么都没有。TimeStopRenderer 的画球同样用 QUADS。
                 buffer = Tesselator.getInstance().begin(
-                        VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
-                debugOnce("s2-begin", "step=begin ok mode=TRIANGLES");
+                        VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+                debugOnce("s2-begin", "step=begin ok mode=QUADS");
             } catch (Throwable t) {
                 fail("step2-begin", t);
                 return;
@@ -201,7 +221,7 @@ public final class WorldSlashFx {
                     float edge = 1.0F - t0 * t0;
                     float outerAlpha = alpha * edge;
                     // 三角形 1: 内0 - 外0 - 外1；三角形 2: 内0 - 外1 - 内1（正反各写一遍 = 双面）
-                    written += triangle(buffer, matrix, a0, a1, r, g, b, outerAlpha);
+                    written += quad(buffer, matrix, a0, a1, r, g, b, outerAlpha);
                 }
                 debugOnce("s3-verts", "step=vertices ok n={}", written);
             } catch (Throwable t) {
@@ -227,23 +247,14 @@ public final class WorldSlashFx {
         }
     }
 
-    /** 写一个弧段（两个三角形 + 反向副本），返回写入的顶点数。 */
-    private static int triangle(BufferBuilder buffer, org.joml.Matrix4f matrix,
-                                float a0, float a1, float r, float g, float b, float outerAlpha) {
-        int n = 0;
-        for (int side = 0; side < 2; side++) {
-            float a = side == 0 ? a0 : a1;
-            float c = side == 0 ? a1 : a0;
-            vertex(buffer, matrix, a, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-            vertex(buffer, matrix, a, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-            vertex(buffer, matrix, c, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-            n += 3;
-            vertex(buffer, matrix, a, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-            vertex(buffer, matrix, c, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-            vertex(buffer, matrix, c, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-            n += 3;
-        }
-        return n;
+    /** 写一个弧段（1 个 QUADS 四边形：内缘透明 → 外缘亮），返回写入的顶点数。 */
+    private static int quad(BufferBuilder buffer, org.joml.Matrix4f matrix,
+                            float a0, float a1, float r, float g, float b, float outerAlpha) {
+        vertex(buffer, matrix, a0, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+        vertex(buffer, matrix, a0, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+        vertex(buffer, matrix, a1, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+        vertex(buffer, matrix, a1, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+        return 4;
     }
 
     private static void fail(String step, Throwable t) {
