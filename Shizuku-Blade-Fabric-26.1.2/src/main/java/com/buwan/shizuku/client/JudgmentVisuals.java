@@ -43,7 +43,26 @@ public final class JudgmentVisuals {
     public static final ForgeConfigSpec.BooleanValue UNLEASHED;
     public static final ForgeConfigSpec.BooleanValue DAMAGE_PLAYERS;
     public static final ForgeConfigSpec CONFIG;
-    private static final ItemStack DIAMOND_SWORD = new ItemStack(Items.DIAMOND_SWORD);
+    /**
+     * 审判落剑用的展示物品。
+     *
+     * <p><b>必须懒加载</b>：26.1 在物品组件绑定完成前构造 {@link ItemStack} 会抛
+     * {@code Components not bound yet}（实测崩在 {@code JudgmentVisuals.<clinit>}，
+     * 触发点是 mod 初始化时的配置注册 → 类初始化）。这里改成首次绘制时才创建，
+     * 并用 try/catch 兜底，绑定失败就退化成 EMPTY（不画剑，但不影响任何逻辑）。</p>
+     */
+    private static ItemStack diamondSword;
+
+    private static ItemStack swordDisplay() {
+        if (diamondSword == null) {
+            try {
+                diamondSword = new ItemStack(Items.DIAMOND_SWORD);
+            } catch (Throwable t) {
+                diamondSword = ItemStack.EMPTY;
+            }
+        }
+        return diamondSword;
+    }
     /** 落剑判定时从目标点上方多少格往下打射线（与 1.21.1 一致）。 */
     private static final float DROP_HEIGHT = 25;
 
@@ -220,7 +239,7 @@ public final class JudgmentVisuals {
         pose.translate(cx, cy);
         pose.rotate((float) Math.toRadians(-45));
         pose.scale(scale, scale);
-        graphics.item(DIAMOND_SWORD, -8, -8);
+        graphics.item(swordDisplay(), -8, -8);
         pose.popMatrix();
     }
 
