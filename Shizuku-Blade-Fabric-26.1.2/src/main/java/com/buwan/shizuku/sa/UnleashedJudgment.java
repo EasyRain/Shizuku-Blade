@@ -20,16 +20,14 @@ import net.minecraft.world.item.ItemStack;
 
 public final class UnleashedJudgment {
     /**
-     * 26.1.2 暂缓发送审判落剑包（{@code shizuku:judgment_impact}）。
+     * 是否向附近客户端广播审判落剑包（{@code shizuku:judgment_impact}）。
      *
-     * <p>实测该包在 26.1 上编码失败：{@code EncoderException: Failed to encode packet
-     * 'clientbound/minecraft:custom_payload'} —— 编码发生在 Netty 线程，调用点 try/catch
-     * 兜不住，会直接把玩家踢下线，所以先整体关掉。</p>
-     *
-     * <p>影响面：26.1.2 处于「阶段一」，世界内本来就还没有落剑/裂缝表现（渲染已降级），
-     * 所以关掉它不会让画面更差，只是不再掉线。修好 codec 后把这里改回 true。</p>
+     * <p>2026-11-23 已恢复为 true：当时「一放审判就掉线」的真实原因不是 codec 写错，而是
+     * {@code PacketHandler.register()} 漏注册了这个 payload 类型（26.1.2 移植时漏了三条），
+     * 原版分发 codec 编码时抛 "unrecognized payload"，被 Fabric 包成
+     * {@code EncoderException: Failed to encode packet ...}。补齐注册后编码正常。</p>
      */
-    private static final boolean BROADCAST_IMPACT = false;
+    private static final boolean BROADCAST_IMPACT = true;
 
     private record Use(ServerPlayer player, ItemStack blade, long start, boolean casting) {}
     private static final Map<UUID, Use> uses = new HashMap<>();

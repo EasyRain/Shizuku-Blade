@@ -10,7 +10,10 @@ public class TimeStopShaderPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<TimeStopShaderPacket> TYPE =
             new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "time_stop_shader"));
     public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopShaderPacket> STREAM_CODEC =
-            StreamCodec.ofMember(TimeStopShaderPacket::write, TimeStopShaderPacket::new);
+            StreamCodec.of((buf, msg) -> {
+                buf.writeBoolean(msg.activate());
+                buf.writeFloat(msg.strength());
+            }, buf -> new TimeStopShaderPacket(buf));
 
     private final boolean activate;
     private final float strength;

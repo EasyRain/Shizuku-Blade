@@ -13,7 +13,7 @@ public class TimeStopPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<TimeStopPacket> TYPE =
             new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "time_stop"));
     public static final StreamCodec<RegistryFriendlyByteBuf, TimeStopPacket> STREAM_CODEC =
-            StreamCodec.ofMember(TimeStopPacket::write, TimeStopPacket::new);
+            StreamCodec.of((buf, msg) -> msg.write(buf), buf -> new TimeStopPacket(buf));
 
     private final UUID playerId;
     private final double x;

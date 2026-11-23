@@ -14,7 +14,7 @@ public class GalaxyFieldPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<GalaxyFieldPacket> TYPE =
             new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "galaxy_field"));
     public static final StreamCodec<RegistryFriendlyByteBuf, GalaxyFieldPacket> STREAM_CODEC =
-            StreamCodec.ofMember(GalaxyFieldPacket::write, GalaxyFieldPacket::new);
+            StreamCodec.of((buf, msg) -> msg.write(buf), buf -> new GalaxyFieldPacket(buf));
 
     private final UUID playerId;
     private final double x;

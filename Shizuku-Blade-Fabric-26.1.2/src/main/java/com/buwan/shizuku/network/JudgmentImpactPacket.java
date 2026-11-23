@@ -19,7 +19,7 @@ public record JudgmentImpactPacket(UUID caster, long startTick, int phaseTick, V
             new Type<>(Identifier.fromNamespaceAndPath("shizuku", "judgment_impact"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, JudgmentImpactPacket> STREAM_CODEC =
-            StreamCodec.ofMember(JudgmentImpactPacket::write, JudgmentImpactPacket::new);
+            StreamCodec.of((buf, msg) -> msg.write(buf), buf -> new JudgmentImpactPacket(buf));
 
     public static JudgmentImpactPacket from(ServerPlayer player, int phaseTick) {
         return from(player, phaseTick, player.getYRot(), player.getXRot());

@@ -56,6 +56,10 @@ public class ShizukuFabricClient implements ClientModInitializer {
             com.buwan.shizuku.sa.SaTimeline.tickClient(client);
         });
 
+        // S2C：审判落剑（位置/朝向已由服务端锁定）
+        ClientPlayNetworking.registerGlobalReceiver(com.buwan.shizuku.network.JudgmentImpactPacket.TYPE,
+                (payload, context) -> context.client().execute(payload::handleClient));
+
         // S2C：抹除广播
         ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.TYPE, (payload, context) ->
                 context.client().execute(() -> YmsaClientReceiver.handle(payload)));

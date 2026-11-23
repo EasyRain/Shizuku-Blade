@@ -13,7 +13,7 @@ public class VoidPrisonPacket implements CustomPacketPayload {
     public static final CustomPacketPayload.Type<VoidPrisonPacket> TYPE =
             new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath("shizuku", "void_prison"));
     public static final StreamCodec<RegistryFriendlyByteBuf, VoidPrisonPacket> STREAM_CODEC =
-            StreamCodec.ofMember(VoidPrisonPacket::write, VoidPrisonPacket::new);
+            StreamCodec.of((buf, msg) -> msg.write(buf), buf -> new VoidPrisonPacket(buf));
 
     private final UUID playerId;
     private final double x;

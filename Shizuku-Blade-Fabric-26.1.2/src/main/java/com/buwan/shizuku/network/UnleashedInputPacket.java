@@ -13,7 +13,7 @@ public record UnleashedInputPacket(Action action) implements CustomPacketPayload
             new Type<>(Identifier.fromNamespaceAndPath("shizuku", "unleashed_input"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, UnleashedInputPacket> STREAM_CODEC =
-            StreamCodec.ofMember(UnleashedInputPacket::write, UnleashedInputPacket::new);
+            StreamCodec.of((buf, msg) -> buf.writeEnum(msg.action()), buf -> new UnleashedInputPacket(buf));
 
     public enum Action { PRESS, RELEASE, CANCEL, ENABLE, DISABLE, DAMAGE_PLAYERS_ON, DAMAGE_PLAYERS_OFF }
 

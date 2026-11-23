@@ -36,7 +36,14 @@ public class PacketHandler {
         PayloadTypeRegistry.clientboundPlay().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
+        // ⚠️ 这三条 26.1.2 移植时漏掉了：payload 的 StreamCodec 再正确，只要类型没进对应方向的
+        //    PayloadTypeRegistry，原版的分发 codec 在编码时就会抛 "unrecognized payload"，
+        //    Fabric 再把它包成 EncoderException: Failed to encode packet ... (shizuku:xxx)。
+        //    表现就是「一开解放/一放审判就被踢」。类型注册必须与接收方注册成对出现。
+        PayloadTypeRegistry.clientboundPlay().register(JudgmentImpactPacket.TYPE, JudgmentImpactPacket.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(UnleashedInputPacket.TYPE, UnleashedInputPacket.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(PhantomSlashPacket.TYPE, PhantomSlashPacket.STREAM_CODEC);
 
         // C2S：Shift+X 切换星河领域（服务端校验手持 mosmicblade）
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.TYPE, (payload, context) ->
@@ -49,6 +56,24 @@ public class PacketHandler {
                             .map(s -> "item.shizuku.mosmicblade".equals(s.getTranslationKey())).orElse(false);
                     if (mosmic && player.getMainHandItem().getItem() instanceof ItemSlashBlade) {
                         GalaxyField.toggleField(player);
+                    }
+                }));
+
+        // C2S：解放（审判）输入 —— 服务端仍会校验 OP（权限等级 >= 2）
+        ServerPlayNetworking.registerGlobalReceiver(UnleashedInputPacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (player != null) {
+                        payload.handleServer(player);
+                    }
+                }));
+
+        // C2S：幻影斩（只有手持「星河」时服务端才放行）
+        ServerPlayNetworking.registerGlobalReceiver(PhantomSlashPacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (player != null) {
+                        payload.handle(player);
                     }
                 }));
     }

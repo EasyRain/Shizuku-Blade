@@ -11,7 +11,8 @@ public record PhantomSlashPacket() implements CustomPacketPayload {
             new Type<>(Identifier.fromNamespaceAndPath("shizuku", "phantom_slash"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, PhantomSlashPacket> STREAM_CODEC =
-            StreamCodec.ofMember(PhantomSlashPacket::write, PhantomSlashPacket::new);
+            StreamCodec.of((buf, msg) -> {
+            }, buf -> new PhantomSlashPacket(buf));
 
     private PhantomSlashPacket(RegistryFriendlyByteBuf buf) {
         this();
