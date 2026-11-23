@@ -104,14 +104,17 @@ public class Ymsa {
     private static final class Judgement {
         /** 施法开始时的 gameTime：同一个值 = 同一次施法（连招状态每 tick 都会来登记）。 */
         final long castStart;
-        /** 施法瞬间手里的刀：切换物品即视为取消。 */
+        /** 施法瞬间手里的刀（只比物品类型，避免耐久/组件变化误判）。 */
         final ItemStack blade;
+        /** 施法瞬间的主手槽位序号：切槽位即视为取消。 */
+        final int slot;
         /** 已推进到第几阶段（1=已开始 2=裂缝 3=落剑 4=收刀）。 */
         long phase = 1;
 
-        Judgement(long castStart, ItemStack blade) {
+        Judgement(long castStart, ItemStack blade, int slot) {
             this.castStart = castStart;
             this.blade = blade;
+            this.slot = slot;
         }
     }
 
@@ -140,7 +143,8 @@ public class Ymsa {
         if (existing != null && existing.castStart == castStart) {
             return;
         }
-        TIMELINE.put(player.getUUID(), new Judgement(castStart, player.getMainHandItem()));
+        TIMELINE.put(player.getUUID(), new Judgement(castStart,
+                player.getMainHandItem(), player.getInventory().selected));
         CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
         AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
                 player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
@@ -158,8 +162,9 @@ public class Ymsa {
                 TIMELINE.remove(entry.getKey());
                 continue;
             }
-            // 换掉手里的刀（切物品 / 换手 / 丢出）＝ 取消这次施法，与原版手感一致
-            if (player.getMainHandItem() != judgement.blade) {
+            // 换掉手里的刀（切槽位 / 换手 / 丢出）＝ 取消这次施法，与原版手感一致
+            if (player.getInventory().selected != judgement.slot
+                    || !ItemStack.isSameItem(player.getMainHandItem(), judgement.blade)) {
                 TIMELINE.remove(entry.getKey());
                 CLEANUP_LATCH.remove(entry.getKey());
                 AIM.remove(entry.getKey());
