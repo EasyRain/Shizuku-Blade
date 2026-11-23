@@ -233,7 +233,7 @@ public final class UpstreamSlashFx {
             return submitProbe(poseStack, collector, drive);
         }
         debugMatrix(drive ? "drive" : "slash", poseStack);
-        collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             try {
                 Face.alphaOverride = drive ? Face.alphaNoOverride : Face.alphaOverrideYZZ;
                 Face.uvOperator = Face.uvDefaultOperator;
@@ -273,12 +273,19 @@ public final class UpstreamSlashFx {
                     .withSampler("Sampler1")
                     .withColorTargetState(new ColorTargetState(java.util.Optional.of(BlendFunction.LIGHTNING),
                             ColorTargetState.WRITE_COLOR))
-                    // ⚠️ 必须关剔除：上游 OBJ 的三角绕向不保证是逆时针，ENTITY_EMISSIVE_SNIPPET
-                    // 默认 withCull(true) ⇒ 整层被背面剔除 =「λ 执行了但屏幕空白」（CosmicShaders 同样关了）。
-                    .withCull(false)
                     .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.TRIANGLES)
-                    // 加法叠层不写深度（同 CosmicShaders 的踩坑结论：26.1 批提交不保序）
-                    .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+                    // ⚠️⚠️ 关键：必须 withCull(false)。
+                    // 实测对比（javap 反编译上游 BladeRenderState 的两个 RenderType 工厂）：
+                    //   · getSlashBladeBlendLuminous（刀光/drive，**能出画面**）
+                    //       ENTITY_EMISSIVE_SNIPPET + ALPHA_CUTOUT + PER_FACE_LIGHTING
+                    //       + **withCull(iconst_0)** + LIGHTNING 加法 + ENTITY/TRIANGLES
+                    //   · getSlashBladeBlendColorWrite（斩击/slash，**从来不出画面**，连上游自己的刀也不出）
+                    //       同上但**没有** withCull ⇒ 继承 ENTITY_EMISSIVE_SNIPPET 的 cull=true
+                    //       ⇒ OBJ 的三角形按背面剔掉，整层消失。
+                    //    我们上一版正是照抄了 ColorWrite 这条（少了 withCull），所以虽然 λ 正常执行、
+                    //    贴图模型都在，屏幕上依旧什么都没有。
+                    // 另外这里不再 withDepthStencilState 覆盖深度：上游能出画面的那条就是继承默认值。
+                    .withCull(false)
                     .build();
             warmTexture(textureId);
             RenderSetup setup = RenderSetup.builder(pipeline)
@@ -286,7 +293,9 @@ public final class UpstreamSlashFx {
                     .setOutputTarget(OutputTarget.MAIN_TARGET)
                     .useLightmap()
                     .useOverlay()
+                    .affectsCrumbling()
                     .sortOnUpload()
+                    .setOutline(net.minecraft.client.renderer.rendertype.RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
                     .createRenderSetup();
             RenderType created = RenderType.create(drive ? "shizuku_slash_glow_drive" : "shizuku_slash_glow", setup);
             if (drive) {
@@ -362,7 +371,7 @@ public final class UpstreamSlashFx {
                 .entityTranslucentEmissive(texture);
         debugOnce("probe|" + (drive ? "drive" : "slash"), "PROBE quad submitted texture={} rt={}", texture, probeType);
         debugMatrix("probe-" + (drive ? "drive" : "slash"), poseStack);
-        collector.order(1).submitCustomGeometry(poseStack, probeType, (pose, vc) -> {
+        collector.submitCustomGeometry(poseStack, probeType, (pose, vc) -> {
             try {
                 // 本地空间：面前 2 格、2×2，足够大，肯定看得见
                 quadVertex(vc, pose, -1.0F, 0.0F, 2.0F, 0.0F, 1.0F);
