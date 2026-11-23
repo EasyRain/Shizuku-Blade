@@ -1025,36 +1025,7 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
         }
     }
 
-    /** 【临时诊断 3】观察所有 shizuku:* 连招状态在 2.0.5 上能活多久（查完删）。 */
-    private record SaWatch(String seq, long lastLog) {}
-
-    private static final java.util.Map<java.util.UUID, SaWatch> SA_WATCH = new java.util.concurrent.ConcurrentHashMap<>();
-
-    private static void watchSaStates(MinecraftServer server) {
-        long now = server.overworld().getGameTime();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            var state = mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade
-                    .getBladeState(player.getMainHandItem()).orElse(null);
-            if (state == null) continue;
-            var seq = state.getComboSeq();
-            if (seq == null || !"shizuku".equals(seq.getNamespace())) {
-                SA_WATCH.remove(player.getUUID());
-                continue;
-            }
-            long elapsed = mods.flammpfeil.slashblade.registry.combo.ComboState.getElapsed(player);
-            SaWatch prev = SA_WATCH.get(player.getUUID());
-            if (prev == null || !seq.toString().equals(prev.seq())) {
-                SA_WATCH.put(player.getUUID(), new SaWatch(seq.toString(), now));
-                org.slf4j.LoggerFactory.getLogger("judg").info("[judg] SA {} START (elapsed={})", seq, elapsed);
-            } else if (now - prev.lastLog() >= 5) {
-                SA_WATCH.put(player.getUUID(), new SaWatch(prev.seq(), now));
-                org.slf4j.LoggerFactory.getLogger("judg").info("[judg] SA {} elapsed={}", seq, elapsed);
-            }
-        }
-    }
-
     public static void handleServerTickEnd(MinecraftServer server) {
-        watchSaStates(server);
         SaTimeline.tickServer(server);
         processExtraHits(server);
         processForceWipe(server);
