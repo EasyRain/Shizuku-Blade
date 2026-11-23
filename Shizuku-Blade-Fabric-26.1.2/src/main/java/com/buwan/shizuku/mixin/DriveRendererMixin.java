@@ -34,6 +34,7 @@ public abstract class DriveRendererMixin {
         if (state instanceof CosmicFxFlag flag) {
             flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
             flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
+            com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("drive", entity.getShooter(), flag);
             // 26.1 的 DriveRenderState 不带 baseSize（上游 26.1 刀光改固定缩放），
             // 这里自己带过去，供 CosmicFx.submitDrive 还原原版 0.02*max(1,baseSize)
             flag.shizuku$setBaseSize(entity.getBaseSize());
@@ -57,7 +58,11 @@ public abstract class DriveRendererMixin {
             ci.cancel();
             return;
         }
-        if (com.buwan.shizuku.client.slash.UpstreamSlashFx.submitDrive(state, poseStack, collector)) {
+        // ⚠️ 止损：默认**只叠加、不 cancel**。上一版无条件 cancel 后自绘又没出画面，
+        // 结果从「抽搐但可见」退化成「完全不可见」。现在只有显式
+        // -Dshizuku.slashfx.replace_drive=true 且确实提交成功时才替换。
+        boolean submitted = com.buwan.shizuku.client.slash.UpstreamSlashFx.submitDrive(state, poseStack, collector);
+        if (submitted && com.buwan.shizuku.client.slash.UpstreamSlashFx.mayReplaceDrive()) {
             ci.cancel();
         }
     }

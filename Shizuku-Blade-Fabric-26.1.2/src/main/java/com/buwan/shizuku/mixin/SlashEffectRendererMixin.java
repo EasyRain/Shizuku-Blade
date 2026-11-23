@@ -41,6 +41,7 @@ public abstract class SlashEffectRendererMixin {
         if (state instanceof CosmicFxFlag flag) {
             flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
             flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
+            com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("slash", entity.getShooter(), flag);
         }
     }
 
