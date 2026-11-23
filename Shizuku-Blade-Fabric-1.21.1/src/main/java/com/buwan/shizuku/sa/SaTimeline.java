@@ -112,9 +112,16 @@ public final class SaTimeline {
                 : now - mods.flammpfeil.slashblade.registry.combo.ComboState.getElapsed(entity);
         UUID id = entity.getUUID();
         Plan prev = plans.get(id);
-        // 同一次施法会被状态每 tick 重复登记：用「同一张步骤表 + 同一起点」去重
-        if (prev != null && prev.steps == steps && prev.base == base) {
+        // 同一次施法会被状态每 tick 重复登记：用「同一张步骤表 + 同一起点」去重。
+        // 但如果上一轮时间轴**已经走完**（age 超过最后一个时间点）还收到同一个起点的登记，
+        // 说明是「同一个剑技又放了一次、而库没有重置 elapsed」——必须当作新施法重来，
+        // 否则连发同一招时第二发会被静默吞掉。
+        if (prev != null && prev.steps == steps && prev.base == base
+                && now - prev.base <= prev.maxTick) {
             return;
+        }
+        if (prev != null && prev.steps == steps && prev.base == base) {
+            base = now;   // 重新开始计时
         }
         plans.put(id, new Plan(steps, base, entity.getMainHandItem(), slotOf(entity)));
     }
