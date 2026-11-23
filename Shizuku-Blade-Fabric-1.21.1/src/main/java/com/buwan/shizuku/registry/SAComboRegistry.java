@@ -298,11 +298,13 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(5, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("cosmic_attack_end"))
-                    .clickAction(entityIn -> {
-                        if (entityIn instanceof LivingEntity) {
-                            StarRiverSlash.firePhantomSlash(entityIn, "clickAction");
-                        }
-                    })
+                    // 【1.21.1 Fabric 专用】这里不再发幻影剑。
+                    // 库的 `updateComboSeq` 每次被调用都会执行「新状态的 clickAction」，
+                    // 而 2.0.5 会反复把我们自定义的连招状态切走再切回来（每次切回 = 一次
+                    // updateComboSeq），于是 clickAction 里的「一次性效果」变成了连发：
+                    // 一次施法实测冒出 3~8 把幻影剑。1.9.65 上状态不会被反复切回，
+                    // 所以只有这里需要去掉；幻影剑改由客户端空挥包（PhantomSlashPacket）
+                    // 触发，一次左键 = 一把。
                     .addTickAction(SAComboRegistry::resetRot)
                     .addHitEffect(StunManager::setStun)::build
     );
