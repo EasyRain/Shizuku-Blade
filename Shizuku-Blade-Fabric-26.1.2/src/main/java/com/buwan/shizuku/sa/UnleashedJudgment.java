@@ -19,6 +19,18 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
 public final class UnleashedJudgment {
+    /**
+     * 26.1.2 暂缓发送审判落剑包（{@code shizuku:judgment_impact}）。
+     *
+     * <p>实测该包在 26.1 上编码失败：{@code EncoderException: Failed to encode packet
+     * 'clientbound/minecraft:custom_payload'} —— 编码发生在 Netty 线程，调用点 try/catch
+     * 兜不住，会直接把玩家踢下线，所以先整体关掉。</p>
+     *
+     * <p>影响面：26.1.2 处于「阶段一」，世界内本来就还没有落剑/裂缝表现（渲染已降级），
+     * 所以关掉它不会让画面更差，只是不再掉线。修好 codec 后把这里改回 true。</p>
+     */
+    private static final boolean BROADCAST_IMPACT = false;
+
     private record Use(ServerPlayer player, ItemStack blade, long start, boolean casting) {}
     private static final Map<UUID, Use> uses = new HashMap<>();
     private static final Set<UUID> enabled = new HashSet<>();
@@ -34,6 +46,9 @@ public final class UnleashedJudgment {
                           float yaw, float pitch, double ox, double oy, double oz) {
         if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
         if (phaseTick == 1) return;
+        if (!BROADCAST_IMPACT) {
+            return;
+        }
         com.buwan.shizuku.network.PacketHandler.sendToNearby(
             com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick, yaw, pitch, ox, oy, oz),
             player, Ymsa.DOMAIN_RADIUS * 2.5);
@@ -42,6 +57,9 @@ public final class UnleashedJudgment {
     static void notePhase(net.minecraft.server.level.ServerPlayer player, int phaseTick, float yaw, float pitch) {
         if (player == null || !(player.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
         if (phaseTick == 1) return;
+        if (!BROADCAST_IMPACT) {
+            return;
+        }
         com.buwan.shizuku.network.PacketHandler.sendToNearby(
             com.buwan.shizuku.network.JudgmentImpactPacket.from(player, phaseTick, yaw, pitch),
             player, Ymsa.DOMAIN_RADIUS * 2.5);
