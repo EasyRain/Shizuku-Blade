@@ -162,9 +162,10 @@ public class Ymsa {
         int forcedDrops = 0;
         int annihilated = 0;
 
-        // 「解放 + 释放时按着 Shift」= 连掉落和经验一起抹掉，此时实体也不需要保留死亡动画
+        // 释放时按着 Shift = 抹除模式：实体直接抹掉、地上的掉落与经验也一并清掉（保持原版手感）。
+        // 不看是否解放 —— 用户确认这样手感一致；不按 Shift 则走正常死亡流程。
         boolean cleanDrops = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
-        boolean wipe = unleashed && cleanDrops;
+        boolean wipe = cleanDrops;
 
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area, e -> shouldKill(e, player))) {
             KillOutcome outcome = killTarget(target, player, level, wipe);
