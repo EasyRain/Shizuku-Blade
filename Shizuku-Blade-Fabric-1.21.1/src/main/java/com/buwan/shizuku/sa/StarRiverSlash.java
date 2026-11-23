@@ -27,55 +27,21 @@ public class StarRiverSlash {
     private static final int STAR_COLOR = 9662683;
     private static final float[] PHANTOM_ROLLS = new float[]{0.0F, 90.0F, 60.0F, -60.0F};
 
-    /**
-     * 同一玩家两次幻影剑的最小间隔（tick）。
-     *
-     * <p>幻影剑有**两条触发路径**：客户端的空挥包（{@code PhantomSlashPacket}）与连招状态
-     * {@code cosmic_attack} 的 {@code clickAction}。Forge 版在输入事件里 {@code setCanceled(true)}
-     * 把这次点击吞掉了，所以 clickAction 不会跟着触发；Fabric 没有可取消的等价事件，
-     * 一次左键会被两条路径各算一次 ⇒ 偶尔同时冒出两把幻影剑。</p>
-     *
-     * <p>这里用「同一 tick 窗口内只放行一次」兜底：3 tick = 150 ms，正常手速（<7 cps）
-     * 连点不会互相吞掉，但同一次点击的两条路径只会留一把。</p>
-     */
-    private static final int PHANTOM_MIN_INTERVAL = 3;
-
-    private static final java.util.Map<java.util.UUID, Long> LAST_PHANTOM =
-            new java.util.concurrent.ConcurrentHashMap<>();
-
     private StarRiverSlash() {
     }
 
     public static void firePhantomSlash(LivingEntity entity) {
-        firePhantomSlash(entity, "unknown");
-    }
-
-    /**
-     * @param source 触发来源，仅用于诊断日志（"packet" / "clickAction"）
-     */
-    public static void firePhantomSlash(LivingEntity entity, String source) {
-        if (entity.level().isClientSide()) {
-            return;
+        if (!entity.level().isClientSide()) {
+            if (entity instanceof Player player) {
+                ServerLevel level = (ServerLevel) entity.level();
+                int colorCode = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
+                        .map(ISlashBladeState::getColorCode).orElse(STAR_COLOR);
+                float roll = randomPhantomRoll(player.getRandom());
+                // 3.7.0：幻影剑气用穿透音效（三叉戟投掷声），伤害固定 0.7
+                AttackManager.playPiercingSoundAction(player);
+                spawnDrive(player, level, roll, 0.4F, colorCode, 0.7F, 1.0F, 16, 1.0F, KnockBacks.cancel);
+            }
         }
-        if (!(entity instanceof Player player)) {
-            return;
-        }
-        long now = entity.level().getGameTime();
-        Long last = LAST_PHANTOM.get(player.getUUID());
-        if (last != null && now - last < PHANTOM_MIN_INTERVAL) {
-            org.slf4j.LoggerFactory.getLogger("judg").info(
-                    "[phantom] skipped {} ({} tick after last)", source, now - last);
-            return;
-        }
-        LAST_PHANTOM.put(player.getUUID(), now);
-        org.slf4j.LoggerFactory.getLogger("judg").info("[phantom] fire via {}", source);
-        ServerLevel level = (ServerLevel) entity.level();
-        int colorCode = CapabilitySlashBlade.getBladeState(player.getMainHandItem())
-                .map(ISlashBladeState::getColorCode).orElse(STAR_COLOR);
-        float roll = randomPhantomRoll(player.getRandom());
-        // 3.7.0：幻影剑气用穿透音效（三叉戟投掷声），伤害固定 0.7
-        AttackManager.playPiercingSoundAction(player);
-        spawnDrive(player, level, roll, 0.4F, colorCode, 0.7F, 1.0F, 16, 1.0F, KnockBacks.cancel);
     }
 
     public static float randomPhantomRoll(RandomSource rand) {
