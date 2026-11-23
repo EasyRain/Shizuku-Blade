@@ -124,7 +124,7 @@ public final class UnleashedJudgment {
                 uses.put(id, new Use(player, blade, now, true));
                 // 时间轴在这里起步（不依赖连招状态活多久）：Ymsa 的服务端 tick 循环会按
                 // age >= STRIKE / VERDICT / SHEATH 推进三段
-                Ymsa.beginJudgment(player, now);
+                com.buwan.shizuku.sa.SaTimeline.start(player, Ymsa.JUDGMENT_STEPS);
                 state.updateComboSeq(player, SAComboRegistry.YMSA.getId());
             });
         }

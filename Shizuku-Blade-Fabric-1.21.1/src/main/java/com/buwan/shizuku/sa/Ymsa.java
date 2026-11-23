@@ -100,97 +100,32 @@ public class Ymsa {
      */
     private static final java.util.Map<java.util.UUID, Boolean> CLEANUP_LATCH = new java.util.concurrent.ConcurrentHashMap<>();
 
-    /** 一次审判施法的状态。 */
-    private static final class Judgement {
-        /** 施法开始时的 gameTime：同一个值 = 同一次施法（连招状态每 tick 都会来登记）。 */
-        final long castStart;
-        /** 施法瞬间手里的刀（只比物品类型，避免耐久/组件变化误判）。 */
-        final ItemStack blade;
-        /** 施法瞬间的主手槽位序号：切槽位即视为取消。 */
-        final int slot;
-        /** 已推进到第几阶段（1=已开始 2=裂缝 3=落剑 4=收刀）。 */
-        long phase = 1;
-
-        Judgement(long castStart, ItemStack blade, int slot) {
-            this.castStart = castStart;
-            this.blade = blade;
-            this.slot = slot;
-        }
-    }
-
     /**
-     * 审判时间轴：UUID -> 这次施法的状态。
+     * 审判的三段时序，交给 {@link SaTimeline}（服务端 tick 循环推进，不依赖连招状态寿命）。
      *
-     * <p>**为什么不放在连招状态的 tickAction 里**：YMSA 连招状态会被 SlashBlade 的其他
-     * 超时/事件提前切走（实测只活 5~18 tick），而第三段要等到 VERDICT_TICK(42)。
-     * 时间轴由服务端 tick 循环推进，用 {@code age >= X} 判阶段并去重，
-     * 既不依赖连招状态活多久，也不会因为某帧被跳过而永久错过某个阶段。</p>
-     *
-     * <p>同一次施法会被反复登记（连招状态每 tick 都调一次），靠 {@code castStart} 去重；
-     * 再次施法拿到新的 {@code castStart}，于是自然替换掉上一条 —— 重复施法照常可用。</p>
+     * <p>tick 1 → 锁朝向/Shift；8 → 裂缝；42 → 落剑+结算；54 → 收刀音效。</p>
      */
-    private static final java.util.Map<java.util.UUID, Judgement> TIMELINE = new java.util.concurrent.ConcurrentHashMap<>();
-
-    /**
-     * 施法开始时登记时间轴。
-     *
-     * @param player    施法者
-     * @param castStart 施法开始的 gameTime（连招路径传 {@code gameTime - elapsed}，
-     *                  解放路径传松手那一刻的 gameTime）；同一个值不会重复登记
-     */
-    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player, long castStart) {
-        Judgement existing = TIMELINE.get(player.getUUID());
-        if (existing != null && existing.castStart == castStart) {
-            return;
-        }
-        TIMELINE.put(player.getUUID(), new Judgement(castStart,
-                player.getMainHandItem(), player.getInventory().selected));
-        CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
-        AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
-                player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
-        UnleashedJudgment.notePhase(player, 1);
-    }
-
-    /** 服务端每 tick 推进所有审判时间轴。 */
-    private static void tickTimeline(MinecraftServer server) {
-        if (TIMELINE.isEmpty()) return;
-        long now = server.overworld().getGameTime();
-        for (java.util.Map.Entry<java.util.UUID, Judgement> entry : java.util.List.copyOf(TIMELINE.entrySet())) {
-            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-            Judgement judgement = entry.getValue();
-            if (player == null || !player.isAlive() || player.isSpectator()) {
-                TIMELINE.remove(entry.getKey());
-                continue;
-            }
-            // 换掉手里的刀（切槽位 / 换手 / 丢出）＝ 取消这次施法，与原版手感一致
-            if (player.getInventory().selected != judgement.slot
-                    || !ItemStack.isSameItem(player.getMainHandItem(), judgement.blade)) {
-                TIMELINE.remove(entry.getKey());
-                CLEANUP_LATCH.remove(entry.getKey());
-                AIM.remove(entry.getKey());
-                continue;
-            }
-            long age = now - judgement.castStart;
-            if (age < 0) continue;
-            if (judgement.phase < 2 && age >= STRIKE_TICK) {
-                judgement.phase = 2;
-                openRift(player);
-            }
-            if (judgement.phase < 3 && age >= VERDICT_TICK) {
-                judgement.phase = 3;
-                verdictTick(player);
-                doYmsaSlash(player);
-            }
-            if (judgement.phase < 4 && age >= SHEATH_TICK) {
-                judgement.phase = 4;
-                mods.flammpfeil.slashblade.util.AttackManager.playQuickSheathSoundAction(player);
-            }
-            if (age >= RECOVERY_FRAME) {
-                TIMELINE.remove(entry.getKey());
-            }
-        }
-    }
-
+    public static final java.util.Map<Integer, SaTimeline.Step> JUDGMENT_STEPS = java.util.Map.of(
+            1, entity -> {
+                if (entity instanceof ServerPlayer player) {
+                    CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
+                    AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
+                            player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
+                    UnleashedJudgment.notePhase(player, 1);
+                }
+            },
+            8, entity -> {
+                if (entity instanceof ServerPlayer player) {
+                    openRift(player);
+                }
+            },
+            42, entity -> {
+                if (entity instanceof ServerPlayer player) {
+                    verdictTick(player);
+                    doYmsaSlash(player);
+                }
+            },
+            54, entity -> mods.flammpfeil.slashblade.util.AttackManager.playQuickSheathSoundAction(entity));
 
     public static void openRift(net.minecraft.server.level.ServerPlayer player) {
         if (UnleashedJudgment.isCasting(player)) {
@@ -239,12 +174,7 @@ public class Ymsa {
         CLEANUP_LATCH.remove(id);
         AIM.remove(id);
         UNLEASHED_UNTIL.remove(id);
-        TIMELINE.remove(id);
-    }
-
-    /** 当前是否已有登记中的审判时间轴（供连招状态判断要不要重新登记）。 */
-    public static boolean hasTimeline(java.util.UUID id) {
-        return TIMELINE.containsKey(id);
+        SaTimeline.cancel(id);
     }
 
     public static boolean isUnleashedBoss(net.minecraft.world.entity.LivingEntity entity) {
@@ -1095,8 +1025,37 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
         }
     }
 
+    /** 【临时诊断 3】观察所有 shizuku:* 连招状态在 2.0.5 上能活多久（查完删）。 */
+    private record SaWatch(String seq, long lastLog) {}
+
+    private static final java.util.Map<java.util.UUID, SaWatch> SA_WATCH = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static void watchSaStates(MinecraftServer server) {
+        long now = server.overworld().getGameTime();
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            var state = mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade
+                    .getBladeState(player.getMainHandItem()).orElse(null);
+            if (state == null) continue;
+            var seq = state.getComboSeq();
+            if (seq == null || !"shizuku".equals(seq.getNamespace())) {
+                SA_WATCH.remove(player.getUUID());
+                continue;
+            }
+            long elapsed = mods.flammpfeil.slashblade.registry.combo.ComboState.getElapsed(player);
+            SaWatch prev = SA_WATCH.get(player.getUUID());
+            if (prev == null || !seq.toString().equals(prev.seq())) {
+                SA_WATCH.put(player.getUUID(), new SaWatch(seq.toString(), now));
+                org.slf4j.LoggerFactory.getLogger("judg").info("[judg] SA {} START (elapsed={})", seq, elapsed);
+            } else if (now - prev.lastLog() >= 5) {
+                SA_WATCH.put(player.getUUID(), new SaWatch(prev.seq(), now));
+                org.slf4j.LoggerFactory.getLogger("judg").info("[judg] SA {} elapsed={}", seq, elapsed);
+            }
+        }
+    }
+
     public static void handleServerTickEnd(MinecraftServer server) {
-        tickTimeline(server);
+        watchSaStates(server);
+        SaTimeline.tickServer(server);
         processExtraHits(server);
         processForceWipe(server);
         UnleashedJudgment.tick(server);
