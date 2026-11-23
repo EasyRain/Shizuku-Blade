@@ -305,6 +305,12 @@ public class Ymsa {
 
         try {
             stripProtections(target);
+            // Unsafe 层（与上游一致）：先把无敌/受击窗口清零，过载时再把 DATA_HEALTH_ID 直写成 0，
+            // 绕开 setHealth() 的 clamp(0, maxHealth) —— 血量锁 / 无限血 Boss 也吃这一刀。
+            JudgmentExecution.breakInvulnerability(target);
+            if (JudgmentExecution.armed()) {
+                JudgmentExecution.fakeDeathState(target);
+            }
             target.setLastHurtByMob(player);
             target.hurt(src, KILL_DAMAGE);
             if (!target.isDeadOrDying()) {
