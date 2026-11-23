@@ -285,7 +285,7 @@ public class Ymsa {
             target.setPose(net.minecraft.world.entity.Pose.DYING);
             return true;
         } catch (Throwable t) {
-            LOGGER.warn("[SA] 正常死亡结算失败 {}: {}", target.getName().getString(), t.toString());
+            LOGGER.warn("[SA/settle] 失败 {}: {}", target.getClass().getSimpleName(), t.toString());
             return false;
         }
     }
@@ -409,6 +409,9 @@ public class Ymsa {
 
             outcome.killed = true;
             boolean modded = !target.getClass().getName().startsWith("net.minecraft.");
+            LOGGER.info("[SA/killTarget] {} settled={} modded={} dead={} removed={} hp={}",
+                    target.getClass().getSimpleName(), settled, modded,
+                    ((LivingEntityAccessor) target).shizuku$isDead(), target.isRemoved(), target.getHealth());
             if (settled && modded) {
                 // 模组 boss（如龙研混沌守卫）：结算完就交给它自己的死亡流程/动画，
                 // 立刻 discard 会让 mod 的 DyingPhase 与战利品结算永远跑不到 —— 表现就是「直接消失」。
