@@ -91,6 +91,9 @@ public final class UpstreamSlashFx {
 
     private static final float DAOGUANG_SCALE = 0.02F;
 
+    /** 我们的刀光着色器程序（与 cosmic 同骨架：只看 albedo × 顶点色，不读光照/法线）。 */
+    private static final Identifier SHADER_ID = shizuku.prefix("core/slash_glow");
+
     private static RenderType driveRenderType;
     private static RenderType slashRenderType;
     private static boolean renderTypeFailed;
@@ -233,7 +236,7 @@ public final class UpstreamSlashFx {
             return submitProbe(poseStack, collector, drive);
         }
         debugMatrix(drive ? "drive" : "slash", poseStack);
-        collector.submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
+        collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             try {
                 Face.alphaOverride = drive ? Face.alphaNoOverride : Face.alphaOverrideYZZ;
                 Face.uvOperator = Face.uvDefaultOperator;
@@ -267,35 +270,26 @@ public final class UpstreamSlashFx {
             return null;
         }
         try {
-            RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.ENTITY_EMISSIVE_SNIPPET)
+            // ⚠️ 管线**完全照抄 CosmicFx**（星河刀刀光是实测唯一能出画面的自绘路径）：
+            //   RenderPipeline.builder(ENTITY_SNIPPET) + 自定义 vsh/fsh 程序 + 无剔除
+            //   + ENTITY/TRIANGLES + 不写深度 + LIGHTNING 加法混合。
+            // 不再用 ENTITY_EMISSIVE_SNIPPET + 上游 ColorWrite/Luminous 的拼法 ——
+            // 那套在 26.1 上我们试遍了 cull/order/深度/贴图，屏幕始终空的。
+            RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
                     .withLocation(shizuku.prefix(drive ? "pipeline/slash_glow_drive" : "pipeline/slash_glow"))
-                    .withShaderDefine("PER_FACE_LIGHTING")
-                    .withSampler("Sampler1")
+                    .withVertexShader(SHADER_ID)
+                    .withFragmentShader(SHADER_ID)
+                    .withCull(false)
+                    .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.TRIANGLES)
+                    .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                     .withColorTargetState(new ColorTargetState(java.util.Optional.of(BlendFunction.LIGHTNING),
                             ColorTargetState.WRITE_COLOR))
-                    .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.TRIANGLES)
-                    // ⚠️⚠️ 关键：必须 withCull(false)。
-                    // 实测对比（javap 反编译上游 BladeRenderState 的两个 RenderType 工厂）：
-                    //   · getSlashBladeBlendLuminous（刀光/drive，**能出画面**）
-                    //       ENTITY_EMISSIVE_SNIPPET + ALPHA_CUTOUT + PER_FACE_LIGHTING
-                    //       + **withCull(iconst_0)** + LIGHTNING 加法 + ENTITY/TRIANGLES
-                    //   · getSlashBladeBlendColorWrite（斩击/slash，**从来不出画面**，连上游自己的刀也不出）
-                    //       同上但**没有** withCull ⇒ 继承 ENTITY_EMISSIVE_SNIPPET 的 cull=true
-                    //       ⇒ OBJ 的三角形按背面剔掉，整层消失。
-                    //    我们上一版正是照抄了 ColorWrite 这条（少了 withCull），所以虽然 λ 正常执行、
-                    //    贴图模型都在，屏幕上依旧什么都没有。
-                    // 另外这里不再 withDepthStencilState 覆盖深度：上游能出画面的那条就是继承默认值。
-                    .withCull(false)
                     .build();
             warmTexture(textureId);
             RenderSetup setup = RenderSetup.builder(pipeline)
                     .withTexture("Sampler0", textureId)
-                    .setOutputTarget(OutputTarget.MAIN_TARGET)
                     .useLightmap()
                     .useOverlay()
-                    .affectsCrumbling()
-                    .sortOnUpload()
-                    .setOutline(net.minecraft.client.renderer.rendertype.RenderSetup.OutlineProperty.AFFECTS_OUTLINE)
                     .createRenderSetup();
             RenderType created = RenderType.create(drive ? "shizuku_slash_glow_drive" : "shizuku_slash_glow", setup);
             if (drive) {
@@ -371,7 +365,7 @@ public final class UpstreamSlashFx {
                 .entityTranslucentEmissive(texture);
         debugOnce("probe|" + (drive ? "drive" : "slash"), "PROBE quad submitted texture={} rt={}", texture, probeType);
         debugMatrix("probe-" + (drive ? "drive" : "slash"), poseStack);
-        collector.submitCustomGeometry(poseStack, probeType, (pose, vc) -> {
+        collector.order(1).submitCustomGeometry(poseStack, probeType, (pose, vc) -> {
             try {
                 // 本地空间：面前 2 格、2×2，足够大，肯定看得见
                 quadVertex(vc, pose, -1.0F, 0.0F, 2.0F, 0.0F, 1.0F);
