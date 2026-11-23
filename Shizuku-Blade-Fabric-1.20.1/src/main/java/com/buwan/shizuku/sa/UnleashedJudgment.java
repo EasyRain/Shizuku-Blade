@@ -178,7 +178,12 @@ public final class UnleashedJudgment {
             if (!UnleashedVerdicts.get(server).advance(player.getUUID(), (int)age)) continue;
             if (age == 1) Ymsa.beginJudgment(player);
             if (age == Ymsa.STRIKE_TICK) Ymsa.openRift(player);
-            if (age == Ymsa.VERDICT_TICK) Ymsa.doYmsaSlash(player);
+            if (age == Ymsa.VERDICT_TICK) {
+                // 第三段（钻石剑）与钟声由 verdictTick 发包；只调 doYmsaSlash 会漏掉这一段。
+                // 普通连击走 SAComboRegistry 的 tick 动作，但解放期间那个动作被跳过，必须在这里补。
+                Ymsa.verdictTick(player);
+                Ymsa.doYmsaSlash(player);
+            }
             if (age == Ymsa.SHEATH_TICK) AttackManager.playQuickSheathSoundAction(player);
         }
     }
