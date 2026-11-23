@@ -147,6 +147,10 @@ public class shizuku {
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> PacketHandler.setServer(null));
 
         // SE 事件（Refabricated 用 Fabric Event：HIT / UPDATE）
+        // 剑技真正执行的时刻 → 推进 SaTimeline 的施法序号（一次施法一个号）
+        SlashBladeEvent.PERFORM_SLASH_ART.register(event ->
+                com.buwan.shizuku.sa.SaTimeline.onSlashArtPerformed(
+                        event.getEntityLiving(), event.getComboState()));
         SlashBladeEvent.HIT.register(Jingxin::onHitEntity);
         SlashBladeEvent.UPDATE.register(Leise::onUpdate);
         SlashBladeEvent.HIT.register(com.buwan.shizuku.se.shizuku::onHitEntity);

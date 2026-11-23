@@ -42,14 +42,17 @@ public final class SaTimeline {
     private static final class Plan {
         final Map<Integer, Step> steps;
         final long base;
+        /** 施法序号：由 SlashBladeEvent.PERFORM_SLASH_ART 推进（0 = 该事件还没见过）。 */
+        final long token;
         final ItemStack blade;
         final int slot;
         final Set<Integer> fired = ConcurrentHashMap.newKeySet();
         final int maxTick;
 
-        Plan(Map<Integer, Step> steps, long base, ItemStack blade, int slot) {
+        Plan(Map<Integer, Step> steps, long base, long token, ItemStack blade, int slot) {
             this.steps = steps;
             this.base = base;
+            this.token = token;
             this.blade = blade;
             this.slot = slot;
             int max = 0;
@@ -63,6 +66,13 @@ public final class SaTimeline {
     /** 客户端与服务端各一份（单人游戏同 JVM，不能混用，否则同一动作会执行两次）。 */
     private static final Map<UUID, Plan> SERVER_PLANS = new ConcurrentHashMap<>();
     private static final Map<UUID, Plan> CLIENT_PLANS = new ConcurrentHashMap<>();
+
+    /** 每玩家「第几次剑技」：{序号, 上次推进的 tick}。两侧各一份，与计划表对应。 */
+    private static final Map<UUID, long[]> SERVER_TOKENS = new ConcurrentHashMap<>();
+    private static final Map<UUID, long[]> CLIENT_TOKENS = new ConcurrentHashMap<>();
+
+    /** 同一次施法可能让库连发多次事件，2 tick 内只认一次。 */
+    private static final int TOKEN_MIN_GAP = 2;
 
     private SaTimeline() {}
 
@@ -126,17 +136,52 @@ public final class SaTimeline {
         long now = entity.level().getGameTime();
         UUID id = entity.getUUID();
         Plan prev = plans.get(id);
-        if (prev != null && prev.steps == steps
-                && now - prev.base <= prev.maxTick + REARM_GRACE) {
-            return;   // 这一轮还在跑（或刚跑完），不动
+        long token = tokenOf(entity, client);
+        if (prev != null && prev.steps == steps) {
+            if (token != 0L) {
+                // 有施法序号：同一次施法（序号没变）直接忽略；序号变了就是新的一轮
+                if (prev.token == token) {
+                    return;
+                }
+            } else if (prev.token == 0L && now - prev.base <= prev.maxTick + REARM_GRACE) {
+                // 兜底：该端从没见过 PERFORM_SLASH_ART（序号恒为 0）时退回时间窗
+                return;
+            }
         }
-        plans.put(id, new Plan(steps, now, entity.getMainHandItem(), slotOf(entity)));
+        plans.put(id, new Plan(steps, now, token, entity.getMainHandItem(), slotOf(entity)));
+    }
+
+    /**
+     * 库真正执行了一次剑技（{@code SlashBladeEvent.PERFORM_SLASH_ART}）→ 推进施法序号。
+     *
+     * <p>这是「一次施法」的最可靠身份：比时间窗精确，也不会因为连招状态被库反复切回来
+     * 而误判成新的一次（那种情况序号不动）。</p>
+     */
+    public static void onSlashArtPerformed(LivingEntity entity, net.minecraft.resources.ResourceLocation comboState) {
+        if (entity == null) return;
+        boolean client = entity.level().isClientSide();
+        Map<UUID, long[]> tokens = client ? CLIENT_TOKENS : SERVER_TOKENS;
+        long now = entity.level().getGameTime();
+        long[] cur = tokens.computeIfAbsent(entity.getUUID(), k -> new long[]{0L, Long.MIN_VALUE / 4});
+        if (now - cur[1] < TOKEN_MIN_GAP) {
+            return;   // 同一次施法的事件连发
+        }
+        cur[0]++;
+        cur[1] = now;
+        org.slf4j.LoggerFactory.getLogger("judg").debug("[sa] art #{} {}", cur[0], comboState);
+    }
+
+    private static long tokenOf(LivingEntity entity, boolean client) {
+        long[] cur = (client ? CLIENT_TOKENS : SERVER_TOKENS).get(entity.getUUID());
+        return cur == null ? 0L : cur[0];
     }
 
     /** 取消某位玩家当前的时间轴（切刀、断线、关解放）。 */
     public static void cancel(UUID id) {
         SERVER_PLANS.remove(id);
         CLIENT_PLANS.remove(id);
+        SERVER_TOKENS.remove(id);
+        CLIENT_TOKENS.remove(id);
     }
 
     /** 服务端每 tick 调用。 */
