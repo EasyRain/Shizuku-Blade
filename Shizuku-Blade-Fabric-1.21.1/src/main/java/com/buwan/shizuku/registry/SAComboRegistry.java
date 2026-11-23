@@ -300,7 +300,7 @@ public class SAComboRegistry {
                     .nextOfTimeout(entity -> shizuku.prefix("cosmic_attack_end"))
                     .clickAction(entityIn -> {
                         if (entityIn instanceof LivingEntity) {
-                            StarRiverSlash.firePhantomSlash(entityIn);
+                            StarRiverSlash.firePhantomSlash(entityIn, "clickAction");
                         }
                     })
                     .addTickAction(SAComboRegistry::resetRot)

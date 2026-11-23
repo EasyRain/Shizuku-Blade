@@ -35,7 +35,7 @@ public record PhantomSlashPacket() implements CustomPacketPayload {
                 .map(mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState::getTranslationKey)
                 .orElse("");
         if ("item.shizuku.mosmicblade".equals(key)) {
-            com.buwan.shizuku.sa.StarRiverSlash.firePhantomSlash(player);
+            com.buwan.shizuku.sa.StarRiverSlash.firePhantomSlash(player, "packet");
         }
     }
 }
