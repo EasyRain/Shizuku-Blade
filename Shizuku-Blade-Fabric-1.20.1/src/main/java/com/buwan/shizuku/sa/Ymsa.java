@@ -628,33 +628,20 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
 
             outcome.killed = true;
             BossCompat.postSettle(target);
-            boolean deadFlag = ((LivingEntityAccessor) target).shizuku$isDead();
-            boolean modded = !target.getClass().getName().startsWith("net.minecraft.");
-            if (wipe) {
-                BossCompat.tryErase(target, player);
+            // 没一次打穿（护盾/受击冷却/阶段保护）→ 统一排补刀，不区分是不是 boss
+            if (!((LivingEntityAccessor) target).shizuku$isDead() && !target.isDeadOrDying()) {
+                EXTRA_HITS.put(target.getUUID(), 5);
+                EXTRA_HITS_SRC.put(target.getUUID(), src);
+            }
+            // ① 纯功能实体（训练假人）→ 立即收尾
+            if (isUtilityEntity(target)) {
+                settleNormalDeath(target, src);
                 forceErase(target, level);
-                if (isBossLike(target)) broadcastClientErase(target, level, false);
-                if (level.getEntity(target.getId()) == target) outcome.annihilated = annihilate(target, player, level);
-                if (level.getEntity(target.getId()) == target && !target.isRemoved()) {
-                    FORCE_WIPE.put(target.getUUID(), new int[]{2, deepErase ? 1 : 0});
-                    FORCE_WIPE_CASTER.put(target.getUUID(), player.getUUID());
+                if (level.getEntity(target.getId()) == target) {
+                    outcome.annihilated = annihilate(target, player, level);
                 }
-                return outcome;
             }
-            if (modded || deadFlag || target.isDeadOrDying()) {
-                if (!deadFlag && !target.isDeadOrDying() && modded) {
-                    EXTRA_HITS.put(target.getUUID(), 5);
-                    EXTRA_HITS_SRC.put(target.getUUID(), src);
-                }
-                return outcome;
-            }
-            settleNormalDeath(target, src);
-            if (deepErase) {
-                try { annihilate(target, player, level); } catch (Throwable ignored) { }
-            }
-            forceErase(target, level);
-            if (isBossLike(target)) broadcastClientErase(target, level, false);
-            if (level.getEntity(target.getId()) == target) outcome.annihilated = annihilate(target, player, level);
+            // ② 其余一律不管：die() 已调用，真死了的会自己走到动画那一步并移除
         } catch (Exception e) {
             LOGGER.warn("[SA] Ymsa 击杀 {} 失败(已隔离, 不影响其他目标): {}", target.getName().getString(), e.toString());
             try {
@@ -694,6 +681,12 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
                 TYPE_SUPPRESSION.put(key.toString(), BOSS_SUPPRESS_TICKS);
             }
         }
+    }
+
+    /** 纯功能实体（dummmmmmy 训练假人）：掉完物品不会自己消失，SA 打中后直接收尾。 */
+    private static boolean isUtilityEntity(LivingEntity entity) {
+        var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        return key != null && "dummmmmmy".equals(key.getNamespace());
     }
 
     private static boolean isBossLike(LivingEntity entity) {
