@@ -57,6 +57,8 @@ public class ShizukuFabricClient implements ClientModInitializer {
             com.buwan.shizuku.client.PhantomSlashInput.tick();
             com.buwan.shizuku.client.JudgmentVisuals.tick();
             com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().tick();
+            // 中键幻影剑（库的 MOUSE 键位在 Fabric 下拿不到按下状态）
+            com.buwan.shizuku.client.SummonSwordInput.tick();
         });
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             var pose = context.matrixStack();
