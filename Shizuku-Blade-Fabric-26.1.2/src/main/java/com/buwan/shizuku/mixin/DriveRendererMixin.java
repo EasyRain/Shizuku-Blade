@@ -33,6 +33,7 @@ public abstract class DriveRendererMixin {
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
             flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
+            flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
             // 26.1 的 DriveRenderState 不带 baseSize（上游 26.1 刀光改固定缩放），
             // 这里自己带过去，供 CosmicFx.submitDrive 还原原版 0.02*max(1,baseSize)
             flag.shizuku$setBaseSize(entity.getBaseSize());
@@ -49,10 +50,15 @@ public abstract class DriveRendererMixin {
     private void shizuku$renderDaoguang(DriveRenderState state, PoseStack poseStack,
                                         SubmitNodeCollector collector, CameraRenderState camera,
                                         CallbackInfo ci) {
-        if (state instanceof CosmicFxFlag flag && flag.shizuku$isCosmicFx()) {
-            // 原版：宇宙刀光整层替换（先取消，再自己画；淡出时也是什么都不剩）
+        // 整层替换：只有我们真的画出来了才 cancel（模型缺失/淡出结束时保持上游原样，
+        // 免得「接管了却什么都画不出」= 彻底不可见）。
+        // 顺序：宇宙刀 → 星空（CosmicFx）；自家其它刀 → 上游画法的普通刀光（UpstreamSlashFx）。
+        if (CosmicFx.submitDrive(state, poseStack, collector)) {
             ci.cancel();
-            CosmicFx.submitDrive(state, poseStack, collector);
+            return;
+        }
+        if (com.buwan.shizuku.client.slash.UpstreamSlashFx.submitDrive(state, poseStack, collector)) {
+            ci.cancel();
         }
     }
 }

@@ -21,6 +21,9 @@ public abstract class EntityRenderStateCosmicFlagMixin implements CosmicFxFlag {
     @Unique
     private float shizuku$baseSize = 1.0F;
 
+    @Unique
+    private boolean shizuku$ownBladeFx;
+
     @Override
     public boolean shizuku$isCosmicFx() {
         return this.shizuku$cosmicFx;
@@ -29,6 +32,16 @@ public abstract class EntityRenderStateCosmicFlagMixin implements CosmicFxFlag {
     @Override
     public void shizuku$setCosmicFx(boolean cosmic) {
         this.shizuku$cosmicFx = cosmic;
+    }
+
+    @Override
+    public boolean shizuku$isOwnBladeFx() {
+        return this.shizuku$ownBladeFx;
+    }
+
+    @Override
+    public void shizuku$setOwnBladeFx(boolean own) {
+        this.shizuku$ownBladeFx = own;
     }
 
     @Override

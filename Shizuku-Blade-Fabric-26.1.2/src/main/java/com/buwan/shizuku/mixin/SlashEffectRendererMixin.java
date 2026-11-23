@@ -40,6 +40,7 @@ public abstract class SlashEffectRendererMixin {
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
             flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
+            flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
         }
     }
 
@@ -53,5 +54,7 @@ public abstract class SlashEffectRendererMixin {
                                            SubmitNodeCollector collector, CameraRenderState camera,
                                            CallbackInfo ci) {
         CosmicFx.submitSlashEffect(state, poseStack, collector);
+        // 自家其它刀：照抄上游的斩击层（只叠加、不取消上游原层）
+        com.buwan.shizuku.client.slash.UpstreamSlashFx.submitSlashEffect(state, poseStack, collector);
     }
 }

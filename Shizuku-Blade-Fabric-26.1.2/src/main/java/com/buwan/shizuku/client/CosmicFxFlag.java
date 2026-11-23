@@ -18,6 +18,16 @@ public interface CosmicFxFlag {
     void shizuku$setCosmicFx(boolean cosmic);
 
     /**
+     * 本次绘制是否「我们自己的普通刀」（= 手持 shizuku 命名刀且不是宇宙刀）。
+     *
+     * <p>分工：宇宙刀走 {@code CosmicFx} 的星空管线；其余自家的刀走
+     * {@code UpstreamSlashFx}（照抄上游 draw 的普通刀光）。两者互斥。</p>
+     */
+    boolean shizuku$isOwnBladeFx();
+
+    void shizuku$setOwnBladeFx(boolean own);
+
+    /**
      * 原效果的 baseSize（26.1 的 {@code DriveRenderState} <b>没有</b>这个字段 —— 上游 26.1
      * 的刀光渲染已经改成固定 {@code scale(0.015)}，不再吃 baseSize；但 1.20.1 原版的宇宙刀光
      * 用的是 {@code 0.02*max(1,baseSize)}，为了忠实还原必须自己带过来）。
