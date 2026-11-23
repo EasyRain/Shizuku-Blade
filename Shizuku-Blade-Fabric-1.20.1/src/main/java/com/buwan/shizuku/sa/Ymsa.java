@@ -84,6 +84,12 @@ public class Ymsa {
      *
      * <p>落剑有 42 tick 延迟：朝向不锁会跟着鼠标转，位置不锁会因为施法过程中走动而漂移。</p>
      */
+    private static final java.util.Map<UUID, int[]> FORCE_WIPE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, UUID> FORCE_WIPE_CASTER = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, Integer> EXTRA_HITS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, DamageSource> EXTRA_HITS_SRC = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final boolean JUDGMENT_DEBUG = Boolean.getBoolean("shizuku.judgment.debug");
+
     private static final java.util.Map<java.util.UUID, double[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
@@ -266,12 +272,19 @@ public class Ymsa {
                 ? (JudgmentExecution.armed() ? OVERDRIVE_RADIUS : UNLEASHED_RADIUS)
                 : KILL_RADIUS;
         AABB area = player.getBoundingBox().inflate(radius);
+        // 抹除模式：既要「释放那一刻按着」，也要「击杀这一刻还按着」（中途松开可取消）
+        boolean intentAtCast = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
+        boolean wipe = intentAtCast && player.isShiftKeyDown();
         int killed = 0;
         int forcedDrops = 0;
         int annihilated = 0;
 
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area, e -> shouldKill(e, player))) {
-            KillOutcome outcome = killTarget(target, player, level);
+            if (!wipe && BossCompat.trySpecial(target, player)) {
+                killed++;
+                continue;
+            }
+            KillOutcome outcome = killTarget(target, player, level, wipe, UnleashedJudgment.isCasting(player));
             if (outcome.killed) {
                 killed++;
             }
@@ -288,9 +301,8 @@ public class Ymsa {
         int projectilesCleared = clearHostileProjectiles(level, area);
         int objectsCleared = sweepBossObjects(player, level);
         // 清掉落按「施法瞬间的 Shift」判定，而不是此刻的实时状态
-        boolean cleanDrops = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
         CLEANUP_LATCH.remove(player.getUUID());
-        if (cleanDrops) {
+        if (wipe) {
             LootDropController.cleanupDrops(player, KILL_RADIUS);
         }
         LOGGER.info("[SA] Ymsa 释放: 击杀实体 {} 个 (强制掉落 {} 个, 绝对抹除 {} 个), 击杀玩家 {} 名, 抹除对象 {} 个, 清除投射物 {} 个",
@@ -394,7 +406,168 @@ public class Ymsa {
         }
     }
 
-    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level) {
+private static void prepareLethalState(LivingEntity target, DamageSource src) {
+        if (target.isSleeping()) target.stopSleeping();
+        target.getCombatTracker().recordDamage(src, Float.MAX_VALUE);
+        target.setHealth(0.0F);
+        target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DAMAGE);
+    }
+/**
+     * 「正常死亡」兜底结算（照 ae2lt 的 OverloadExecutionService#forceDie）：
+     * 模组的 die() 被无敌/阶段逻辑吞掉时，手工重放原版死亡收尾，让掉落/击杀统计/死亡动画照常发生。
+     */
+    private static boolean settleNormalDeath(LivingEntity target, DamageSource src) {
+        if (target.isRemoved() || ((LivingEntityAccessor) target).shizuku$isDead()) return false;
+        try {
+            LivingEntity killer = src.getEntity() instanceof LivingEntity le ? le : target.getKillCredit();
+            int score = ((LivingEntityAccessor) target).shizuku$getDeathScore();
+            if (score >= 0 && killer != null) killer.awardKillScore(target, score, src);
+            if (target.isSleeping()) target.stopSleeping();
+            ((LivingEntityAccessor) target).shizuku$setDead(true);
+            target.getCombatTracker().recheckStatus();
+            if (target.level() instanceof ServerLevel level) {
+                var sourceEntity = src.getEntity();
+                if (sourceEntity != null) sourceEntity.killedEntity(level, target);
+                target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DIE);
+                ((LivingEntityAccessor) target).shizuku$dropAllDeathLoot(src);
+                level.broadcastEntityEvent(target, (byte) 3);
+            }
+            target.setPose(net.minecraft.world.entity.Pose.DYING);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[SA] 正常死亡结算失败 {}: {}", target.getClass().getSimpleName(), t.toString());
+            return false;
+        }
+    }
+/** 直接抹掉：remove → discard → setRemoved，三步都试（有的模组会重写其中某个）。 */
+    private static void forceErase(LivingEntity target, ServerLevel level) {
+        try {
+            if (!target.isRemoved()) target.remove(Entity.RemovalReason.KILLED);
+            if (!target.isRemoved()) target.discard();
+            if (target.getRemovalReason() == null) target.setRemoved(Entity.RemovalReason.KILLED);
+        } catch (Throwable t) {
+            LOGGER.debug("[SA] forceErase 异常: {}", t.toString());
+        }
+    }
+/** 把实体推进「将死」状态（照 ae2lt 的 OverloadExecutionService#prepareLethalState）。 */
+    /** 处理抹除重试队列（模组实体可能把 remove()/setRemoved() 重写成 no-op）。 */
+    private static void processForceWipe(MinecraftServer server) {
+        if (FORCE_WIPE.isEmpty()) return;
+        for (var entry : java.util.List.copyOf(FORCE_WIPE.entrySet())) {
+            UUID id = entry.getKey();
+            int left = entry.getValue()[0];
+            boolean deepAllowed = entry.getValue()[1] == 1;
+            Entity found = null;
+            ServerLevel foundLevel = null;
+            for (ServerLevel l : server.getAllLevels()) {
+                Entity e = l.getEntity(id);
+                if (e != null) { found = e; foundLevel = l; break; }
+            }
+            if (!(found instanceof LivingEntity living) || living.isRemoved()) {
+                FORCE_WIPE.remove(id);
+                FORCE_WIPE_CASTER.remove(id);
+                continue;
+            }
+            ServerPlayer caster = FORCE_WIPE_CASTER.get(id) == null ? null
+                    : server.getPlayerList().getPlayer(FORCE_WIPE_CASTER.get(id));
+            if (left <= 0) {
+                FORCE_WIPE.remove(id);
+                if (deepAllowed) {
+                    // 解放模式才用最底层的「索引摘除」（上游也只在 detachUnleashedTarget 里这么做）
+                    try {
+                        annihilate(living, caster, foundLevel);
+                        LOGGER.warn("[SA] 抹除兜底（索引摘除）: {}", living.getClass().getSimpleName());
+                    } catch (Throwable t) {
+                        LOGGER.warn("[SA] 索引摘除失败 {}: {}", living.getClass().getSimpleName(), t.toString());
+                    }
+                } else {
+                    // 非解放：只用 API 级手段收尾，不碰 level 的内部索引
+                    forceErase(living, foundLevel);
+                    if (foundLevel.getEntity(id) == living) {
+                        annihilate(living, caster, foundLevel);
+                        LOGGER.warn("[SA] 抹除兜底（annihilate）: {}", living.getClass().getSimpleName());
+                    }
+                }
+                if (foundLevel.getEntity(id) == living && !living.isRemoved()) {
+                    try {
+                        living.discard();
+                        living.setRemoved(Entity.RemovalReason.KILLED);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                FORCE_WIPE_CASTER.remove(id);
+                continue;
+            }
+            forceErase(living, foundLevel);
+            if (living.isRemoved() || foundLevel.getEntity(id) != living) {
+                FORCE_WIPE.remove(id);
+            } else {
+                FORCE_WIPE.put(id, new int[]{left - 1, deepAllowed ? 1 : 0});
+            }
+        }
+    }
+/** 处理补刀队列（模组 boss 常有 2~20 tick 的受击冷却，一次 hurt 打不死）。 */
+    private static void processExtraHits(MinecraftServer server) {
+        if (EXTRA_HITS.isEmpty()) return;
+        for (var entry : java.util.List.copyOf(EXTRA_HITS.entrySet())) {
+            UUID id = entry.getKey();
+            int left = entry.getValue();
+            DamageSource src = EXTRA_HITS_SRC.get(id);
+            if (left <= 0 || src == null) {
+                EXTRA_HITS.remove(id);
+                EXTRA_HITS_SRC.remove(id);
+                // 抹除兜底：补刀 5 tick 仍未死亡（模组完全不走原版死亡）→ 强制移除，
+                // 否则这类 boss 会变成「永远杀不掉」。这与上游「无条件 remove(KILLED)」的最终手段一致，
+                // 区别只是我们把它放在「正常死亡 + 补刀」都失败之后。
+                for (ServerLevel l : server.getAllLevels()) {
+                    Entity e = l.getEntity(id);
+                    if (e instanceof LivingEntity living2 && !living2.isRemoved()) {
+                        LOGGER.info("[SA] 抹除兜底: {}", living2.getClass().getSimpleName());
+                        try {
+                            living2.remove(Entity.RemovalReason.KILLED);
+                            if (living2.getRemovalReason() == null) {
+                                living2.setRemoved(Entity.RemovalReason.KILLED);
+                            }
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
+                continue;
+            }
+            Entity found = null;
+            for (ServerLevel l : server.getAllLevels()) {
+                Entity e = l.getEntity(id);
+                if (e != null) { found = e; break; }
+            }
+            if (!(found instanceof LivingEntity living) || living.isRemoved()
+                    || ((LivingEntityAccessor) living).shizuku$isDead()) {
+                EXTRA_HITS.remove(id);
+                EXTRA_HITS_SRC.remove(id);
+                continue;
+            }
+            try {
+                JudgmentExecution.breakInvulnerability(living);
+                if (src.getEntity() instanceof LivingEntity killerMob) {
+                    living.setLastHurtByMob(killerMob);
+                }
+                living.hurt(src, Float.MAX_VALUE);
+                if (!((LivingEntityAccessor) living).shizuku$isDead()) {
+                    living.setHealth(0.0F);
+                    living.die(src);
+                }
+            } catch (Throwable t) {
+                LOGGER.debug("[SA] 补刀失败 {}", t.toString());
+            }
+            if (((LivingEntityAccessor) living).shizuku$isDead() || living.isRemoved()) {
+                EXTRA_HITS.remove(id);
+                EXTRA_HITS_SRC.remove(id);
+            } else {
+                EXTRA_HITS.put(id, left - 1);
+            }
+        }
+    }
+
+    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe, boolean deepErase) {
         KillOutcome outcome = new KillOutcome();
         if (target.isRemoved()) {
             return outcome;
@@ -453,21 +626,35 @@ public class Ymsa {
                 outcome.forcedDrops = true;
             }
 
-            if (!target.isRemoved()) {
-                target.discard();
-            }
-            if (target.getRemovalReason() == null) {
-                target.setRemoved(Entity.RemovalReason.KILLED);
-            }
-
             outcome.killed = true;
-            if (isBossLike(target)) {
-                broadcastClientErase(target, level, false);
+            BossCompat.postSettle(target);
+            boolean deadFlag = ((LivingEntityAccessor) target).shizuku$isDead();
+            boolean modded = !target.getClass().getName().startsWith("net.minecraft.");
+            if (wipe) {
+                BossCompat.tryErase(target, player);
+                forceErase(target, level);
+                if (isBossLike(target)) broadcastClientErase(target, level, false);
+                if (level.getEntity(target.getId()) == target) outcome.annihilated = annihilate(target, player, level);
+                if (level.getEntity(target.getId()) == target && !target.isRemoved()) {
+                    FORCE_WIPE.put(target.getUUID(), new int[]{2, deepErase ? 1 : 0});
+                    FORCE_WIPE_CASTER.put(target.getUUID(), player.getUUID());
+                }
+                return outcome;
             }
-
-            if (level.getEntity(target.getId()) == target) {
-                outcome.annihilated = annihilate(target, player, level);
+            if (modded || deadFlag || target.isDeadOrDying()) {
+                if (!deadFlag && !target.isDeadOrDying() && modded) {
+                    EXTRA_HITS.put(target.getUUID(), 5);
+                    EXTRA_HITS_SRC.put(target.getUUID(), src);
+                }
+                return outcome;
             }
+            settleNormalDeath(target, src);
+            if (deepErase) {
+                try { annihilate(target, player, level); } catch (Throwable ignored) { }
+            }
+            forceErase(target, level);
+            if (isBossLike(target)) broadcastClientErase(target, level, false);
+            if (level.getEntity(target.getId()) == target) outcome.annihilated = annihilate(target, player, level);
         } catch (Exception e) {
             LOGGER.warn("[SA] Ymsa 击杀 {} 失败(已隔离, 不影响其他目标): {}", target.getName().getString(), e.toString());
             try {
@@ -832,6 +1019,8 @@ public class Ymsa {
     }
 
     public static void handleServerTickEnd(MinecraftServer server) {
+        processExtraHits(server);
+        processForceWipe(server);
         UnleashedJudgment.tick(server);
         YmsaLogic.tickCleanups(RESPAWN_TRACKER);
         YmsaLogic.tickTypeSuppression(TYPE_SUPPRESSION);
