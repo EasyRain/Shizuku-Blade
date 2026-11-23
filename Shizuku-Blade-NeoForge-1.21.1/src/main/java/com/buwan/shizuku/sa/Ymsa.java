@@ -412,10 +412,12 @@ public class Ymsa {
             LOGGER.info("[SA/killTarget] {} settled={} modded={} dead={} removed={} hp={}",
                     target.getClass().getSimpleName(), settled, modded,
                     ((LivingEntityAccessor) target).shizuku$isDead(), target.isRemoved(), target.getHealth());
-            // 模组实体（尤其剧本化死亡的 boss）一律不强制移除：
-            // 它们的死亡序列（如龙研的 DyingPhase）需要实体还活着/还存在才能跑，
-            // 立刻 discard 就是「直接消失」且拿不到战利品。
-            if (modded) {
+            boolean deadFlag = ((LivingEntityAccessor) target).shizuku$isDead();
+            boolean dying = target.isDeadOrDying() || deadFlag;
+            // 与 ae2lt 的 needsKillFallback 一致：**只有「伤害没被接受、且也没进入死亡」的
+            // 真·打不死的实体**才强制移除；其余都按正常死亡交给游戏/模组处理
+            // （模组 boss 的死亡序列需要实体存在，立刻 discard 就是「直接消失」）。
+            if (modded || dying) {
                 return outcome;
             }
             if (!target.isRemoved()) {
