@@ -19,6 +19,7 @@ public class MeowStoneItem extends Item {
         // 原版 3.4.0 误用 literal 导致显示原始键，改为 translatable 正确读取语言文件
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip"));
         tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip2"));
-        tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip3"));
+        tooltip.add(Component.translatable("item.shizuku.meow_stone.tooltip3",
+                com.buwan.shizuku.sa.JudgmentConfig.meowStoneDropPercent()));
     }
 }

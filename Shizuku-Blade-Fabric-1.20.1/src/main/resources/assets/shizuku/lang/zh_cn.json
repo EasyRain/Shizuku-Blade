@@ -1,4 +1,5 @@
-{"item.shizuku.shizuku": "拔刀剑「§b猫羽雫§r」",
+{
+  "item.shizuku.shizuku": "拔刀剑「§b猫羽雫§r」",
   "item.shizuku.yeying": "夜樱·「胧月」",
   "item.shizuku.mosmicblade": "§d星河之刃§r·Cosmic",
   "item.shizuku.engulfing_lightning": "「§c薙草之稻光§r」",
@@ -40,7 +41,7 @@
   "item.shizuku.meow_stone": "喵石",
   "item.shizuku.meow_stone.tooltip": "§7从原版敌对生物身上掉落的稀有材料",
   "item.shizuku.meow_stone.tooltip2": "...",
-  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: 1%",
+  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: %s%%",
   "se.shizuku.leise": "§f大雷~",
   "death.attack.ymsa_kill": "%1$s 被审判抹除了",
   "death.attack.ymsa_kill.player": "%1$s 被 %2$s 的审判抹除了",
@@ -80,4 +81,5 @@
   "screen.shizuku.judgment.obs_ticks_hint": "目标/遭遇身份的保留时长（tick）。24000 tick = 20 分钟。",
   "screen.shizuku.judgment.phase_ticks_hint": "没有遭遇 id 时，用多少 tick 内出现的附近 boss 来关联本次施法。",
   "screen.shizuku.judgment.phase_radius_hint": "没有遭遇 id 时，关联附近 boss 使用的半径（格）。",
-  "screen.shizuku.judgment.meow_chance_hint": "敌对生物掉落喵石的概率（百分比，0-100）。0 表示不掉落。"}
+  "screen.shizuku.judgment.meow_chance_hint": "敌对生物掉落喵石的概率（百分比，0-100）。0 表示不掉落。"
+}

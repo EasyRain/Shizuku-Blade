@@ -35,7 +35,7 @@
   "item.shizuku.meow_stone": "喵石",
   "item.shizuku.meow_stone.tooltip": "§7从原版敌对生物身上掉落的稀有材料",
   "item.shizuku.meow_stone.tooltip2": "...",
-  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: 1%",
+  "item.shizuku.meow_stone.tooltip3": "§8掉落概率: %s%%",
   "se.shizuku.leise": "§f大雷~",
   "block.shizuku.shizuku_crafting_table": "雫工作台",
   "jei.category.shizuku.shizuku_crafting_table": "雫合成",
