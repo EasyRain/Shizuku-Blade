@@ -386,9 +386,10 @@ public class Ymsa {
                 prepareLethalState(target, src);
                 target.die(src);
             }
+            boolean settled = false;
             if (!target.isRemoved() && !((LivingEntityAccessor) target).shizuku$isDead()) {
                 // 模组仍没认这次死亡 → 手工重放原版死亡收尾（掉落/击杀统计/ENTITY_DIE/死亡动画）
-                settleNormalDeath(target, src);
+                settled = settleNormalDeath(target, src);
             }
 
             if (!target.isDeadOrDying()) {
@@ -406,6 +407,13 @@ public class Ymsa {
                 outcome.forcedDrops = true;
             }
 
+            outcome.killed = true;
+            boolean modded = !target.getClass().getName().startsWith("net.minecraft.");
+            if (settled && modded) {
+                // 模组 boss（如龙研混沌守卫）：结算完就交给它自己的死亡流程/动画，
+                // 立刻 discard 会让 mod 的 DyingPhase 与战利品结算永远跑不到 —— 表现就是「直接消失」。
+                return outcome;
+            }
             if (!target.isRemoved()) {
                 target.discard();
             }
@@ -413,7 +421,6 @@ public class Ymsa {
                 target.setRemoved(Entity.RemovalReason.KILLED);
             }
 
-            outcome.killed = true;
             if (isBossLike(target)) {
                 broadcastClientErase(target, level, false);
             }
