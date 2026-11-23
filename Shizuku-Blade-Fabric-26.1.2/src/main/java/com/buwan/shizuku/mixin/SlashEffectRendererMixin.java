@@ -39,19 +39,7 @@ public abstract class SlashEffectRendererMixin {
     private void shizuku$markCosmicSlash(EntitySlashEffect entity, SlashEffectRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
-            boolean cosmicShooter = CosmicFx.isCosmicShooter(entity.getShooter());
-            boolean ownBlade = CosmicFx.isOwnBladeShooter(entity.getShooter());
-            // 同上：A/B 诊断开关
-            boolean ab = ownBlade && CosmicFx.useCosmicPathForOwnBlades();
-            flag.shizuku$setCosmicFx(cosmicShooter || ab);
-            flag.shizuku$setOwnBladeFx(ownBlade && !ab);
-            com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("slash", entity.getShooter(), flag);
-            if (ownBlade) {
-                com.buwan.shizuku.client.slash.WorldSlashFx.note(entity,
-                        entity.getX(), entity.getY(), entity.getZ(),
-                        state.yRot, state.xRot, state.color,
-                        com.buwan.shizuku.client.slash.WorldSlashFx.DEFAULT_LIFE);
-            }
+            flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
         }
     }
 
@@ -65,7 +53,5 @@ public abstract class SlashEffectRendererMixin {
                                            SubmitNodeCollector collector, CameraRenderState camera,
                                            CallbackInfo ci) {
         CosmicFx.submitSlashEffect(state, poseStack, collector);
-        // 自家其它刀：照抄上游的斩击层（只叠加、不取消上游原层）
-        com.buwan.shizuku.client.slash.UpstreamSlashFx.submitSlashEffect(state, poseStack, collector);
     }
 }

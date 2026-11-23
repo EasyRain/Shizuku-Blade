@@ -32,24 +32,10 @@ public abstract class DriveRendererMixin {
     private void shizuku$markCosmicDrive(EntityDrive entity, DriveRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
-            boolean cosmicShooter = CosmicFx.isCosmicShooter(entity.getShooter());
-            boolean ownBlade = CosmicFx.isOwnBladeShooter(entity.getShooter());
-            // A/B 诊断：-Dshizuku.slashfx.use_cosmic=true 时把自家刀也塞进 cosmic 那条已验证的路径，
-            // 用来区分「我们的实现不对」还是「接线/门控不对」。
-            boolean ab = ownBlade && CosmicFx.useCosmicPathForOwnBlades();
-            flag.shizuku$setCosmicFx(cosmicShooter || ab);
-            flag.shizuku$setOwnBladeFx(ownBlade && !ab);
-            com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("drive", entity.getShooter(), flag);
+            flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
             // 26.1 的 DriveRenderState 不带 baseSize（上游 26.1 刀光改固定缩放），
             // 这里自己带过去，供 CosmicFx.submitDrive 还原原版 0.02*max(1,baseSize)
             flag.shizuku$setBaseSize(entity.getBaseSize());
-            // 26.1：实体 submit 通道自绘不可见（A/B 已验证）⇒ 记一条给「世界阶段直绘」用
-            if (ownBlade) {
-                com.buwan.shizuku.client.slash.WorldSlashFx.note(entity,
-                        entity.getX(), entity.getY(), entity.getZ(),
-                        state.yRot, state.xRot, state.color,
-                        com.buwan.shizuku.client.slash.WorldSlashFx.DEFAULT_LIFE);
-            }
         }
     }
 
@@ -63,19 +49,10 @@ public abstract class DriveRendererMixin {
     private void shizuku$renderDaoguang(DriveRenderState state, PoseStack poseStack,
                                         SubmitNodeCollector collector, CameraRenderState camera,
                                         CallbackInfo ci) {
-        // 整层替换：只有我们真的画出来了才 cancel（模型缺失/淡出结束时保持上游原样，
-        // 免得「接管了却什么都画不出」= 彻底不可见）。
-        // 顺序：宇宙刀 → 星空（CosmicFx）；自家其它刀 → 上游画法的普通刀光（UpstreamSlashFx）。
-        if (CosmicFx.submitDrive(state, poseStack, collector)) {
+        if (state instanceof CosmicFxFlag flag && flag.shizuku$isCosmicFx()) {
+            // 原版：宇宙刀光整层替换（先取消，再自己画；淡出时也是什么都不剩）
             ci.cancel();
-            return;
-        }
-        // ⚠️ 止损：默认**只叠加、不 cancel**。上一版无条件 cancel 后自绘又没出画面，
-        // 结果从「抽搐但可见」退化成「完全不可见」。现在只有显式
-        // -Dshizuku.slashfx.replace_drive=true 且确实提交成功时才替换。
-        boolean submitted = com.buwan.shizuku.client.slash.UpstreamSlashFx.submitDrive(state, poseStack, collector);
-        if (submitted && com.buwan.shizuku.client.slash.UpstreamSlashFx.mayReplaceDrive()) {
-            ci.cancel();
+            CosmicFx.submitDrive(state, poseStack, collector);
         }
     }
 }

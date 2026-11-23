@@ -34,10 +34,6 @@ import net.minecraft.resources.Identifier;
  * 在这里用 Fabric 的 ClientTickEvents / WorldRenderEvents / HudRenderCallback 派发到 compat 事件。
  */
 public class ShizukuFabricClient implements ClientModInitializer {
-    /** 诊断用：世界阶段 handler 是否被调用过（只打一次）。 */
-    private static final java.util.concurrent.atomic.AtomicBoolean SHIZUKU_LEVEL_HANDLER_LOGGED =
-            new java.util.concurrent.atomic.AtomicBoolean();
-
     @Override
     public void onInitializeClient() {
         // 键位必须在 Options 初始化之前注册（Fabric 的 KeyMappingHelper 会校验这一点）。
@@ -58,7 +54,6 @@ public class ShizukuFabricClient implements ClientModInitializer {
             com.buwan.shizuku.client.SummonSwordInput.tick();
             com.buwan.shizuku.client.JudgmentVisuals.tick();
             com.buwan.shizuku.sa.SaTimeline.tickClient(client);
-            com.buwan.shizuku.client.slash.WorldSlashFx.tick();
         });
 
         // S2C：审判落剑（位置/朝向已由服务端锁定）
@@ -108,11 +103,6 @@ public class ShizukuFabricClient implements ClientModInitializer {
                         TimeStopShaderManager.syncFromServer(payload.activate(), payload.strength())));
 
         LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(context -> {
-            if (Boolean.getBoolean("shizuku.slashfx.debug") && SHIZUKU_LEVEL_HANDLER_LOGGED.compareAndSet(false, true)) {
-                org.slf4j.LoggerFactory.getLogger("shizuku").info(
-                        "[slashfx] level-handler invoked (poseStack={})",
-                        context.poseStack() == null ? "null" : "ok");
-            }
             if (context.poseStack() == null) {
                 return;
             }
@@ -122,8 +112,6 @@ public class ShizukuFabricClient implements ClientModInitializer {
             GalaxyFieldRenderer.onRenderLevel(event);
             TimeStopRenderer.getInstance().onRenderLevel(event);
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
-            // 我们的刀光：与星河领域/时停球同一条「世界阶段直绘」路径（唯一实测能出画面的）
-            com.buwan.shizuku.client.slash.WorldSlashFx.render(event);
         });
 
         // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，26.1 用 AFTER_SOLID_FEATURES 近似

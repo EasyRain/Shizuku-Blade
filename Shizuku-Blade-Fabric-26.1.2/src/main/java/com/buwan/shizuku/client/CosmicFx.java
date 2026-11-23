@@ -51,68 +51,7 @@ public final class CosmicFx {
     private CosmicFx() {
     }
 
-    /**
-     * 本模组的刀（宇宙刀 + 其余 shizuku 命名刀）统一前缀。
-     *
-     * <p>拔刀剑的「刀」不是独立的 Item 类，而是同一个 {@code ItemSlashBlade} 上带不同
-     * translationKey（{@code item.shizuku.xxx} / 上游是 {@code item.slashblade.xxx}），
-     * 所以「是不是我们自己的刀」只能按 key 前缀判。</p>
-     */
-    private static final String SHIZUKU_BLADE_PREFIX = "item.shizuku.";
-
-    /** 该刀翻译键是否属于本模组（宇宙刀也算在内）。 */
-    public static boolean isShizukuBladeKey(String key) {
-        return key != null && key.startsWith(SHIZUKU_BLADE_PREFIX);
-    }
-
-    /**
-     * 发射者是否手持<b>我们自己的刀</b>（原 {@code isCosmicShooter} 的放宽版）。
-     *
-     * <p>2026-11-23 起斩击/刀光的接管范围从「只有宇宙刀」放宽到「所有 shizuku 刀」：
-     * 上游 26.1 的 {@code .obj} 刀光在我们这边几乎不可见（用户实测「放 SA 什么都没有」），
-     * 而 {@link CosmicShaders} 这条管线本来就能正常出图，所以让雫草/雷萨/燕返/瞬影/银影/
-     * 稻光/甘城… 也走同一条已经验证过的几何。</p>
-     *
-     * <p><b>边界</b>：上游的刀（{@code item.slashblade.*}）与任何非拔刀剑物品都返回 false，
-     * 上游自己的刀光维持原样，我们只接管自己的刀 —— 不替上游兜底、也不无条件 cancel。</p>
-     *
-     * <p>配色：这套管线采样的是星空贴图（原版宇宙刀参数），所以现阶段所有自己的刀都是
-     * 「星空刀光」。要区分普通刀光配色，得再开一条纯色管线（后续美化工作）。</p>
-     */
-    public static boolean isShizukuShooter(Entity shooter) {
-        if (!(shooter instanceof LivingEntity living)) {
-            return false;
-        }
-        ItemStack held = living.getMainHandItem();
-        if (!(held.getItem() instanceof ItemSlashBlade)) {
-            return false;
-        }
-        String key = CapabilitySlashBlade.getBladeState(held)
-                .map(s -> s.getTranslationKey())
-                .orElse("");
-        return isShizukuBladeKey(key);
-    }
-
-    /**
-     * A/B 开关：{@code -Dshizuku.slashfx.use_cosmic=true}。
-     *
-     * <p>打开时，「我们自己的刀（非宇宙刀）」也把渲染<b>委托给 CosmicFx 这条已经实测能出画面的
-     * 代码路径</b>（模型/贴图/顶点写法/管线全用它），只用于判定「到底是我们的实现不对，
-     * 还是接线/门控不对」。诊断开关，平时不要开。</p>
-     */
-    public static boolean useCosmicPathForOwnBlades() {
-        return Boolean.getBoolean("shizuku.slashfx.use_cosmic");
-    }
-
-    /**
-     * 发射者手持的是<b>我们自己的刀、但不是宇宙刀</b> —— 这类走 {@code UpstreamSlashFx}
-     * 的普通刀光（照抄上游画法），星空管线只留给宇宙刀。
-     */
-    public static boolean isOwnBladeShooter(Entity shooter) {
-        return isShizukuShooter(shooter) && !isCosmicShooter(shooter);
-    }
-
-    /** 发射者是否手持宇宙刀（星空刀光专用；保持 1.20.1 原版语义）。 */
+    /** 发射者是否手持宇宙刀（= 原版 {@code isMosmicDrive} / 斩击里那段 translationKey 判定）。 */
     public static boolean isCosmicShooter(Entity shooter) {
         if (!(shooter instanceof LivingEntity living)) {
             return false;
@@ -184,17 +123,13 @@ public final class CosmicFx {
      *
      * <p>注意原版刀光<b>不用</b> partialTick 算 alpha（只有 rotLerp 用），这里保持一致。</p>
      */
-    /**
-     * @return true = 已经画好（调用方可以安全地 cancel 上游那一层）；
-     *         false = 这次没画（标记不匹配 / 淡出结束 / 模型缺失），<b>不要</b> cancel。
-     */
-    public static boolean submitDrive(DriveRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
+    public static void submitDrive(DriveRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
         if (!(state instanceof CosmicFxFlag flag) || !flag.shizuku$isCosmicFx()) {
-            return false;
+            return;
         }
         float lifetime = state.lifetime;
         if (lifetime <= 0.0F) {
-            return false;
+            return;
         }
         float partialTick = partialTickOf(state);
 
@@ -202,11 +137,11 @@ public final class CosmicFx {
         double baseAlpha = Math.min(deathTime, (double) Math.max(0.0F, lifetime - (float) state.tickCount)) / deathTime;
         baseAlpha = Math.max(0.0, -Math.pow(baseAlpha - 1.0, 4.0) + 0.75);
         if (baseAlpha <= 0.01) {
-            return false;
+            return;
         }
         WavefrontObject model = BladeModelManager.getInstance().getModel(DAOGUANG_MODEL);
         if (model == null) {
-            return false;
+            return;
         }
 
         poseStack.pushPose();
@@ -221,6 +156,5 @@ public final class CosmicFx {
         } finally {
             poseStack.popPose();
         }
-        return true;
     }
 }
