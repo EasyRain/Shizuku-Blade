@@ -33,7 +33,16 @@ public final class SummonSwordInput {
     private SummonSwordInput() {
     }
 
-    /** 由 {@code ShizukuFabricClient} 每 client tick 调用。 */
+    /** 鼠标按下的**事件**入口（{@code MouseHandlerMixin} 调用），不会因为轮询而丢帧。 */
+    public static void onSummonKeyPressed() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.player == null || minecraft.screen != null) {
+            return;
+        }
+        sendSummonCommand(minecraft);
+    }
+
+    /** 由 {@code ShizukuFabricClient} 每 client tick 调用（轮询兜底）。 */
     public static void tick() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.getWindow() == null) {
@@ -49,8 +58,15 @@ public final class SummonSwordInput {
         if (!(minecraft.player.getMainHandItem().getItem() instanceof ItemSlashBlade)) {
             return;
         }
-        // 库的键位若已被正常采样（例如将来修好了），让原路径去处理
+        // 库的轮询若已经采到（正常按住的中键），交给它自己发，避免同一 tick 重复
         if (mods.flammpfeil.slashblade.client.SlashBladeKeyMappings.KEY_SUMMON_BLADE.isDown()) {
+            return;
+        }
+        sendSummonCommand(minecraft);
+    }
+
+    private static void sendSummonCommand(Minecraft minecraft) {
+        if (!(minecraft.player.getMainHandItem().getItem() instanceof ItemSlashBlade)) {
             return;
         }
         EnumSet<InputCommand> commands = CapabilityInputState.INPUT_STATE.maybeGet(minecraft.player)

@@ -31,6 +31,7 @@
     "SlashEffectRendererMixin",
     "ItemRendererGuiMixin",
     "GuiGraphicsTooltipMixin",
+    "MouseHandlerMixin",
     "AbstractContainerScreenAccessor",
     "AbstractContainerScreenTooltipMixin",
     "ClientCleanupMixin",
