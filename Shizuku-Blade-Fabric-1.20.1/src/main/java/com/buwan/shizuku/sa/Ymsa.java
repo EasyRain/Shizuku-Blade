@@ -301,7 +301,12 @@ public class Ymsa {
         if (e instanceof Player) {
             return false;
         }
-        boolean isOwnPet = e instanceof TamableAnimal ta && caster.getUUID().equals(ta.getOwnerUUID());
+        // 豁免：自己 + 自己的宠物。
+        // 用 OwnableEntity 而不是只判 TamableAnimal —— 上游 JudgmentIndex 也是这么写的，
+        // 这样能一并覆盖马/Allay/以及实现 OwnableEntity 的模组生物（如车万女仆的 EntityMaid）。
+        boolean isOwnPet = e instanceof net.minecraft.world.entity.OwnableEntity owned
+                && owned.getOwnerUUID() != null
+                && caster.getUUID().equals(owned.getOwnerUUID());
         return YmsaLogic.shouldKillPure(caster.getUUID().equals(e.getUUID()), isOwnPet,
                 e.isRemoved() && e.getRemovalReason() != null, false);
     }
