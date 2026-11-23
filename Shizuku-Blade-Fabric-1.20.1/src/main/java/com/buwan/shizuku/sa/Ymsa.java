@@ -86,7 +86,16 @@ public class Ymsa {
      */
     private static final java.util.Map<java.util.UUID, double[]> AIM = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * 施法瞬间是否按住 Shift（决定这次 SA 是否清理掉落物）。
+     *
+     * <p>原版语义：**释放那一刻**按住 Shift 就清理，之后松不松手都照清。
+     * 之前是等到 42 tick 落剑时才实时读 Shift，导致「动画中途松手就不清了」。</p>
+     */
+    private static final java.util.Map<java.util.UUID, Boolean> CLEANUP_LATCH = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
+        CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
         AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
                 player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
         UnleashedJudgment.notePhase(player, 1);
@@ -136,6 +145,7 @@ public class Ymsa {
     }
 
     public static void clearUnleashedArea(java.util.UUID id) {
+        CLEANUP_LATCH.remove(id);
         AIM.remove(id);
         UNLEASHED_UNTIL.remove(id);
     }
@@ -277,7 +287,12 @@ public class Ymsa {
 
         int projectilesCleared = clearHostileProjectiles(level, area);
         int objectsCleared = sweepBossObjects(player, level);
-        LootDropController.conditionalCleanup(player, KILL_RADIUS);
+        // 清掉落按「施法瞬间的 Shift」判定，而不是此刻的实时状态
+        boolean cleanDrops = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
+        CLEANUP_LATCH.remove(player.getUUID());
+        if (cleanDrops) {
+            LootDropController.cleanupDrops(player, KILL_RADIUS);
+        }
         LOGGER.info("[SA] Ymsa 释放: 击杀实体 {} 个 (强制掉落 {} 个, 绝对抹除 {} 个), 击杀玩家 {} 名, 抹除对象 {} 个, 清除投射物 {} 个",
                 killed, forcedDrops, annihilated, playersKilled, objectsCleared, projectilesCleared);
     }
