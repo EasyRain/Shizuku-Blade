@@ -34,6 +34,10 @@ import net.minecraft.resources.Identifier;
  * 在这里用 Fabric 的 ClientTickEvents / WorldRenderEvents / HudRenderCallback 派发到 compat 事件。
  */
 public class ShizukuFabricClient implements ClientModInitializer {
+    /** 诊断用：世界阶段 handler 是否被调用过（只打一次）。 */
+    private static final java.util.concurrent.atomic.AtomicBoolean SHIZUKU_LEVEL_HANDLER_LOGGED =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
     @Override
     public void onInitializeClient() {
         // 键位必须在 Options 初始化之前注册（Fabric 的 KeyMappingHelper 会校验这一点）。
@@ -104,6 +108,11 @@ public class ShizukuFabricClient implements ClientModInitializer {
                         TimeStopShaderManager.syncFromServer(payload.activate(), payload.strength())));
 
         LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(context -> {
+            if (Boolean.getBoolean("shizuku.slashfx.debug") && SHIZUKU_LEVEL_HANDLER_LOGGED.compareAndSet(false, true)) {
+                org.slf4j.LoggerFactory.getLogger("shizuku").info(
+                        "[slashfx] level-handler invoked (poseStack={})",
+                        context.poseStack() == null ? "null" : "ok");
+            }
             if (context.poseStack() == null) {
                 return;
             }

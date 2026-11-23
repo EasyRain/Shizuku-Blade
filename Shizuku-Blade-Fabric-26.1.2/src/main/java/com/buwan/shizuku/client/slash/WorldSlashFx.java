@@ -64,6 +64,14 @@ public final class WorldSlashFx {
     private static final float SPAN_DEGREES = 62.0F;
     private static final int SEGMENTS = 18;
 
+    private static final Set<String> LOGGED = ConcurrentHashMap.newKeySet();
+
+    private static void debugOnce(String key, String format, Object... args) {
+        if (DEBUG && LOGGED.add(key)) {
+            LOGGER.info("[slashfx] " + format, args);
+        }
+    }
+
     private WorldSlashFx() {
     }
 
@@ -112,11 +120,20 @@ public final class WorldSlashFx {
 
     /** 世界阶段直绘（由 {@code ShizukuFabricClient} 的 AFTER_TRANSLUCENT_TERRAIN 调用）。 */
     public static void render(RenderLevelStageEvent event) {
-        if (ARCS.isEmpty() || event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+        if (DEBUG) {
+            debugOnce("render-in", "render() invoked stage={} arcs={}", event.getStage(), ARCS.size());
+        }
+        if (ARCS.isEmpty()) {
+            debugOnce("render-empty", "render() 提前返回：ARCS 为空（note() 没进来，或已被 tick 老化）");
+            return;
+        }
+        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+            debugOnce("render-stage", "render() 提前返回：stage={} 不是 AFTER_TRANSLUCENT_BLOCKS", event.getStage());
             return;
         }
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) {
+            debugOnce("render-nolevel", "render() 提前返回：level/player 为 null");
             return;
         }
         Vec3 camera = event.getCamera().position();
@@ -131,12 +148,20 @@ public final class WorldSlashFx {
             if (alpha <= 0.02F) {
                 continue;
             }
+            debugOnce("draw-" + arc.center(), "drawArc alpha={} center=({},{},{}) yaw={} pitch={} color=#{}",
+                    String.format("%.3f", alpha),
+                    String.format("%.2f", arc.center().x), String.format("%.2f", arc.center().y),
+                    String.format("%.2f", arc.center().z), arc.yaw(), arc.pitch(),
+                    Integer.toHexString(arc.color()));
             drawArc(poseStack, camera, arc, alpha);
         }
     }
 
     private static void drawArc(PoseStack poseStack, Vec3 camera, Arc arc, float alpha) {
-        int rgb = (arc.color() & 0xFFFFFF) == 0 ? 0xFFFFFF : arc.color() & 0xFFFFFF;
+        // 拔刀剑的 getColorCode() 是 **ABGR**；直接当 ARGB 取 RGB 会把红蓝互换（用户看到
+        // #ff55aaff 这种"偏蓝"的刀色就是这么来的）。这里换序成 ARGB 再取 RGB。
+        int argb = abgrToArgb(arc.color());
+        int rgb = (argb & 0xFFFFFF) == 0 ? 0xFFFFFF : argb & 0xFFFFFF;
         float r = (rgb >> 16 & 0xFF) / 255.0F;
         float g = (rgb >> 8 & 0xFF) / 255.0F;
         float b = (rgb & 0xFF) / 255.0F;
@@ -163,11 +188,27 @@ public final class WorldSlashFx {
                 vertex(buffer, matrix, a0, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
                 vertex(buffer, matrix, a1, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
                 vertex(buffer, matrix, a1, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+                // 反序再来一遍（双面）：绕向/剔除在 debugQuads 上尚未证实，先保证「无论怎么剔都有一面」。
+                vertex(buffer, matrix, a1, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+                vertex(buffer, matrix, a1, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+                vertex(buffer, matrix, a0, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+                vertex(buffer, matrix, a0, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
             }
-            RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+            var mesh = buffer.buildOrThrow();
+            debugOnce("draw-call", "debugQuads().draw() 调用，顶点数={}", mesh.drawState().vertexCount());
+            RenderTypes.debugQuads().draw(mesh);
         } finally {
             poseStack.popPose();
         }
+    }
+
+    /** ABGR → ARGB（只换 R/B 两个通道）。 */
+    private static int abgrToArgb(int c) {
+        int a = c >>> 24 & 0xFF;
+        int b = c >> 16 & 0xFF;
+        int g = c >> 8 & 0xFF;
+        int r = c & 0xFF;
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     /** 极坐标 → 本地坐标（弧在 XY 平面上，朝 +Z 前伸一点，避免和脚下的方块深度打架）。 */
