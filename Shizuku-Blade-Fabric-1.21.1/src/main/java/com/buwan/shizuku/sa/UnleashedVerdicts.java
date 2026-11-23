@@ -56,8 +56,11 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     static UnleashedVerdicts get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(UnleashedVerdicts::load,
-            UnleashedVerdicts::new, "shizuku_unleashed_verdicts");
+        // 1.21：computeIfAbsent 换成 SavedData.Factory（load 也要多收一个 HolderLookup.Provider）。
+        // 原版只有 3 参构造（第三参是可空的 DataFixTypes，NeoForge 才加了 2 参便捷版）。
+        return server.overworld().getDataStorage().computeIfAbsent(
+            new SavedData.Factory<>(UnleashedVerdicts::new, UnleashedVerdicts::load, null),
+            "shizuku_unleashed_verdicts");
     }
 
     void record(UUID caster, Entity entity, boolean boss) {
@@ -255,8 +258,8 @@ final class UnleashedVerdicts extends SavedData {
             var t = locked.getCompound(i);
             UUID uuid = t.getUUID("UUID");
             var position = new Vec3(t.getDouble("X"), t.getDouble("Y"), t.getDouble("Z"));
-            add(new Target(player.getUUID(), uuid, new ResourceLocation(t.getString("Dimension")),
-                new ResourceLocation(t.getString("Type")), position, now, true));
+            add(new Target(player.getUUID(), uuid, ResourceLocation.parse(t.getString("Dimension")),
+                ResourceLocation.parse(t.getString("Type")), position, now, true));
             if (t.hasUUID("Encounter")) {
                 encounterIds.add(t.getUUID("Encounter"));
                 recordController(player.getUUID(), player.serverLevel(), t.getUUID("Encounter"), position);
@@ -268,7 +271,7 @@ final class UnleashedVerdicts extends SavedData {
         return new Locks(ids, encounterIds);
     }
 
-    private static UnleashedVerdicts load(CompoundTag root) {
+    private static UnleashedVerdicts load(CompoundTag root, net.minecraft.core.HolderLookup.Provider registries) {
         var data = new UnleashedVerdicts();
         data.casts = root.getCompound("Casts");
         var list = root.getList("Targets", Tag.TAG_COMPOUND);
@@ -285,7 +288,7 @@ final class UnleashedVerdicts extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag root) {
+    public CompoundTag save(CompoundTag root, net.minecraft.core.HolderLookup.Provider registries) {
         var list = new ListTag();
         for (var owners : targets.values()) for (Target t : owners) {
             var tag = new CompoundTag();

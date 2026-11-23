@@ -24,4 +24,18 @@ public record PhantomSlashPacket() implements CustomPacketPayload {
     public Type<PhantomSlashPacket> type() {
         return TYPE;
     }
+
+    /** 服务端处理：只有手持「星河」（mosmicblade）时才允许触发幻影斩。 */
+    public void handle(net.minecraft.server.level.ServerPlayer player) {
+        if (player == null) {
+            return;
+        }
+        String key = mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade
+                .getBladeState(player.getMainHandItem())
+                .map(mods.flammpfeil.slashblade.capability.slashblade.ISlashBladeState::getTranslationKey)
+                .orElse("");
+        if ("item.shizuku.mosmicblade".equals(key)) {
+            com.buwan.shizuku.sa.StarRiverSlash.firePhantomSlash(player);
+        }
+    }
 }

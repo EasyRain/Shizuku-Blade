@@ -7,15 +7,37 @@
     "ItemSlashBladeMixin",
     "ItemStackMixin",
     "LivingEntityAccessor",
-    "EntityAbstractSummonedSwordMixin"
+    "EntityAbstractSummonedSwordMixin",
+    "ChunkMapAccessor",
+    "ClassInstanceMultiMapAccessor",
+    "DamageSourcesAccessor",
+    "EntityAccessor",
+    "EntityLookupAccessor",
+    "EntityManagerAccessor",
+    "EntitySectionAccessor",
+    "EntityTickListAccessor",
+    "JudgmentManagerMixin",
+    "JudgmentProjectileAccessor",
+    "LivingEntityDropMixin",
+    "LivingEntityTickMixin",
+    "ServerAddEntityMixin",
+    "ServerLevelAccessor",
+    "SynchedEntityDataAccessor",
+    "TrackedEntityAccessor",
+    "TransientEntitySectionManagerAccessor"
   ],
   "client": [
     "DriveRendererMixin",
     "SlashEffectRendererMixin",
+    "ItemRendererGuiMixin",
+    "GuiGraphicsTooltipMixin",
     "AbstractContainerScreenAccessor",
     "AbstractContainerScreenTooltipMixin",
-    "ItemRendererGuiMixin",
-    "GuiGraphicsTooltipMixin"
+    "ClientCleanupMixin",
+    "ClientLevelAccessor",
+    "EntityRenderDispatcherMixin",
+    "JudgmentPlayerPoseMixin",
+    "UnleashedInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

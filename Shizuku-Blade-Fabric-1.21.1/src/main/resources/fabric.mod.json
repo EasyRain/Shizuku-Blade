@@ -11,6 +11,7 @@
   "environment": "*",
   "mixins": [
     "shizuku.mixins.json",
+    "shizuku.compat.mixins.json",
     "shizuku.jei.mixins.json"
   ],
   "entrypoints": {

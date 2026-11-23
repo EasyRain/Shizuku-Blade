@@ -203,7 +203,7 @@ public final class JudgmentEncounters {
     }
 
     static boolean blockedItem(ServerLevel level, ItemStack stack) {
-        UUID id = link(stack, stack.getTag());
+        UUID id = link(stack, com.buwan.shizuku.util.ItemNbt.get(stack));
         return id != null && UnleashedVerdicts.get(level.getServer()).active(id, level.getServer().overworld().getGameTime());
     }
 

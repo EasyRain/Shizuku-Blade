@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "alexsmobs:anaconda_part", "required": false },
+    { "id": "alexsmobs:centipede_body", "required": false },
+    { "id": "alexsmobs:centipede_tail", "required": false }
+  ]
+}

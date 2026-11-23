@@ -19,7 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class JudgmentPlayerPoseMixin {
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("TAIL"), require = 0)
     private void shizuku$poseJudgment(LivingEntity player, float limbSwing, float limbAmount, float age, float yaw, float pitch, CallbackInfo ci) {
-        CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem()).ifPresent(state -> {
+        CapabilitySlashBlade.getBladeState(player.getMainHandItem()).ifPresent(state -> {
             if (!SAComboRegistry.YMSA.getId().equals(state.getComboSeq())) {
                 return;
             }

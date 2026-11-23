@@ -32,8 +32,10 @@ public final class PersistentData {
         return SIDE.computeIfAbsent(blockEntity, ignored -> new CompoundTag());
     }
 
+    /** 物品栈的附加数据（1.21 起走 CUSTOM_DATA 组件；返回的是副本，改完要用 {@link ItemNbt#set} 写回）。 */
     public static CompoundTag of(ItemStack stack) {
-        return stack.getOrCreateTag();
+        CompoundTag tag = ItemNbt.get(stack);
+        return tag == null ? new CompoundTag() : tag;
     }
 
     public static CompoundTag of(Object holder) {

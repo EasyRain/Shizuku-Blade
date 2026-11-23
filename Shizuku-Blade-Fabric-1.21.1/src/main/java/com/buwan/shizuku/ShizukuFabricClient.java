@@ -46,7 +46,20 @@ public class ShizukuFabricClient implements ClientModInitializer {
             VoidPrisonRenderer.getInstance().onClientTick(event);
             YmsaChargeHandler.onClientTick(event);
             FieldActivateInput.tick(client);
+            // ---- 3.8.0 审判：键位 / 幻影斩输入 / 视觉 / 时停屏幕特效 ----
+            com.buwan.shizuku.client.JudgmentControls.tick();
+            com.buwan.shizuku.client.PhantomSlashInput.tick();
+            com.buwan.shizuku.client.JudgmentVisuals.tick();
+            com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().tick();
         });
+
+        // 审判：键位注册（默认 V / Shift+V 等，可在原版控制里改）
+        com.buwan.shizuku.client.JudgmentControls.register();
+
+        // S2C：审判落剑（位置/朝向已由服务端锁定）
+        ClientPlayNetworking.registerGlobalReceiver(
+                com.buwan.shizuku.network.JudgmentImpactPacket.TYPE,
+                (payload, context) -> context.client().execute(payload::handleClient));
 
         // S2C：抹除广播
         ClientPlayNetworking.registerGlobalReceiver(YmsaForceRemovePacket.TYPE, (payload, context) ->
@@ -112,7 +125,21 @@ public class ShizukuFabricClient implements ClientModInitializer {
                     RenderLevelStageEvent.Stage.AFTER_CUTOUT_BLOCKS, context.projectionMatrix()));
         });
 
-        HudRenderCallback.EVENT.register((guiGraphics, tickCounter) ->
-                GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post()));
+        // 审判领域球（星球级）与斩痕：AFTER_ENTITIES 阶段画世界空间几何
+        WorldRenderEvents.AFTER_ENTITIES.register(context -> {
+            if (context.matrixStack() == null) {
+                return;
+            }
+            com.buwan.shizuku.client.JudgmentVisuals.renderWorld(
+                    context.matrixStack(), context.camera().getPosition(), context.tickCounter().getGameTimeDeltaPartialTick(false));
+        });
+
+        HudRenderCallback.EVENT.register((guiGraphics, tickCounter) -> {
+            GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post());
+            // 审判：屏幕暗化 + 斩痕叠层；时停：去饱和 + 暗角
+            com.buwan.shizuku.client.JudgmentVisuals.shade(
+                    guiGraphics, tickCounter.getGameTimeDeltaPartialTick(false));
+            com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().renderOverlay(guiGraphics);
+        });
     }
 }

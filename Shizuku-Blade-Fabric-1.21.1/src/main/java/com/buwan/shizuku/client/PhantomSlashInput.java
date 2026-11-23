@@ -41,7 +41,7 @@ public final class PhantomSlashInput {
         if (!(held.getItem() instanceof ItemSlashBlade)) {
             return;
         }
-        String key = CapabilitySlashBlade.BLADESTATE.maybeGet(held)
+        String key = CapabilitySlashBlade.getBladeState(held)
                 .map(ISlashBladeState::getTranslationKey).orElse("");
         if ("item.shizuku.mosmicblade".equals(key)) {
             mc.player.swing(InteractionHand.MAIN_HAND);

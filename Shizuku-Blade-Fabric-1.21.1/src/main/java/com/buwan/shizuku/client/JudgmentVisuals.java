@@ -228,8 +228,9 @@ public final class JudgmentVisuals {
     }
 
     private static VertexBuffer buildDomainMesh() {
-        BufferBuilder mesh = new BufferBuilder(40 * 16 * 4 * DefaultVertexFormat.POSITION_TEX.getVertexSize());
-        mesh.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        // 1.21：Tesselator#begin 直接返回 builder，结束用 buildOrThrow() 取 MeshData
+        BufferBuilder mesh = com.mojang.blaze3d.vertex.Tesselator.getInstance()
+            .begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
         for (int j = 0; j < 16; j++) {
             for (int i = 0; i < 40; i++) {
                 sphereVertex(mesh, i, j);
@@ -240,7 +241,7 @@ public final class JudgmentVisuals {
         }
         VertexBuffer buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
         buffer.bind();
-        buffer.upload(mesh.end());
+        buffer.upload(mesh.buildOrThrow());
         VertexBuffer.unbind();
         return buffer;
     }
@@ -249,7 +250,7 @@ public final class JudgmentVisuals {
         float u = i / 40F, v = j / 16F;
         float longitude = u * Mth.TWO_PI, latitude = (v - 0.5F) * Mth.PI;
         float radius = Mth.cos(latitude);
-        mesh.vertex(radius*Mth.cos(longitude), Mth.sin(latitude), radius*Mth.sin(longitude)).uv(u, v).endVertex();
+        mesh.addVertex(radius*Mth.cos(longitude), Mth.sin(latitude), radius*Mth.sin(longitude)).setUv(u, v);
     }
 
     public static void renderCut(GuiGraphics graphics, int x, int y, int width, int height, long age) {
@@ -287,10 +288,10 @@ public final class JudgmentVisuals {
         shader.safeGetUniform("Phase").set(tick, (float)Ymsa.STRIKE_TICK, (float)Ymsa.RIFT_CLOSED_TICK);
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         VertexConsumer quad = buffers.getBuffer(RIFT);
-        quad.vertex(matrix, -1, -1, 0).uv(0, 0).endVertex();
-        quad.vertex(matrix, 1, -1, 0).uv(1, 0).endVertex();
-        quad.vertex(matrix, 1, 1, 0).uv(1, 1).endVertex();
-        quad.vertex(matrix, -1, 1, 0).uv(0, 1).endVertex();
+        quad.addVertex(matrix, -1, -1, 0).setUv(0, 0);
+        quad.addVertex(matrix, 1, -1, 0).setUv(1, 0);
+        quad.addVertex(matrix, 1, 1, 0).setUv(1, 1);
+        quad.addVertex(matrix, -1, 1, 0).setUv(0, 1);
         buffers.endBatch(RIFT);
     }
 }

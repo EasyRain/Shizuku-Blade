@@ -56,7 +56,10 @@ public final class JudgmentExecution {
 
     /** Unsafe 与关键偏移都就绪时才算可用；否则调用方回退到官方 API 路径。 */
     public static boolean supported() {
-        return UnsafeAccess.available() && OFF_DEAD >= 0L && OFF_ITEMS_BY_ID >= 0L && OFF_DATA_VALUE >= 0L && INT_MAP_GET != null;
+        // 1.21 起血量改写走 SynchedEntityData#set(accessor, value)（public API），
+        // 不再依赖 itemsById 的 Int2ObjectMap 直写，所以判定只看真正会用到的那几个字段。
+        return UnsafeAccess.available() && OFF_DEAD >= 0L
+                && OFF_DEATH_TIME >= 0L && OFF_HURT_TIME >= 0L && OFF_INVULNERABLE_TIME >= 0L;
     }
 
     public static String describe() {
@@ -80,15 +83,11 @@ public final class JudgmentExecution {
     public static boolean writeHealthDirect(LivingEntity target, float value) {
         if (target == null || !supported()) return false;
         try {
-            SynchedEntityData data = target.getEntityData();
-            Object map = UnsafeAccess.getObject(data, OFF_ITEMS_BY_ID);
-            if (map == null) return false;
-            EntityDataAccessor<Float> healthId = LivingEntityAccessor.shizuku$getDataHealthId();
-            Object item = INT_MAP_GET.invoke(map, healthId.getId());
-            if (item == null) return false;
-            boolean ok = UnsafeAccess.setObject(item, OFF_DATA_VALUE, Float.valueOf(value));
-            UnsafeAccess.fullFence();
-            return ok;
+            // 1.21 移除了 EntityDataAccessor#getId()，但 SynchedEntityData#set(accessor, value) 仍是 public，
+            // 配合 mixin 暴露的 DATA_HEALTH_ID 就能直写同步血量——绕过 setHealth() 里的
+            // Mth.clamp(health, 0, maxHealth)，这正是假死/负数血量需要的。
+            target.getEntityData().set(LivingEntityAccessor.shizuku$getDataHealthId(), value);
+            return true;
         } catch (Throwable ignored) {
             return false;
         }

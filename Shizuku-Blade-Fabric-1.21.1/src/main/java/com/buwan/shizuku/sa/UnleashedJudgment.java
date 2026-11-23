@@ -2,6 +2,7 @@ package com.buwan.shizuku.sa;
 
 import com.buwan.shizuku.network.UnleashedInputPacket.Action;
 import com.buwan.shizuku.registry.SAComboRegistry;
+import com.buwan.shizuku.util.ItemNbt;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,7 +50,7 @@ public final class UnleashedJudgment {
     private UnleashedJudgment() {}
 
     public static boolean isBlade(ItemStack stack) {
-        return stack.getItem() instanceof ItemSlashBlade && CapabilitySlashBlade.BLADESTATE.maybeGet(stack)
+        return stack.getItem() instanceof ItemSlashBlade && CapabilitySlashBlade.getBladeState(stack)
             .map(state -> "item.shizuku.ymblade".equals(state.getTranslationKey())).orElse(false);
     }
 
@@ -81,9 +82,10 @@ public final class UnleashedJudgment {
             }
             enabled.add(id);
             var blade = player.getMainHandItem();
-            if (!uses.containsKey(id) && isBlade(blade) && blade.hasTag() && blade.getTag().hasUUID("shizuku:cast_blade")) {
+            if (!uses.containsKey(id) && isBlade(blade) && ItemNbt.has(blade)
+                    && ItemNbt.get(blade).hasUUID("shizuku:cast_blade")) {
                 var data = UnleashedVerdicts.get(player.serverLevel().getServer());
-                int age = data.savedAge(id, blade.getTag().getUUID("shizuku:cast_blade"));
+                int age = data.savedAge(id, ItemNbt.get(blade).getUUID("shizuku:cast_blade"));
                 if (age >= 0 && age < Ymsa.END_TICK && player.isAlive() && !player.isSpectator())
                     uses.put(id, new Use(player, blade, player.serverLevel().getServer().overworld().getGameTime() - age, true));
             }
@@ -111,10 +113,13 @@ public final class UnleashedJudgment {
         } else if (use != null) {
             uses.remove(id);
             if (use.player != player || use.blade != blade) return;
-            CapabilitySlashBlade.BLADESTATE.maybeGet(blade).ifPresent(state -> {
+            CapabilitySlashBlade.getBladeState(blade).ifPresent(state -> {
                 if (now - use.start < state.getFullChargeTicks(player)) return;
-                var tag = blade.getOrCreateTag();
-                if (!tag.hasUUID("shizuku:cast_blade")) tag.putUUID("shizuku:cast_blade", UUID.randomUUID());
+                var tag = ItemNbt.edit(blade, t -> {});
+                if (!tag.hasUUID("shizuku:cast_blade")) {
+                    tag.putUUID("shizuku:cast_blade", UUID.randomUUID());
+                    ItemNbt.set(blade, tag);
+                }
                 UnleashedVerdicts.get(player.serverLevel().getServer()).beginCast(id, tag.getUUID("shizuku:cast_blade"));
                 uses.put(id, new Use(player, blade, now, true));
                 state.updateComboSeq(player, SAComboRegistry.YMSA.getId());

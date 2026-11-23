@@ -79,8 +79,33 @@ public class shizuku {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(prefix(name)));
     }
 
+    /** Forge 风格的配置在 Fabric 上要用 Forge Config API Port 注册，否则 spec.get() 会抛未加载异常。 */
+    private static void registerConfigs() {
+        // SERVER 配置两端都要注册（客户端本体在单机时会作主机跑它）
+        try {
+            fuzs.forgeconfigapiport.fabric.api.forge.v4.ForgeConfigRegistry.INSTANCE.register(
+                    "shizuku", net.minecraftforge.fml.config.ModConfig.Type.SERVER,
+                    com.buwan.shizuku.sa.JudgmentConfig.SPEC);
+        } catch (Throwable t) {
+            org.slf4j.LoggerFactory.getLogger("shizuku").warn("server config registration skipped: {}", t.toString());
+        }
+        // CLIENT 配置只在客户端 JVM 注册：专用服务器上加载 JudgmentVisuals 会去摸 LocalPlayer
+        if (net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType()
+                == net.fabricmc.api.EnvType.CLIENT) {
+            try {
+                // forgeconfigapiport 21.1.x（1.21.1）把 API 挪到了 fuzs.forgeconfigapiport.fabric.api.forge.v4
+                fuzs.forgeconfigapiport.fabric.api.forge.v4.ForgeConfigRegistry.INSTANCE.register(
+                        "shizuku", net.minecraftforge.fml.config.ModConfig.Type.CLIENT,
+                        com.buwan.shizuku.client.JudgmentVisuals.CONFIG);
+            } catch (Throwable t) {
+                org.slf4j.LoggerFactory.getLogger("shizuku").warn("client config registration skipped: {}", t.toString());
+            }
+        }
+    }
+
     /** 由 ShizukuFabric#onInitialize 调用，统一注册（顺序敏感：方块先于物品）。 */
     public static void init() {
+        registerConfigs();
         ModBlocks.BLOCKS.registerAll();
         ModTileEntities.BLOCK_ENTITIES.registerAll();
         ModMenus.MENUS.registerAll();
@@ -128,6 +153,35 @@ public class shizuku {
         SlashBladeEvent.UPDATE.register(com.buwan.shizuku.se.shizuku::onUpdate);
         WorldsFavorite.registerCommon();
 
+        // ---- 3.8.0 审判系统：Forge 事件 → Fabric 回调 ----
+        net.fabricmc.fabric.api.event.player.UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (world instanceof ServerLevel server) {
+                return com.buwan.shizuku.sa.JudgmentEncounters.onSummonerUse(server, player.getItemInHand(hand))
+                        ? net.minecraft.world.InteractionResultHolder.fail(player.getItemInHand(hand))
+                        : net.minecraft.world.InteractionResultHolder.pass(player.getItemInHand(hand));
+            }
+            return net.minecraft.world.InteractionResultHolder.pass(player.getItemInHand(hand));
+        });
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (world instanceof ServerLevel server
+                    && com.buwan.shizuku.sa.JudgmentEncounters.onSummonerBlock(server, hit.getBlockPos(), player.getItemInHand(hand))) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
+            if (!world.isClientSide() && player instanceof net.minecraft.world.entity.LivingEntity) {
+                com.buwan.shizuku.server.BladeDurabilityFix.onLivingAttack(player);
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        ServerLifecycleEvents.SERVER_STARTED.register(server ->
+                com.buwan.shizuku.sa.JudgmentEncounters.verifyCompatibility());
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                com.buwan.shizuku.sa.SAStateManager.onPlayerLoggedIn(handler.getPlayer()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                com.buwan.shizuku.sa.SAStateManager.onPlayerLoggedOut(handler.getPlayer()));
+
         // 剑技（SA）tick 派发：NeoForge PlayerTickEvent/ServerTickEvent → Fabric ServerTickEvents
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             ServerTickEvent.Post serverEvent = new ServerTickEvent.Post();
@@ -135,6 +189,7 @@ public class shizuku {
             Yingsa.onServerTick(serverEvent);
             Ymsa.onServerTick(server);
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                com.buwan.shizuku.sa.SAStateManager.onPlayerTick(player);
                 PlayerTickEvent.Post playerEvent = new PlayerTickEvent.Post(player);
                 MoonlightSlash.onPlayerTick(playerEvent);
                 SummerSlash.onPlayerTick(playerEvent);

@@ -36,7 +36,10 @@ public class PacketHandler {
         PayloadTypeRegistry.playS2C().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(JudgmentImpactPacket.TYPE, JudgmentImpactPacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(UnleashedInputPacket.TYPE, UnleashedInputPacket.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(PhantomSlashPacket.TYPE, PhantomSlashPacket.STREAM_CODEC);
 
         // C2S：Shift+X 切换星河领域（服务端校验手持 mosmicblade）
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.TYPE, (payload, context) ->
@@ -49,6 +52,24 @@ public class PacketHandler {
                             .map(s -> "item.shizuku.mosmicblade".equals(s.getTranslationKey())).orElse(false);
                     if (mosmic && player.getMainHandItem().getItem() instanceof ItemSlashBlade) {
                         GalaxyField.toggleField(player);
+                    }
+                }));
+
+        // C2S：解放（审判）输入 —— 服务端仍会校验 OP（权限等级 >= 2）
+        ServerPlayNetworking.registerGlobalReceiver(UnleashedInputPacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (player != null) {
+                        payload.handleServer(player);
+                    }
+                }));
+
+        // C2S：幻影斩（只有手持「星河」时服务端才放行）
+        ServerPlayNetworking.registerGlobalReceiver(PhantomSlashPacket.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (player != null) {
+                        payload.handle(player);
                     }
                 }));
     }
