@@ -273,10 +273,13 @@ public class Ymsa {
             target.getCombatTracker().recheckStatus();
             if (target.level() instanceof ServerLevel level) {
                 var sourceEntity = src.getEntity();
-                if (sourceEntity != null && sourceEntity.killedEntity(level, target)) {
-                    target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DIE);
-                    ((LivingEntityAccessor) target).shizuku$dropAllDeathLoot(level, src);
+                if (sourceEntity != null) {
+                    // 击杀统计/成就（返回值不参与判定：某些模组 boss 的 killedEntity 会返回 false）
+                    sourceEntity.killedEntity(level, target);
                 }
+                target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DIE);
+                // 关键：模组自己的 die() 被无敌/阶段逻辑吞掉时，这里直接结算原版掉落
+                ((LivingEntityAccessor) target).shizuku$dropAllDeathLoot(level, src);
                 level.broadcastEntityEvent(target, (byte) 3);
             }
             target.setPose(net.minecraft.world.entity.Pose.DYING);
@@ -375,16 +378,16 @@ public class Ymsa {
                 JudgmentExecution.fakeDeathState(target);
             }
             target.setLastHurtByMob(player);
-            boolean hurtAccepted = target.hurt(src, KILL_DAMAGE);
-            if (!target.isDeadOrDying()) {
-                // 伤害被拒（无敌/阶段保护）或没打穿：先把血量写 0 再走 die()，
-                // 这样模组仍能收到「正常死亡」，掉落/成就/统计才会触发。
+            target.hurt(src, KILL_DAMAGE);
+            // 不管 hurt 返回什么，只要还没真正死，就走「正常死亡」链路：
+            // 混沌守卫这类在无敌阶段会把伤害吞掉（hurt 可能返回 true 但血量不动），
+            // 之前只在 hurt 被拒时兜底，于是它被后面的 discard() 直接抹掉 —— 表现为「直接消失」。
+            if (!((LivingEntityAccessor) target).shizuku$isDead()) {
                 prepareLethalState(target, src);
                 target.die(src);
             }
-            if (hurtAccepted == false && !target.isRemoved()) {
-                // 模组没认这次死亡（典型：龙研的混沌守卫在混沌水晶存在时无敌）：
-                // 手工重放原版死亡收尾，让掉落/击杀统计/ENTITY_DIE 正常发生。
+            if (!target.isRemoved() && !((LivingEntityAccessor) target).shizuku$isDead()) {
+                // 模组仍没认这次死亡 → 手工重放原版死亡收尾（掉落/击杀统计/ENTITY_DIE/死亡动画）
                 settleNormalDeath(target, src);
             }
 
