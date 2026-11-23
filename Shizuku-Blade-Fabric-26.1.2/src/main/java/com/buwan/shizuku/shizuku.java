@@ -84,8 +84,31 @@ public class shizuku {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(prefix(name)));
     }
 
+    /** Forge 风格的配置在 Fabric 上要用 Forge Config API Port 注册，否则 spec.get() 会抛未加载异常。 */
+    private static void registerConfigs() {
+        try {
+            fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry.INSTANCE.register(
+                    "shizuku", net.neoforged.fml.config.ModConfig.Type.SERVER,
+                    com.buwan.shizuku.sa.JudgmentConfig.SPEC);
+        } catch (Throwable t) {
+            org.slf4j.LoggerFactory.getLogger("shizuku").warn("server config registration skipped: {}", t.toString());
+        }
+        // CLIENT 配置只在客户端 JVM 注册：专用服务器加载 JudgmentVisuals 会去摸 LocalPlayer
+        if (net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType()
+                == net.fabricmc.api.EnvType.CLIENT) {
+            try {
+                fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry.INSTANCE.register(
+                        "shizuku", net.neoforged.fml.config.ModConfig.Type.CLIENT,
+                        com.buwan.shizuku.client.JudgmentVisuals.CONFIG);
+            } catch (Throwable t) {
+                org.slf4j.LoggerFactory.getLogger("shizuku").warn("client config registration skipped: {}", t.toString());
+            }
+        }
+    }
+
     /** 由 ShizukuFabric#onInitialize 调用，统一注册（顺序敏感：方块先于物品）。 */
     public static void init() {
+        registerConfigs();
         ModBlocks.BLOCKS.registerAll();
         ModTileEntities.BLOCK_ENTITIES.registerAll();
         ModMenus.MENUS.registerAll();
@@ -126,6 +149,43 @@ public class shizuku {
         ServerLifecycleEvents.SERVER_STARTED.register(PacketHandler::setServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> PacketHandler.setServer(null));
 
+        // 剑技真正执行的时刻 → 推进 SaTimeline 的施法序号（一次施法一个号）
+        SlashBladeEvent.PERFORM_SLASH_ART.register(event ->
+                com.buwan.shizuku.sa.SaTimeline.onSlashArtPerformed(
+                        event.getEntityLiving(), event.getComboState()));
+
+        // ---- 3.8.0 审判系统：Forge 事件 → Fabric 回调 ----
+        net.fabricmc.fabric.api.event.player.UseItemCallback.EVENT.register((player, world, hand) -> {
+            if (world instanceof ServerLevel server) {
+                return com.buwan.shizuku.sa.JudgmentEncounters.onSummonerUse(server, player.getItemInHand(hand))
+                        // 26.1：InteractionResultHolder 已删；Fail/Pass 记录本身不再携带物品，
+                        // 语义等价的写法就是这两个常量。
+                        ? net.minecraft.world.InteractionResult.FAIL
+                        : net.minecraft.world.InteractionResult.PASS;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        net.fabricmc.fabric.api.event.player.UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (world instanceof ServerLevel server
+                    && com.buwan.shizuku.sa.JudgmentEncounters.onSummonerBlock(server,
+                            hit.getBlockPos(), player.getItemInHand(hand))) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
+            if (!world.isClientSide() && player instanceof net.minecraft.world.entity.LivingEntity) {
+                com.buwan.shizuku.server.BladeDurabilityFix.onLivingAttack(player);
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        ServerLifecycleEvents.SERVER_STARTED.register(server ->
+                com.buwan.shizuku.sa.JudgmentEncounters.verifyCompatibility());
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
+                com.buwan.shizuku.sa.SAStateManager.onPlayerLoggedIn(handler.getPlayer()));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
+                com.buwan.shizuku.sa.SAStateManager.onPlayerLoggedOut(handler.getPlayer()));
+
         // SE 事件（Refabricated 用 Fabric Event：HIT / UPDATE）
         SlashBladeEvent.HIT.register(Jingxin::onHitEntity);
         SlashBladeEvent.UPDATE.register(Leise::onUpdate);
@@ -139,7 +199,10 @@ public class shizuku {
             GalaxyField.onServerTick(serverEvent);
             Yingsa.onServerTick(serverEvent);
             Ymsa.onServerTick(server);
+            // 我们自己的 SA 时间轴（不依赖前置库的 ComboState 寿命/elapsed）
+            com.buwan.shizuku.sa.SaTimeline.tickServer(server);
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                com.buwan.shizuku.sa.SAStateManager.onPlayerTick(player);
                 PlayerTickEvent.Post playerEvent = new PlayerTickEvent.Post(player);
                 MoonlightSlash.onPlayerTick(playerEvent);
                 SummerSlash.onPlayerTick(playerEvent);

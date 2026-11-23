@@ -17,6 +17,6 @@ public class ShizukuFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         shizuku.init();
-        LOGGER.info("Shizuku-Blade (Fabric 1.21.1) bootstrap OK");
+        LOGGER.info("Shizuku-Blade (Fabric 26.1.2) bootstrap OK");
     }
 }

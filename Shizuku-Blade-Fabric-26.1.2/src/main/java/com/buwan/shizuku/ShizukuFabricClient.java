@@ -36,6 +36,9 @@ import net.minecraft.resources.Identifier;
 public class ShizukuFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        // 键位必须在 Options 初始化之前注册（Fabric 的 KeyMappingHelper 会校验这一点）。
+        com.buwan.shizuku.client.JudgmentControls.register();
+
         MenuScreens.register(ModMenus.SHIZUKU_CRAFT_TABLE.get(), ShizukuCraftScreen::new);
         WorldsFavoriteClient.register();
 
@@ -46,6 +49,11 @@ public class ShizukuFabricClient implements ClientModInitializer {
             VoidPrisonRenderer.getInstance().onClientTick(event);
             YmsaChargeHandler.onClientTick(event);
             FieldActivateInput.tick(client);
+            // 审判系统：面板快捷键、幻影剑中键兜底轮询、视觉状态清理、连招时间轴
+            com.buwan.shizuku.client.JudgmentControls.tick();
+            com.buwan.shizuku.client.SummonSwordInput.tick();
+            com.buwan.shizuku.client.JudgmentVisuals.tick();
+            com.buwan.shizuku.sa.SaTimeline.tickClient(client);
         });
 
         // S2C：抹除广播
@@ -114,6 +122,14 @@ public class ShizukuFabricClient implements ClientModInitializer {
 
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("shizuku", "galaxy_field"),
                 (graphics, deltaTracker) -> GalaxyFieldRenderer.onRenderGuiPost(new RenderGuiEvent.Post()));
+        // 26.1 的 HudElement#extractRenderState 直接给 GuiGraphicsExtractor，正好对上两个覆盖层的签名。
+        // 顺序：先时停（全局去饱和/暗角），再审判红染（局部、更强的氛围）
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("shizuku", "screen_effects"),
+                (graphics, deltaTracker) -> {
+                    com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().renderOverlay(graphics);
+                    com.buwan.shizuku.client.JudgmentVisuals.shade(
+                            graphics, deltaTracker.getGameTimeDeltaPartialTick(false));
+                });
         // 宇宙刀手持星光（26.1：不用着色器，走 UV 滚动装饰器）
         com.buwan.shizuku.client.CosmicBladeRenderer.register();
     }

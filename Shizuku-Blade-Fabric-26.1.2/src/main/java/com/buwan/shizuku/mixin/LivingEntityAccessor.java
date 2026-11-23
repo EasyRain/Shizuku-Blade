@@ -4,6 +4,7 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
 @Mixin(LivingEntity.class)
 public interface LivingEntityAccessor {
@@ -13,4 +14,20 @@ public interface LivingEntityAccessor {
     static EntityDataAccessor<Float> shizuku$getDataHealthId() {
         throw new AssertionError();
     }
+
+    /** 死亡标记（原版 die() 会把它置 true）。26.1 该字段仍为 {@code protected boolean dead}。 */
+    @Accessor("dead")
+    boolean shizuku$isDead();
+
+    @Accessor("dead")
+    void shizuku$setDead(boolean value);
+
+    /**
+     * protected 的掉落结算，用于「正常死亡」兜底。
+     *
+     * <p>26.1 的签名仍是 {@code dropAllDeathLoot(ServerLevel, DamageSource)}。</p>
+     */
+    @Invoker("dropAllDeathLoot")
+    void shizuku$dropAllDeathLoot(net.minecraft.server.level.ServerLevel level,
+                                 net.minecraft.world.damagesource.DamageSource source);
 }

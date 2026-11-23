@@ -36,6 +36,12 @@ dependencies {
     compileOnly files("libs/SlashBlade-Refabricated-${slashblade_version}.jar")
     // Refabricated 的配置依赖（本地 jar）
     compileOnly files("libs/ForgeConfigAPIPort-v26.1.5-mc26.1.x-Fabric.jar")
+    // Forge Config API Port 把 nightconfig（core/toml 3.8.3）作为嵌套 jar 打包，flat 依赖不会透传它的
+    // 传递依赖 ⇒ 编译期 ForgeConfigSpec 的父类（UnmodifiableConfigWrapper）不可见，会报
+    // 「无法访问 com.electronwill.nightconfig.core.UnmodifiableConfig」。这里按同样的 3.8.3 版本显式补上；
+    // 运行时由前置模组自带的嵌套 jar 提供，所以只声明 compileOnly。
+    compileOnly "com.electronwill.night-config:core:3.8.3"
+    compileOnly "com.electronwill.night-config:toml:3.8.3"
     // Refabricated 的能力系统（CCA 8.0.0）
     compileOnly "org.ladysnake.cardinal-components-api:cardinal-components-base:8.0.0"
     compileOnly "org.ladysnake.cardinal-components-api:cardinal-components-entity:8.0.0"
