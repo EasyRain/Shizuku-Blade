@@ -43,7 +43,7 @@ public class SAComboRegistry {
             ComboState.Builder.newInstance().startAndEnd(459, 488).priority(50)
                     .motionLoc(DefaultResources.ExMotionLocation).next(entity -> SlashBlade.prefix("none"))
                     .nextOfTimeout(entity -> SlashBlade.prefix("none"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(0, AttackManager::playQuickSheathSoundAction)
                             .build())
                     .releaseAction(ComboState::releaseActionQuickCharge)::build
@@ -54,7 +54,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(2, (entityIn) -> AttackManager.doSlash(entityIn, -30.0F, Vec3.ZERO, false, false,
                                     (double) SlashEffectUtils.addslashbladesaDamage(entityIn, 1)))
                             .put(3, (entityIn) -> Shizukusa.doSlash(entityIn, 2.5F, -13421569, false))
@@ -67,7 +67,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> Leisa.doLeisaSlash(entityIn))
                             .build())
                     ::build);
@@ -77,7 +77,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     Yingsa.doYingSa(entityIn);
@@ -90,7 +90,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     TeleportSlash.doTeleportSlash(entityIn);
@@ -103,7 +103,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     TimeSlash.doTimeSlash(entityIn);
@@ -116,7 +116,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     TornadoSlash.doTornadoSlash(entityIn);
@@ -130,7 +130,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     UnlimitedBladeWorks.doUnlimitedBladeWorks(entityIn);
@@ -143,7 +143,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     MoonlightSlash.doMoonlightSlash(entityIn);
@@ -156,7 +156,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     TsubameGaeshi.doTsubameGaeshi(entityIn);
@@ -169,7 +169,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     VoidPrison.doVoidPrison(entityIn);
@@ -183,7 +183,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     CosmicCrossSlash.doCosmicCrossSlash(entityIn);
@@ -193,17 +193,27 @@ public class SAComboRegistry {
 
     public static final DeferredHolder<ComboState, ComboState> YMSA = COMBO_STATES.register("ymsa",
             ComboState.Builder.newInstance()
-                    .startAndEnd(400, 430)
+                    .startAndEnd(0, Ymsa.RECOVERY_FRAME)
                     .priority(50)
-                    .motionLoc(DefaultResources.ExMotionLocation)
-                    .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
-                    .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
-                            .put(3, (entityIn) -> {
-                                if (entityIn instanceof LivingEntity) {
-                                    Ymsa.doYmsaSlash(entityIn);
-                                }
-                            }).build())
+                    .motionLoc(Ymsa.MOTION)
+                    .next(ComboState.TimeoutNext.buildFromFrame(Ymsa.RECOVERY_FRAME, entity -> SlashBlade.prefix("none")))
+                    .nextOfTimeout(entity -> SlashBlade.prefix("none"))
+                    // 时间轴由 Ymsa.handleServerTickEnd 的服务端 tick 循环推进（连招状态会被
+                    // SlashBlade 提前切走，实测只活 5~18 tick，撑不到 VERDICT_TICK=42）。
+                    // 这里只负责在施法第一帧登记（beginJudgment 幂等）。
+                    // 时间轴由 Ymsa.handleServerTickEnd 的服务端 tick 循环推进（连招状态会被
+                    // SlashBlade 提前切走，实测只活 5~18 tick，撑不到 VERDICT_TICK=42）。
+                    // 这里只负责登记这次施法的起点；castStart 用 gameTime-elapsed 推出，
+                    // 所以同一次施法反复登记是幂等的，重新施法会自然替换。
+                    .addTickAction(entity -> {
+                        // 解放（蓄力）中不重复登记手势动作：那条时间轴在松手时由
+                        // UnleashedJudgment 用 SaTimeline.start 显式起步
+                        if (entity instanceof net.minecraft.server.level.ServerPlayer player
+                                && com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
+                            return;
+                        }
+                        com.buwan.shizuku.sa.SaTimeline.plan(entity, Ymsa.JUDGMENT_STEPS);
+                    })
                     .releaseAction((user, elapsed) -> {
                         if ((FabricLoader.getInstance().getEnvironmentType() == net.fabricmc.api.EnvType.CLIENT) && user instanceof Player) {
                             com.buwan.shizuku.client.SynthwaveShaderManager.stopShader();
@@ -216,7 +226,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(3, (entityIn) -> {
                                 if (entityIn instanceof LivingEntity) {
                                     SummerSlash.doSummerSlash(entityIn);
@@ -246,7 +256,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(ComboState.TimeoutNext.buildFromFrame(15, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> shizuku.prefix("all_reuse"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(2, entityIn -> {
                                 if (entityIn instanceof LivingEntity) {
                                     GalaxyArc.fireGiantDaoguang(entityIn);
@@ -306,7 +316,7 @@ public class SAComboRegistry {
                     .motionLoc(DefaultResources.ExMotionLocation)
                     .next(entity -> SlashBlade.prefix("none"))
                     .nextOfTimeout(entity -> shizuku.prefix("cosmic_attack_end2"))
-                    .addTickAction(ComboState.TimeLineTickAction.getBuilder()
+                    .addTickAction(com.buwan.shizuku.sa.SaTimeline.getBuilder()
                             .put(0, AttackManager::playQuickSheathSoundAction)
                             .build())
                     .releaseAction(ComboState::releaseActionQuickCharge)::build

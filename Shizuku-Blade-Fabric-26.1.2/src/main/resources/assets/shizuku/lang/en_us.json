@@ -35,7 +35,7 @@
   "item.shizuku.meow_stone": "Meow Stone",
   "item.shizuku.meow_stone.tooltip": "§7A rare material dropped by vanilla hostile mobs",
   "item.shizuku.meow_stone.tooltip2": "...",
-  "item.shizuku.meow_stone.tooltip3": "§8Drop chance: 1%",
+  "item.shizuku.meow_stone.tooltip3": "§8Drop chance: %s%%",
   "se.shizuku.leise": "§fThunderclap~",
   "jei.category.shizuku.shizuku_crafting_table": "Shizuku Craft",
   "death.attack.ymsa_kill": "%1$s was erased by judgment",

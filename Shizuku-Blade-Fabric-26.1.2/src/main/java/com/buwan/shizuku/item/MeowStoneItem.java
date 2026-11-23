@@ -21,6 +21,8 @@ public class MeowStoneItem extends Item {
         // 原版 3.4.0 误用 literal 导致显示原始键，改为 translatable 正确读取语言文件
         tooltip.accept(Component.translatable("item.shizuku.meow_stone.tooltip"));
         tooltip.accept(Component.translatable("item.shizuku.meow_stone.tooltip2"));
-        tooltip.accept(Component.translatable("item.shizuku.meow_stone.tooltip3"));
+        // 概率取实时配置值（面板里改完立刻生效），语言文件里是 "掉落概率: %s%%"
+        tooltip.accept(Component.translatable("item.shizuku.meow_stone.tooltip3",
+                com.buwan.shizuku.sa.JudgmentConfig.meowStoneDropPercent()));
     }
 }
