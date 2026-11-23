@@ -43,6 +43,13 @@ public abstract class DriveRendererMixin {
             // 26.1 的 DriveRenderState 不带 baseSize（上游 26.1 刀光改固定缩放），
             // 这里自己带过去，供 CosmicFx.submitDrive 还原原版 0.02*max(1,baseSize)
             flag.shizuku$setBaseSize(entity.getBaseSize());
+            // 26.1：实体 submit 通道自绘不可见（A/B 已验证）⇒ 记一条给「世界阶段直绘」用
+            if (ownBlade) {
+                com.buwan.shizuku.client.slash.WorldSlashFx.note(entity,
+                        entity.getX(), entity.getY(), entity.getZ(),
+                        state.yRot, state.xRot, state.color,
+                        com.buwan.shizuku.client.slash.WorldSlashFx.DEFAULT_LIFE);
+            }
         }
     }
 

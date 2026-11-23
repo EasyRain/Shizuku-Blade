@@ -46,6 +46,12 @@ public abstract class SlashEffectRendererMixin {
             flag.shizuku$setCosmicFx(cosmicShooter || ab);
             flag.shizuku$setOwnBladeFx(ownBlade && !ab);
             com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("slash", entity.getShooter(), flag);
+            if (ownBlade) {
+                com.buwan.shizuku.client.slash.WorldSlashFx.note(entity,
+                        entity.getX(), entity.getY(), entity.getZ(),
+                        state.yRot, state.xRot, state.color,
+                        com.buwan.shizuku.client.slash.WorldSlashFx.DEFAULT_LIFE);
+            }
         }
     }
 

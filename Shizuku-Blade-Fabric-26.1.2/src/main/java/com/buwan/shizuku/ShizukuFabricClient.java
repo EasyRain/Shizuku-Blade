@@ -54,6 +54,7 @@ public class ShizukuFabricClient implements ClientModInitializer {
             com.buwan.shizuku.client.SummonSwordInput.tick();
             com.buwan.shizuku.client.JudgmentVisuals.tick();
             com.buwan.shizuku.sa.SaTimeline.tickClient(client);
+            com.buwan.shizuku.client.slash.WorldSlashFx.tick();
         });
 
         // S2C：审判落剑（位置/朝向已由服务端锁定）
@@ -112,6 +113,8 @@ public class ShizukuFabricClient implements ClientModInitializer {
             GalaxyFieldRenderer.onRenderLevel(event);
             TimeStopRenderer.getInstance().onRenderLevel(event);
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
+            // 我们的刀光：与星河领域/时停球同一条「世界阶段直绘」路径（唯一实测能出画面的）
+            com.buwan.shizuku.client.slash.WorldSlashFx.render(event);
         });
 
         // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，26.1 用 AFTER_SOLID_FEATURES 近似
