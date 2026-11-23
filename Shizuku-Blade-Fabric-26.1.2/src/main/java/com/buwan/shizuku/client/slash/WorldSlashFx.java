@@ -158,48 +158,96 @@ public final class WorldSlashFx {
     }
 
     private static void drawArc(PoseStack poseStack, Vec3 camera, Arc arc, float alpha) {
-        // 拔刀剑的 getColorCode() 是 **ABGR**；直接当 ARGB 取 RGB 会把红蓝互换（用户看到
-        // #ff55aaff 这种"偏蓝"的刀色就是这么来的）。这里换序成 ARGB 再取 RGB。
+        // 拔刀剑的 getColorCode() 是 **ABGR**；直接当 ARGB 取 RGB 会把红蓝互换。这里换序成 ARGB 再取 RGB。
         int argb = abgrToArgb(arc.color());
         int rgb = (argb & 0xFFFFFF) == 0 ? 0xFFFFFF : argb & 0xFFFFFF;
         float r = (rgb >> 16 & 0xFF) / 255.0F;
         float g = (rgb >> 8 & 0xFF) / 255.0F;
         float b = (rgb & 0xFF) / 255.0F;
 
+        // ⚠️ 逐步骤打点 + 每步 try/catch 打全栈：之前「drawArc 有、draw() 日志没有」说明中途抛了异常
+        // 又被上层吞掉。这里把 6 个步骤分别标记，异常一律带堆栈打出来。
         poseStack.pushPose();
         try {
-            poseStack.translate(arc.center().x - camera.x, arc.center().y - camera.y, arc.center().z - camera.z);
-            poseStack.mulPose(Axis.YP.rotationDegrees(-arc.yaw()));
-            poseStack.mulPose(Axis.XP.rotationDegrees(arc.pitch()));
-
-            BufferBuilder buffer = Tesselator.getInstance().begin(
-                    VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-            var matrix = poseStack.last().pose();
-            float half = SPAN_DEGREES * 0.5F;
-            for (int i = 0; i < SEGMENTS; i++) {
-                float a0 = (float) Math.toRadians(-half + SPAN_DEGREES * i / SEGMENTS);
-                float a1 = (float) Math.toRadians(-half + SPAN_DEGREES * (i + 1) / SEGMENTS);
-                // 两端渐隐（弧线的头尾 alpha 更低）
-                float edge = 1.0F - Math.abs((i + 0.5F) / SEGMENTS * 2.0F - 1.0F)
-                        * Math.abs((i + 0.5F) / SEGMENTS * 2.0F - 1.0F);
-                float outerAlpha = alpha * edge;
-                // 四边形：内缘(透明) → 外缘(亮)
-                vertex(buffer, matrix, a0, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-                vertex(buffer, matrix, a0, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-                vertex(buffer, matrix, a1, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-                vertex(buffer, matrix, a1, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-                // 反序再来一遍（双面）：绕向/剔除在 debugQuads 上尚未证实，先保证「无论怎么剔都有一面」。
-                vertex(buffer, matrix, a1, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
-                vertex(buffer, matrix, a1, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-                vertex(buffer, matrix, a0, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
-                vertex(buffer, matrix, a0, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+            com.mojang.blaze3d.vertex.MeshData mesh;
+            BufferBuilder buffer;
+            try {
+                poseStack.translate(arc.center().x - camera.x, arc.center().y - camera.y, arc.center().z - camera.z);
+                poseStack.mulPose(Axis.YP.rotationDegrees(-arc.yaw()));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-arc.pitch()));
+                debugOnce("s1-pose", "step=pose ok");
+            } catch (Throwable t) {
+                fail("step1-pose", t);
+                return;
             }
-            var mesh = buffer.buildOrThrow();
-            debugOnce("draw-call", "debugQuads().draw() 调用，顶点数={}", mesh.drawState().vertexCount());
-            RenderTypes.debugQuads().draw(mesh);
+            try {
+                // 与 TimeStopRenderer 完全同款的开始方式（POSITION_COLOR + 直接 draw）；
+                // 顶点模式用 TRIANGLES：不受 QUADS「每组必须 4 个顶点」的约束。
+                buffer = Tesselator.getInstance().begin(
+                        VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_COLOR);
+                debugOnce("s2-begin", "step=begin ok mode=TRIANGLES");
+            } catch (Throwable t) {
+                fail("step2-begin", t);
+                return;
+            }
+            int written = 0;
+            try {
+                var matrix = poseStack.last().pose();
+                float half = SPAN_DEGREES * 0.5F;
+                for (int i = 0; i < SEGMENTS; i++) {
+                    float a0 = (float) Math.toRadians(-half + SPAN_DEGREES * i / SEGMENTS);
+                    float a1 = (float) Math.toRadians(-half + SPAN_DEGREES * (i + 1) / SEGMENTS);
+                    float t0 = (i + 0.5F) / SEGMENTS * 2.0F - 1.0F;
+                    float edge = 1.0F - t0 * t0;
+                    float outerAlpha = alpha * edge;
+                    // 三角形 1: 内0 - 外0 - 外1；三角形 2: 内0 - 外1 - 内1（正反各写一遍 = 双面）
+                    written += triangle(buffer, matrix, a0, a1, r, g, b, outerAlpha);
+                }
+                debugOnce("s3-verts", "step=vertices ok n={}", written);
+            } catch (Throwable t) {
+                fail("step3-vertices", t);
+                return;
+            }
+            try {
+                mesh = buffer.buildOrThrow();
+                debugOnce("s4-build", "step=build ok (written={})", written);
+            } catch (Throwable t) {
+                fail("step4-build", t);
+                return;
+            }
+            try {
+                debugOnce("s5-draw-before", "step=draw-before rt=debugQuads");
+                RenderTypes.debugQuads().draw(mesh);
+                debugOnce("s6-draw-after", "step=draw-after OK —— 几何已提交给 GPU");
+            } catch (Throwable t) {
+                fail("step6-draw", t);
+            }
         } finally {
             poseStack.popPose();
         }
+    }
+
+    /** 写一个弧段（两个三角形 + 反向副本），返回写入的顶点数。 */
+    private static int triangle(BufferBuilder buffer, org.joml.Matrix4f matrix,
+                                float a0, float a1, float r, float g, float b, float outerAlpha) {
+        int n = 0;
+        for (int side = 0; side < 2; side++) {
+            float a = side == 0 ? a0 : a1;
+            float c = side == 0 ? a1 : a0;
+            vertex(buffer, matrix, a, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+            vertex(buffer, matrix, a, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+            vertex(buffer, matrix, c, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+            n += 3;
+            vertex(buffer, matrix, a, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+            vertex(buffer, matrix, c, RADIUS_OUTER, 0.0F, r, g, b, outerAlpha);
+            vertex(buffer, matrix, c, RADIUS_INNER, 0.0F, r, g, b, 0.0F);
+            n += 3;
+        }
+        return n;
+    }
+
+    private static void fail(String step, Throwable t) {
+        LOGGER.error("[slashfx] 刀光绘制失败于 {}（这条堆栈就是「看得见日志、看不见像素」的原因）", step, t);
     }
 
     /** ABGR → ARGB（只换 R/B 两个通道）。 */
