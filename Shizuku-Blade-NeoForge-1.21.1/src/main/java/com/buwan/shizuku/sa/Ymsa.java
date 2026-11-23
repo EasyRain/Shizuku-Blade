@@ -162,8 +162,12 @@ public class Ymsa {
         int forcedDrops = 0;
         int annihilated = 0;
 
+        // 「解放 + 释放时按着 Shift」= 连掉落和经验一起抹掉，此时实体也不需要保留死亡动画
+        boolean cleanDrops = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
+        boolean wipe = unleashed && cleanDrops;
+
         for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, area, e -> shouldKill(e, player))) {
-            KillOutcome outcome = killTarget(target, player, level);
+            KillOutcome outcome = killTarget(target, player, level, wipe);
             if (outcome.killed) {
                 killed++;
             }
@@ -179,8 +183,6 @@ public class Ymsa {
 
         int projectilesCleared = clearHostileProjectiles(level, area);
         int objectsCleared = sweepBossObjects(player, level);
-        // 清掉落按「施法瞬间的 Shift」判定，而不是此刻的实时状态
-        boolean cleanDrops = CLEANUP_LATCH.getOrDefault(player.getUUID(), player.isShiftKeyDown());
         CLEANUP_LATCH.remove(player.getUUID());
         if (cleanDrops) {
             LootDropController.cleanupDrops(player, KILL_RADIUS);
@@ -339,7 +341,7 @@ public class Ymsa {
         }
     }
 
-    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level) {
+    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe) {
         KillOutcome outcome = new KillOutcome();
         if (target.isRemoved()) {
             return outcome;
@@ -414,9 +416,24 @@ public class Ymsa {
                     ((LivingEntityAccessor) target).shizuku$isDead(), target.isRemoved(), target.getHealth());
             boolean deadFlag = ((LivingEntityAccessor) target).shizuku$isDead();
             boolean dying = target.isDeadOrDying() || deadFlag;
-            // 与 ae2lt 的 needsKillFallback 一致：**只有「伤害没被接受、且也没进入死亡」的
-            // 真·打不死的实体**才强制移除；其余都按正常死亡交给游戏/模组处理
-            // （模组 boss 的死亡序列需要实体存在，立刻 discard 就是「直接消失」）。
+            // 解放 + Shift：掉落和经验会被一并清掉，实体也就没必要保留死亡动画 → 直接抹掉。
+            if (wipe) {
+                if (!target.isRemoved()) {
+                    target.discard();
+                }
+                if (target.getRemovalReason() == null) {
+                    target.setRemoved(Entity.RemovalReason.KILLED);
+                }
+                if (isBossLike(target)) {
+                    broadcastClientErase(target, level, false);
+                }
+                if (level.getEntity(target.getId()) == target) {
+                    outcome.annihilated = annihilate(target, player, level);
+                }
+                return outcome;
+            }
+            // 与 ae2lt 的 needsKillFallback 一致：只有「真·打不死」的才强制移除，
+            // 其余都按正常死亡交给游戏/模组处理（模组 boss 的死亡序列需要实体存在）。
             if (modded || dying) {
                 return outcome;
             }
