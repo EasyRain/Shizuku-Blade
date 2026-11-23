@@ -979,7 +979,6 @@ public class Ymsa {
     }
 
     public static void handleServerTickEnd(MinecraftServer server) {
-        tickTimeline(server);
         // 解放（能力解放）状态下连击 tick 会被跳过，审判时间轴由这里驱动：
         // age 1 → beginJudgment / 8 → openRift / 42 → doYmsaSlash / 54 → 收刀音效。
         // 漏掉这一行 ⇒ 二三段动画不出现、且解放状态下完全打不出伤害。
@@ -1081,92 +1080,12 @@ public class Ymsa {
      */
     private static final java.util.Map<java.util.UUID, Boolean> CLEANUP_LATCH = new java.util.concurrent.ConcurrentHashMap<>();
 
-    /** 一次审判施法的状态。 */
-    private static final class Judgement {
-        /** 施法开始时的 gameTime：同一个值 = 同一次施法（连招状态每 tick 都会来登记）。 */
-        final long castStart;
-        /** 施法瞬间手里的刀：切换物品即视为取消。 */
-        final ItemStack blade;
-        /** 已推进到第几阶段（1=已开始 2=裂缝 3=落剑 4=收刀）。 */
-        long phase = 1;
-
-        Judgement(long castStart, ItemStack blade) {
-            this.castStart = castStart;
-            this.blade = blade;
-        }
-    }
-
-    /**
-     * 审判时间轴：UUID -> 这次施法的状态。
-     *
-     * <p>**为什么不放在连招状态的 tickAction 里**：YMSA 连招状态会被 SlashBlade 的其他
-     * 超时/事件提前切走（实测只活 5~18 tick），而第三段要等到 VERDICT_TICK(42)。
-     * 时间轴由服务端 tick 循环推进，用 {@code age >= X} 判阶段并去重，
-     * 既不依赖连招状态活多久，也不会因为某帧被跳过而永久错过某个阶段。</p>
-     *
-     * <p>同一次施法会被反复登记（连招状态每 tick 都调一次），靠 {@code castStart} 去重；
-     * 再次施法拿到新的 {@code castStart}，于是自然替换掉上一条 —— 重复施法照常可用。</p>
-     */
-    private static final java.util.Map<java.util.UUID, Judgement> TIMELINE = new java.util.concurrent.ConcurrentHashMap<>();
-
-    /**
-     * 施法开始时登记时间轴。
-     *
-     * @param player    施法者
-     * @param castStart 施法开始的 gameTime（连招路径传 {@code gameTime - elapsed}，
-     *                  解放路径传松手那一刻的 gameTime）；同一个值不会重复登记
-     */
-    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player, long castStart) {
-        Judgement existing = TIMELINE.get(player.getUUID());
-        if (existing != null && existing.castStart == castStart) {
-            return;
-        }
-        TIMELINE.put(player.getUUID(), new Judgement(castStart, player.getMainHandItem()));
+    public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
         CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
         AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
                 player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
         broadcastPhase(player, 1);
     }
-
-    /** 服务端每 tick 推进所有审判时间轴。 */
-    private static void tickTimeline(MinecraftServer server) {
-        if (TIMELINE.isEmpty()) return;
-        long now = server.overworld().getGameTime();
-        for (java.util.Map.Entry<java.util.UUID, Judgement> entry : java.util.List.copyOf(TIMELINE.entrySet())) {
-            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-            Judgement judgement = entry.getValue();
-            if (player == null || !player.isAlive() || player.isSpectator()) {
-                TIMELINE.remove(entry.getKey());
-                continue;
-            }
-            // 换掉手里的刀（切物品 / 换手 / 丢出）＝ 取消这次施法，与原版手感一致
-            if (player.getMainHandItem() != judgement.blade) {
-                TIMELINE.remove(entry.getKey());
-                CLEANUP_LATCH.remove(entry.getKey());
-                AIM.remove(entry.getKey());
-                continue;
-            }
-            long age = now - judgement.castStart;
-            if (age < 0) continue;
-            if (judgement.phase < 2 && age >= STRIKE_TICK) {
-                judgement.phase = 2;
-                openRift(player);
-            }
-            if (judgement.phase < 3 && age >= VERDICT_TICK) {
-                judgement.phase = 3;
-                verdictTick(player);
-                doYmsaSlash(player);
-            }
-            if (judgement.phase < 4 && age >= SHEATH_TICK) {
-                judgement.phase = 4;
-                mods.flammpfeil.slashblade.util.AttackManager.playQuickSheathSoundAction(player);
-            }
-            if (age >= RECOVERY_FRAME) {
-                TIMELINE.remove(entry.getKey());
-            }
-        }
-    }
-
 
     public static void openRift(net.minecraft.server.level.ServerPlayer player) {
         protectMainHandBlade(player);
@@ -1199,7 +1118,6 @@ public class Ymsa {
     public static void clearUnleashedArea(java.util.UUID id) {
         CLEANUP_LATCH.remove(id);
         AIM.remove(id);
-        TIMELINE.remove(id);
     }
     public static void finishChaosEncounter(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity boss) {
         if (boss instanceof net.minecraft.world.entity.LivingEntity living) living.setHealth(0.0F);
