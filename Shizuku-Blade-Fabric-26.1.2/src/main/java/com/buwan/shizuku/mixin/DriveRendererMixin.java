@@ -32,8 +32,13 @@ public abstract class DriveRendererMixin {
     private void shizuku$markCosmicDrive(EntityDrive entity, DriveRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
-            flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
-            flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
+            boolean cosmicShooter = CosmicFx.isCosmicShooter(entity.getShooter());
+            boolean ownBlade = CosmicFx.isOwnBladeShooter(entity.getShooter());
+            // A/B 诊断：-Dshizuku.slashfx.use_cosmic=true 时把自家刀也塞进 cosmic 那条已验证的路径，
+            // 用来区分「我们的实现不对」还是「接线/门控不对」。
+            boolean ab = ownBlade && CosmicFx.useCosmicPathForOwnBlades();
+            flag.shizuku$setCosmicFx(cosmicShooter || ab);
+            flag.shizuku$setOwnBladeFx(ownBlade && !ab);
             com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("drive", entity.getShooter(), flag);
             // 26.1 的 DriveRenderState 不带 baseSize（上游 26.1 刀光改固定缩放），
             // 这里自己带过去，供 CosmicFx.submitDrive 还原原版 0.02*max(1,baseSize)

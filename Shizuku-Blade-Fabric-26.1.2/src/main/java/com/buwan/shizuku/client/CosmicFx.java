@@ -94,6 +94,17 @@ public final class CosmicFx {
     }
 
     /**
+     * A/B 开关：{@code -Dshizuku.slashfx.use_cosmic=true}。
+     *
+     * <p>打开时，「我们自己的刀（非宇宙刀）」也把渲染<b>委托给 CosmicFx 这条已经实测能出画面的
+     * 代码路径</b>（模型/贴图/顶点写法/管线全用它），只用于判定「到底是我们的实现不对，
+     * 还是接线/门控不对」。诊断开关，平时不要开。</p>
+     */
+    public static boolean useCosmicPathForOwnBlades() {
+        return Boolean.getBoolean("shizuku.slashfx.use_cosmic");
+    }
+
+    /**
      * 发射者手持的是<b>我们自己的刀、但不是宇宙刀</b> —— 这类走 {@code UpstreamSlashFx}
      * 的普通刀光（照抄上游画法），星空管线只留给宇宙刀。
      */

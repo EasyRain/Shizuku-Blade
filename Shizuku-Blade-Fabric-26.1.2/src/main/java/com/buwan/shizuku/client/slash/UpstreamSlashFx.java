@@ -87,7 +87,19 @@ public final class UpstreamSlashFx {
      * {@code ReloadableTexture} 是多余的一层（还多了一个可能静默失败的环节），已删除。</p>
      */
     private static final Identifier DRIVE_TEXTURE = Identifier.fromNamespaceAndPath("slashblade", "model/util/ss.png");
-    private static final Identifier SLASH_TEXTURE = Identifier.fromNamespaceAndPath("slashblade", "model/util/slash.png");
+    /**
+     * ⚠️ 斩击层**不能**用上游的 {@code slash.png} —— 实测（本地解 PNG + 比对 OBJ 的 UV）：
+     * <ul>
+     *   <li>{@code slash.obj} 的 {@code vt} 是 u∈[0,1]、<b>v∈[0, 0.1875]</b>；</li>
+     *   <li>{@code slash.png}（512×512）有像素的行是 <b>70..408</b>，而 26.1/GL 的 v=0 在图片<b>底边</b>
+     *       ⇒ v∈[0,0.1875] 只采到底部 96 行，而那 96 行 alpha <b>全为 0</b>（实测 0 个不透明像素）；</li>
+     *   <li>⇒ 整条斩击层采到的都是全透明纹素，**加法混合下等于零像素**。这也是「上游自己的 slash
+     *       从来不可见」的真正原因（另一半原因是 ColorWrite 那条忘了 withCull(false)）。</li>
+     * </ul>
+     * 换成同目录的 {@code slashdim.png}（32×32，内容覆盖全图、带 alpha 渐变）：OBJ 的 UV 区域整块有像素，
+     * 形状仍由 {@code slash.obj} 的几何给出，观感就是「上游那种淡色弧带」。
+     */
+    private static final Identifier SLASH_TEXTURE = Identifier.fromNamespaceAndPath("slashblade", "model/util/slashdim.png");
 
     private static final float DAOGUANG_SCALE = 0.02F;
 

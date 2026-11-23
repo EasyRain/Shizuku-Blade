@@ -39,8 +39,12 @@ public abstract class SlashEffectRendererMixin {
     private void shizuku$markCosmicSlash(EntitySlashEffect entity, SlashEffectRenderState state,
                                          float partialTick, CallbackInfo ci) {
         if (state instanceof CosmicFxFlag flag) {
-            flag.shizuku$setCosmicFx(CosmicFx.isCosmicShooter(entity.getShooter()));
-            flag.shizuku$setOwnBladeFx(CosmicFx.isOwnBladeShooter(entity.getShooter()));
+            boolean cosmicShooter = CosmicFx.isCosmicShooter(entity.getShooter());
+            boolean ownBlade = CosmicFx.isOwnBladeShooter(entity.getShooter());
+            // 同上：A/B 诊断开关
+            boolean ab = ownBlade && CosmicFx.useCosmicPathForOwnBlades();
+            flag.shizuku$setCosmicFx(cosmicShooter || ab);
+            flag.shizuku$setOwnBladeFx(ownBlade && !ab);
             com.buwan.shizuku.client.slash.UpstreamSlashFx.debugExtract("slash", entity.getShooter(), flag);
         }
     }
