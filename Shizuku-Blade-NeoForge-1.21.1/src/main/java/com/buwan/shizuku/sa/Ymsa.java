@@ -229,6 +229,59 @@ public class Ymsa {
         return killed;
     }
 
+    /**
+     * 把实体推进「将死」状态：停睡、记录伤害、血量写 0、发 ENTITY_DAMAGE 事件。
+     *
+     * <p>照 ae2lt 的 {@code OverloadExecutionService#prepareLethalState}：目的是让随后的
+     * {@code die()} 走完整的原版死亡流程（模组在 die 里挂钩子、发成就、掉战利品）。</p>
+     */
+    private static void prepareLethalState(LivingEntity target, DamageSource src) {
+        if (target.isSleeping()) {
+            target.stopSleeping();
+        }
+        target.getCombatTracker().recordDamage(src, KILL_DAMAGE);
+        target.setHealth(0.0F);
+        target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DAMAGE);
+    }
+
+    /**
+     * 「正常死亡」兜底结算：当 {@code die()} 因为模组自身的无敌/阶段逻辑没有真正生效时，
+     * 手工重放原版的死亡收尾。照 ae2lt 的 {@code OverloadExecutionService#forceDie}。
+     *
+     * <p>关键点：模组（如龙之研究的混沌守卫）判断「是否正常死亡」看的是
+     * **掉落 + 击杀统计 + ENTITY_DIE 事件**，而不是实体有没有被移除。</p>
+     */
+    private static boolean settleNormalDeath(LivingEntity target, DamageSource src) {
+        if (target.isRemoved() || ((LivingEntityAccessor) target).shizuku$isDead()) {
+            return false;
+        }
+        try {
+            LivingEntity killer = src.getEntity() instanceof LivingEntity le ? le : target.getKillCredit();
+            int score = ((LivingEntityAccessor) target).shizuku$getDeathScore();
+            if (score >= 0 && killer != null) {
+                killer.awardKillScore(target, score, src);
+            }
+            if (target.isSleeping()) {
+                target.stopSleeping();
+            }
+            ((LivingEntityAccessor) target).shizuku$setDead(true);
+            target.getCombatTracker().recheckStatus();
+            if (target.level() instanceof ServerLevel level) {
+                var sourceEntity = src.getEntity();
+                if (sourceEntity != null && sourceEntity.killedEntity(level, target)) {
+                    target.gameEvent(net.minecraft.world.level.gameevent.GameEvent.ENTITY_DIE);
+                    ((LivingEntityAccessor) target).shizuku$dropAllDeathLoot(level, src);
+                }
+                level.broadcastEntityEvent(target, (byte) 3);
+            }
+            target.setPose(net.minecraft.world.entity.Pose.DYING);
+            return true;
+        } catch (Throwable t) {
+            LOGGER.warn("[SA] 正常死亡结算失败 {}: {}", target.getName().getString(), t.toString());
+            return false;
+        }
+    }
+
     private static boolean killPlayerTarget(ServerPlayer target, ServerPlayer attacker, ServerLevel level) {
         if (target == attacker) {
             return false;
@@ -317,11 +370,17 @@ public class Ymsa {
                 JudgmentExecution.fakeDeathState(target);
             }
             target.setLastHurtByMob(player);
-            target.hurt(src, KILL_DAMAGE);
+            boolean hurtAccepted = target.hurt(src, KILL_DAMAGE);
             if (!target.isDeadOrDying()) {
-                target.getCombatTracker().recordDamage(src, KILL_DAMAGE);
-                target.setHealth(0.0F);
+                // 伤害被拒（无敌/阶段保护）或没打穿：先把血量写 0 再走 die()，
+                // 这样模组仍能收到「正常死亡」，掉落/成就/统计才会触发。
+                prepareLethalState(target, src);
                 target.die(src);
+            }
+            if (hurtAccepted == false && !target.isRemoved()) {
+                // 模组没认这次死亡（典型：龙研的混沌守卫在混沌水晶存在时无敌）：
+                // 手工重放原版死亡收尾，让掉落/击杀统计/ENTITY_DIE 正常发生。
+                settleNormalDeath(target, src);
             }
 
             if (!target.isDeadOrDying()) {
