@@ -84,7 +84,7 @@ public class Ymsa {
      *
      * <p>落剑有 42 tick 延迟：朝向不锁会跟着鼠标转，位置不锁会因为施法过程中走动而漂移。</p>
      */
-    private static final java.util.Map<UUID, int[]> FORCE_WIPE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, Integer> FORCE_WIPE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<UUID, UUID> FORCE_WIPE_CASTER = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<UUID, Integer> EXTRA_HITS = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<UUID, DamageSource> EXTRA_HITS_SRC = new java.util.concurrent.ConcurrentHashMap<>();
@@ -284,7 +284,7 @@ public class Ymsa {
                 killed++;
                 continue;
             }
-            KillOutcome outcome = killTarget(target, player, level, wipe, UnleashedJudgment.isCasting(player));
+            KillOutcome outcome = killTarget(target, player, level, wipe);
             if (outcome.killed) {
                 killed++;
             }
@@ -455,8 +455,7 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
         if (FORCE_WIPE.isEmpty()) return;
         for (var entry : java.util.List.copyOf(FORCE_WIPE.entrySet())) {
             UUID id = entry.getKey();
-            int left = entry.getValue()[0];
-            boolean deepAllowed = entry.getValue()[1] == 1;
+            int left = entry.getValue();
             Entity found = null;
             ServerLevel foundLevel = null;
             for (ServerLevel l : server.getAllLevels()) {
@@ -472,16 +471,8 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
                     : server.getPlayerList().getPlayer(FORCE_WIPE_CASTER.get(id));
             if (left <= 0) {
                 FORCE_WIPE.remove(id);
-                if (deepAllowed) {
-                    // 解放模式才用最底层的「索引摘除」（上游也只在 detachUnleashedTarget 里这么做）
-                    try {
-                        annihilate(living, caster, foundLevel);
-                        LOGGER.warn("[SA] 抹除兜底（索引摘除）: {}", living.getClass().getSimpleName());
-                    } catch (Throwable t) {
-                        LOGGER.warn("[SA] 索引摘除失败 {}: {}", living.getClass().getSimpleName(), t.toString());
-                    }
-                } else {
-                    // 非解放：只用 API 级手段收尾，不碰 level 的内部索引
+                {
+                    // 本端口没有索引摘除能力：两种模式统一用 annihilate 收尾
                     forceErase(living, foundLevel);
                     if (foundLevel.getEntity(id) == living) {
                         annihilate(living, caster, foundLevel);
@@ -502,7 +493,7 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
             if (living.isRemoved() || foundLevel.getEntity(id) != living) {
                 FORCE_WIPE.remove(id);
             } else {
-                FORCE_WIPE.put(id, new int[]{left - 1, deepAllowed ? 1 : 0});
+                FORCE_WIPE.put(id, left - 1);
             }
         }
     }
@@ -567,7 +558,7 @@ private static void prepareLethalState(LivingEntity target, DamageSource src) {
         }
     }
 
-    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe, boolean deepErase) {
+    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe) {
         KillOutcome outcome = new KillOutcome();
         if (target.isRemoved()) {
             return outcome;

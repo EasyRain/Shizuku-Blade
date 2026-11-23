@@ -175,7 +175,7 @@ public class Ymsa {
                 killed++;
                 continue;
             }
-            KillOutcome outcome = killTarget(target, player, level, wipe, UnleashedJudgment.isCasting(player));
+            KillOutcome outcome = killTarget(target, player, level, wipe);
             if (outcome.killed) {
                 killed++;
             }
@@ -267,8 +267,7 @@ public class Ymsa {
         if (FORCE_WIPE.isEmpty()) return;
         for (var entry : java.util.List.copyOf(FORCE_WIPE.entrySet())) {
             UUID id = entry.getKey();
-            int left = entry.getValue()[0];
-            boolean deepAllowed = entry.getValue()[1] == 1;
+            int left = entry.getValue();
             Entity found = null;
             ServerLevel foundLevel = null;
             for (ServerLevel l : server.getAllLevels()) {
@@ -284,16 +283,8 @@ public class Ymsa {
                     : server.getPlayerList().getPlayer(FORCE_WIPE_CASTER.get(id));
             if (left <= 0) {
                 FORCE_WIPE.remove(id);
-                if (deepAllowed) {
-                    // 解放模式才用最底层的「索引摘除」（上游也只在 detachUnleashedTarget 里这么做）
-                    try {
-                        annihilate(living, caster, foundLevel);
-                        LOGGER.warn("[SA] 抹除兜底（annihilate）: {}", living.getClass().getSimpleName());
-                    } catch (Throwable t) {
-                        LOGGER.warn("[SA] 索引摘除失败 {}: {}", living.getClass().getSimpleName(), t.toString());
-                    }
-                } else {
-                    // 非解放：只用 API 级手段收尾，不碰 level 的内部索引
+                {
+                    // 本端口没有索引摘除能力：两种模式统一用 annihilate 收尾
                     forceErase(living, foundLevel);
                     if (foundLevel.getEntity(id) == living) {
                         annihilate(living, caster, foundLevel);
@@ -314,7 +305,7 @@ public class Ymsa {
             if (living.isRemoved() || foundLevel.getEntity(id) != living) {
                 FORCE_WIPE.remove(id);
             } else {
-                FORCE_WIPE.put(id, new int[]{left - 1, deepAllowed ? 1 : 0});
+                FORCE_WIPE.put(id, left - 1);
             }
         }
     }
@@ -483,7 +474,7 @@ public class Ymsa {
         }
     }
 
-    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe, boolean deepErase) {
+    private static KillOutcome killTarget(LivingEntity target, ServerPlayer player, ServerLevel level, boolean wipe) {
         KillOutcome outcome = new KillOutcome();
         if (target.isRemoved()) {
             return outcome;
@@ -570,7 +561,7 @@ public class Ymsa {
                     outcome.annihilated = annihilate(target, player, level);
                 }
                 if (level.getEntity(target.getId()) == target && !target.isRemoved()) {
-                    FORCE_WIPE.put(target.getUUID(), new int[]{2, deepErase ? 1 : 0});
+                    FORCE_WIPE.put(target.getUUID(), 2);
                     FORCE_WIPE_CASTER.put(target.getUUID(), player.getUUID());
                     if (JUDGMENT_DEBUG) LOGGER.info("[SA] 抹除未生效，排入重试: {}", target.getClass().getSimpleName());
                 }
@@ -1072,7 +1063,7 @@ public class Ymsa {
 
     /** 施法瞬间锁定的朝向与眼睛位置（yaw, pitch, x, y, z）。 */
     /** 「按 Shift 抹除」但 remove() 没生效的实体：uuid → {剩余重试 tick, 是否允许最底层手段}。 */
-    private static final java.util.Map<UUID, int[]> FORCE_WIPE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Map<UUID, Integer> FORCE_WIPE = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<UUID, UUID> FORCE_WIPE_CASTER = new java.util.concurrent.ConcurrentHashMap<>();
 
     /** 顽固 boss 的补刀队列：uuid → 剩余次数。 */
