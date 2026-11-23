@@ -68,6 +68,8 @@ public final class UpstreamSlashFx {
     private static final boolean DEBUG = true;
     /** 是否允许整层替换上游刀光层（默认关闭 = 只叠加，保证最坏情况仍能看到上游那层）。 */
     private static final boolean REPLACE_DRIVE = Boolean.getBoolean("shizuku.slashfx.replace_drive");
+    /** 探针模式：不画模型，只在实体位置画一个 2×2 贴图四边形，用来确认「管线+贴图」通不通。 */
+    private static final boolean PROBE = Boolean.getBoolean("shizuku.slashfx.probe");
 
     /** 满亮度（与上游 / {@code CosmicShaders.MAX_LIGHT} 一致）。 */
     private static final int MAX_LIGHT = 15728880;
@@ -227,6 +229,10 @@ public final class UpstreamSlashFx {
      */
     private static boolean submit(PoseStack poseStack, SubmitNodeCollector collector, RenderType renderType,
                                   WavefrontObject model, int color, boolean drive) {
+        if (PROBE) {
+            return submitProbe(poseStack, collector, drive);
+        }
+        debugMatrix(drive ? "drive" : "slash", poseStack);
         collector.order(1).submitCustomGeometry(poseStack, renderType, (pose, consumer) -> {
             try {
                 Face.alphaOverride = drive ? Face.alphaNoOverride : Face.alphaOverrideYZZ;
@@ -267,6 +273,9 @@ public final class UpstreamSlashFx {
                     .withSampler("Sampler1")
                     .withColorTargetState(new ColorTargetState(java.util.Optional.of(BlendFunction.LIGHTNING),
                             ColorTargetState.WRITE_COLOR))
+                    // ⚠️ 必须关剔除：上游 OBJ 的三角绕向不保证是逆时针，ENTITY_EMISSIVE_SNIPPET
+                    // 默认 withCull(true) ⇒ 整层被背面剔除 =「λ 执行了但屏幕空白」（CosmicShaders 同样关了）。
+                    .withCull(false)
                     .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.TRIANGLES)
                     // 加法叠层不写深度（同 CosmicShaders 的踩坑结论：26.1 批提交不保序）
                     .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
@@ -339,6 +348,56 @@ public final class UpstreamSlashFx {
         } catch (Throwable t) {
             LOGGER.error("[slashfx] 贴图预加载失败 id={}（资源是否存在于 assets/<ns>/<path>？）", id, t);
         }
+    }
+
+    /**
+     * 探针：在实体本地空间画一个 2×2 的贴图四边形（`RenderType.entityTranslucentEmissive`）。
+     *
+     * <p>目的：把「管线/贴图/提交目标」与「模型/姿态/顶点格式」彻底分开。
+     * 探针可见 ⇒ 管线与提交目标没问题，问题在模型或姿态；探针也不可见 ⇒ 问题在提交目标/阶段。</p>
+     */
+    private static boolean submitProbe(PoseStack poseStack, SubmitNodeCollector collector, boolean drive) {
+        Identifier texture = drive ? DRIVE_TEXTURE : SLASH_TEXTURE;
+        RenderType probeType = net.minecraft.client.renderer.rendertype.RenderTypes
+                .entityTranslucentEmissive(texture);
+        debugOnce("probe|" + (drive ? "drive" : "slash"), "PROBE quad submitted texture={} rt={}", texture, probeType);
+        debugMatrix("probe-" + (drive ? "drive" : "slash"), poseStack);
+        collector.order(1).submitCustomGeometry(poseStack, probeType, (pose, vc) -> {
+            try {
+                // 本地空间：面前 2 格、2×2，足够大，肯定看得见
+                quadVertex(vc, pose, -1.0F, 0.0F, 2.0F, 0.0F, 1.0F);
+                quadVertex(vc, pose, 1.0F, 0.0F, 2.0F, 1.0F, 1.0F);
+                quadVertex(vc, pose, 1.0F, 2.0F, 2.0F, 1.0F, 0.0F);
+                quadVertex(vc, pose, -1.0F, 2.0F, 2.0F, 0.0F, 0.0F);
+            } catch (Throwable t) {
+                fail("probe-lambda", t);
+            }
+        });
+        return !disabled;
+    }
+
+    /** ENTITY 顶点格式：position + color + uv0 + overlay + light + normal，一项都不能少。 */
+    private static void quadVertex(com.mojang.blaze3d.vertex.VertexConsumer vc, PoseStack.Pose pose,
+                                   float x, float y, float z, float u, float v) {
+        vc.addVertex(pose, x, y, z)
+                .setColor(1.0F, 1.0F, 1.0F, 1.0F)
+                .setUv(u, v)
+                .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
+                .setLight(MAX_LIGHT)
+                .setNormal(pose, 0.0F, 0.0F, 1.0F);
+    }
+
+    /** 把最终矩阵的缩放/平移打进日志，确认没被姿态缩成 0.000x。 */
+    private static void debugMatrix(String kind, PoseStack poseStack) {
+        if (!DEBUG || !LOGGED.add("matrix|" + kind)) {
+            return;
+        }
+        var m = poseStack.last().pose();
+        float sx = (float) Math.sqrt(m.m00() * m.m00() + m.m01() * m.m01() + m.m02() * m.m02());
+        float sy = (float) Math.sqrt(m.m10() * m.m10() + m.m11() * m.m11() + m.m12() * m.m12());
+        float sz = (float) Math.sqrt(m.m20() * m.m20() + m.m21() * m.m21() + m.m22() * m.m22());
+        LOGGER.info("[slashfx] matrix kind={} scale=({},{},{}) translate=({},{},{})", kind, sx, sy, sz,
+                m.m30(), m.m31(), m.m32());
     }
 
     private static void debugOnce(String key, String format, Object... args) {
