@@ -374,9 +374,13 @@ public class Ymsa {
             if (((LivingEntityAccessor) living).shizuku$isDead() || living.isRemoved()) {
                 EXTRA_HITS.remove(id);
                 EXTRA_HITS_SRC.remove(id);
-            } else {
-                EXTRA_HITS.put(id, left - 1);
+                continue;
             }
+            if (left - 1 > 0) {
+                EXTRA_HITS.put(id, left - 1);
+                continue;
+            }
+            EXTRA_HITS.put(id, left - 1);
         }
     }
 
@@ -572,25 +576,22 @@ public class Ymsa {
                 }
                 return outcome;
             }
-            // 与 ae2lt 的 needsKillFallback 一致：只有「真·打不死」的才强制移除，
-            // 其余都按正常死亡交给游戏/模组处理（模组 boss 的死亡序列需要实体存在）。
-            if (modded || dying) {
+            // 没一次打穿（护盾/受击冷却/阶段保护）→ 统一排补刀，不区分是不是 boss
+            if (!deadFlag && !target.isDeadOrDying()) {
+                EXTRA_HITS.put(target.getUUID(), 5);
+                EXTRA_HITS_SRC.put(target.getUUID(), src);
+            }
+            // ① 纯功能实体（训练假人）→ 立即收尾
+            if (isUtilityEntity(target)) {
+                settleNormalDeath(target, src);
+                forceErase(target, level);
+                if (level.getEntity(target.getId()) == target) {
+                    outcome.annihilated = annihilate(target, player, level);
+                }
                 return outcome;
             }
-            if (!target.isRemoved()) {
-                target.discard();
-            }
-            if (target.getRemovalReason() == null) {
-                target.setRemoved(Entity.RemovalReason.KILLED);
-            }
-
-            if (isBossLike(target)) {
-                broadcastClientErase(target, level, false);
-            }
-
-            if (level.getEntity(target.getId()) == target) {
-                outcome.annihilated = annihilate(target, player, level);
-            }
+            // ② 其余一律不管：die() 已调用，真死了的会自己走到动画那一步并移除
+            return outcome;
         } catch (Exception e) {
             LOGGER.warn("[SA] Ymsa 击杀 {} 失败(已隔离, 不影响其他目标): {}", target.getName().getString(), e.toString());
             try {
@@ -633,6 +634,12 @@ public class Ymsa {
                 TYPE_SUPPRESSION.put(key.toString(), BOSS_SUPPRESS_TICKS);
             }
         }
+    }
+
+    /** 纯功能实体（dummmmmmy 训练假人）：掉完物品不会自己消失，SA 打中后直接收尾。 */
+    private static boolean isUtilityEntity(LivingEntity entity) {
+        var key = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+        return key != null && "dummmmmmy".equals(key.getNamespace());
     }
 
     private static boolean isBossLike(LivingEntity entity) {
