@@ -412,9 +412,10 @@ public class Ymsa {
             LOGGER.info("[SA/killTarget] {} settled={} modded={} dead={} removed={} hp={}",
                     target.getClass().getSimpleName(), settled, modded,
                     ((LivingEntityAccessor) target).shizuku$isDead(), target.isRemoved(), target.getHealth());
-            if (settled && modded) {
-                // 模组 boss（如龙研混沌守卫）：结算完就交给它自己的死亡流程/动画，
-                // 立刻 discard 会让 mod 的 DyingPhase 与战利品结算永远跑不到 —— 表现就是「直接消失」。
+            // 模组实体（尤其剧本化死亡的 boss）一律不强制移除：
+            // 它们的死亡序列（如龙研的 DyingPhase）需要实体还活着/还存在才能跑，
+            // 立刻 discard 就是「直接消失」且拿不到战利品。
+            if (modded) {
                 return outcome;
             }
             if (!target.isRemoved()) {
