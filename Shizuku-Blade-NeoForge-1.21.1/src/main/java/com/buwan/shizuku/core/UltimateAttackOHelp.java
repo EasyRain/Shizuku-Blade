@@ -69,23 +69,15 @@ public class UltimateAttackOHelp {
                                 Object value = target.getEntityData().get(accessor);
                                 float numValue = extractNumericValue(value);
                                 if (numValue >= lowerBound && numValue <= upperBound) {
+                                    // 1.21：EntityDataAccessor#getId() 已移除，不能再用 itemsById 的 Map 直写；
+                                    // 但 SynchedEntityData#set(accessor, value) 是 public，直接用它改值。
                                     Runnable modifier = () -> {
                                         try {
-                                            Field itemsByIdField = target.getEntityData().getClass().getDeclaredField("f_135345_");
-                                            itemsByIdField.setAccessible(true);
-                                            Map<Integer, Object> itemsById = (Map<Integer, Object>)itemsByIdField.get(target.getEntityData());
-                                            DataItem<?> item = null; // 1.21 移除了 EntityDataAccessor#getId()，此分支暂不可用
-                                            if (item != null) {
-                                                Field valueField = DataItem.class.getDeclaredField("f_135391_");
-                                                valueField.setAccessible(true);
-                                                valueField.set(item, convertToTargetType((int)newValue, value));
-                                            }
-                                        } catch (Exception var9) {
-                                            try {
-                                                Method setMethod = target.getEntityData().getClass().getMethod("set", EntityDataAccessor.class, Object.class);
-                                                setMethod.invoke(target.getEntityData(), accessor, convertToTargetType((int)newValue, value));
-                                            } catch (Exception var8) {
-                                            }
+                                            Method setMethod = target.getEntityData().getClass()
+                                                    .getMethod("set", EntityDataAccessor.class, Object.class);
+                                            setMethod.invoke(target.getEntityData(), accessor,
+                                                    convertToTargetType((int) newValue, value));
+                                        } catch (Exception ignored) {
                                         }
                                     };
                                     UltimateAttackOHelp.FieldInfo info = new UltimateAttackOHelp.FieldInfo(
