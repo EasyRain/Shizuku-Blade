@@ -73,6 +73,8 @@ public class Ymsa {
 
 
     private static final double KILL_RADIUS = 256.0;
+    private static final double OVERDRIVE_RADIUS = 512.0;
+    private static final double UNLEASHED_RADIUS = 320.0;
     private static final float KILL_DAMAGE = Float.MAX_VALUE;
     private static final int RESPAWN_TRACK_TICKS = 1200;
     private static final int BOSS_SUPPRESS_TICKS = 1200;
@@ -102,10 +104,19 @@ public class Ymsa {
     public static InteractionResult doYmsaSlash(LivingEntity entityIn) {
         if (entityIn instanceof ServerPlayer player) {
             protectMainHandBlade(player);
+            // 解放状态下走 overdrive：由 JudgmentExecution 接管无敌/假死等特殊血量逻辑
+            boolean overdrive = UnleashedJudgment.isCasting(player) && JudgmentExecution.supported();
+            if (overdrive) {
+                JudgmentExecution.arm();
+            }
             try {
                 performYmsaCast(player);
             } catch (Exception e) {
                 LOGGER.error("[SA] Ymsa 施法异常(已隔离, 服务器继续运行): {}", e.toString());
+            } finally {
+                if (overdrive) {
+                    JudgmentExecution.disarm();
+                }
             }
             return InteractionResult.SUCCESS;
         }
@@ -141,7 +152,12 @@ public class Ymsa {
 
     private static void performYmsaCast(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
-        AABB area = player.getBoundingBox().inflate(KILL_RADIUS);
+        // 对齐上游：普通 256 / 解放 320 / 过载（审判执行层已 arm）512
+        boolean unleashed = UnleashedJudgment.isCasting(player);
+        double radius = unleashed
+                ? (JudgmentExecution.armed() ? OVERDRIVE_RADIUS : UNLEASHED_RADIUS)
+                : KILL_RADIUS;
+        AABB area = player.getBoundingBox().inflate(radius);
         int killed = 0;
         int forcedDrops = 0;
         int annihilated = 0;
@@ -159,12 +175,7 @@ public class Ymsa {
             }
         }
 
-        int playersKilled = 0;
-        for (ServerPlayer other : level.getEntitiesOfClass(ServerPlayer.class, area, e -> e != player)) {
-            if (killPlayerTarget(other, player, level)) {
-                playersKilled++;
-            }
-        }
+        int playersKilled = damageNearbyPlayers(player, area);
 
         int projectilesCleared = clearHostileProjectiles(level, area);
         int objectsCleared = sweepBossObjects(player, level);
@@ -191,6 +202,26 @@ public class Ymsa {
             }
         }
         return cleared;
+    }
+
+    /**
+     * 对范围内允许交战的玩家造成伤害（对应上游 3.8.0 的同名方法）。
+     *
+     * <p>玩家**不进入**审判处决流程，这里的 PvP 伤害只在「伤害玩家」开关打开时、
+     * 经由审判专属伤害源单独结算。</p>
+     */
+    static int damageNearbyPlayers(ServerPlayer caster, AABB area) {
+        if (!UnleashedJudgment.canDamagePlayers(caster)) return 0;
+        ServerLevel level = caster.serverLevel();
+        DamageSource source = ymsaKillSource(level, caster);
+        if (source.getEntity() == null) source = level.damageSources().playerAttack(caster);
+        int killed = 0;
+        for (ServerPlayer target : level.getEntitiesOfClass(ServerPlayer.class, area,
+                player -> player != caster && player.isAlive())) {
+            if (!caster.canHarmPlayer(target) || UnleashedJudgment.isCasting(target)) continue;
+            if (target.hurt(source, KILL_DAMAGE) && target.isDeadOrDying()) killed++;
+        }
+        return killed;
     }
 
     private static boolean killPlayerTarget(ServerPlayer target, ServerPlayer attacker, ServerLevel level) {
@@ -702,6 +733,10 @@ public class Ymsa {
     }
 
     public static void handleServerTickEnd(MinecraftServer server) {
+        // 解放（能力解放）状态下连击 tick 会被跳过，审判时间轴由这里驱动：
+        // age 1 → beginJudgment / 8 → openRift / 42 → doYmsaSlash / 54 → 收刀音效。
+        // 漏掉这一行 ⇒ 二三段动画不出现、且解放状态下完全打不出伤害。
+        UnleashedJudgment.tick(server);
         YmsaLogic.tickCleanups(RESPAWN_TRACKER);
         YmsaLogic.tickTypeSuppression(TYPE_SUPPRESSION);
         processPendingPhysicalRemovals(server);
@@ -804,6 +839,8 @@ public class Ymsa {
 
     /** 按锁定的朝向 + 位置发包；没有锁定值就回退当前值。 */
     private static void broadcastPhase(net.minecraft.server.level.ServerPlayer player, int phaseTick) {
+        // 与上游一致：阶段 1 只是服务端标记，不必发包
+        if (phaseTick == 1) return;
         double[] aim = AIM.get(player.getUUID());
         com.buwan.shizuku.network.PacketHandler.sendToNearby(
                 aim == null
