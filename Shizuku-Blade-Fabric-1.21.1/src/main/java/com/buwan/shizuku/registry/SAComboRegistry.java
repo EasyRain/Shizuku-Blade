@@ -198,28 +198,13 @@ public class SAComboRegistry {
                     .motionLoc(Ymsa.MOTION)
                     .next(ComboState.TimeoutNext.buildFromFrame(Ymsa.RECOVERY_FRAME, entity -> SlashBlade.prefix("none")))
                     .nextOfTimeout(entity -> SlashBlade.prefix("none"))
+                    // 时间轴由 Ymsa.handleServerTickEnd 的服务端 tick 循环推进（连招状态会被
+                    // SlashBlade 提前切走，实测只活 5~18 tick，撑不到 VERDICT_TICK=42）。
+                    // 这里只负责在施法第一帧登记（beginJudgment 幂等）。
                     .addTickAction(entity -> {
-                        // 蓄力（解放）中不重复走审判动作，避免和解放流程打架
                         if (entity instanceof net.minecraft.server.level.ServerPlayer player
-                                && com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
-                            return;
-                        }
-                        long tick = ComboState.getElapsed(entity);
-                        if (tick == 1) {
-                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
-                                Ymsa.beginJudgment(player);
-                            }
-                        } else if (tick == Ymsa.STRIKE_TICK) {
-                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
-                                Ymsa.openRift(player);
-                            }
-                        } else if (tick == Ymsa.VERDICT_TICK) {
-                            if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
-                                Ymsa.verdictTick(player);
-                            }
-                            Ymsa.doYmsaSlash(entity);
-                        } else if (tick == Ymsa.SHEATH_TICK) {
-                            AttackManager.playQuickSheathSoundAction(entity);
+                                && !com.buwan.shizuku.sa.UnleashedJudgment.isCasting(player)) {
+                            Ymsa.beginJudgment(player);
                         }
                     })
                     .releaseAction((user, elapsed) -> {

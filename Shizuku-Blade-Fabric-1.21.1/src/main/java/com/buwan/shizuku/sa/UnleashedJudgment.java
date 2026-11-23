@@ -122,6 +122,9 @@ public final class UnleashedJudgment {
                 }
                 UnleashedVerdicts.get(player.serverLevel().getServer()).beginCast(id, tag.getUUID("shizuku:cast_blade"));
                 uses.put(id, new Use(player, blade, now, true));
+                // 时间轴在这里起步（不依赖连招状态活多久）：Ymsa 的服务端 tick 循环会按
+                // age >= STRIKE / VERDICT / SHEATH 推进三段
+                Ymsa.beginJudgment(player);
                 state.updateComboSeq(player, SAComboRegistry.YMSA.getId());
             });
         }
@@ -180,11 +183,10 @@ public final class UnleashedJudgment {
                 continue;
             }
             if (!use.casting) continue;
-            if (!UnleashedVerdicts.get(server).advance(player.getUUID(), (int)age)) continue;
-            if (age == 1) Ymsa.beginJudgment(player);
-            if (age == Ymsa.STRIKE_TICK) Ymsa.openRift(player);
-            if (age == Ymsa.VERDICT_TICK) Ymsa.doYmsaSlash(player);
-            if (age == Ymsa.SHEATH_TICK) AttackManager.playQuickSheathSoundAction(player);
+            // 三段时序统一交给 Ymsa 的服务端时间轴（见 Ymsa.tickTimeline）。
+            // 原来这里是 age == X 逐个比对，容易漏帧；而且这里少了 verdictTick，
+            // 导致解放态「有击杀但没有落剑动画」。
+            UnleashedVerdicts.get(server).advance(player.getUUID(), (int)age);
         }
     }
 

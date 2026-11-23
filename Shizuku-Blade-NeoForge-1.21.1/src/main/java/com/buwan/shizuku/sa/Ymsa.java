@@ -979,6 +979,7 @@ public class Ymsa {
     }
 
     public static void handleServerTickEnd(MinecraftServer server) {
+        tickTimeline(server);
         // 解放（能力解放）状态下连击 tick 会被跳过，审判时间轴由这里驱动：
         // age 1 → beginJudgment / 8 → openRift / 42 → doYmsaSlash / 54 → 收刀音效。
         // 漏掉这一行 ⇒ 二三段动画不出现、且解放状态下完全打不出伤害。
@@ -1080,11 +1081,62 @@ public class Ymsa {
      */
     private static final java.util.Map<java.util.UUID, Boolean> CLEANUP_LATCH = new java.util.concurrent.ConcurrentHashMap<>();
 
+    /**
+     * 审判时间轴：UUID -> {起始 gameTime, 已推进到第几阶段}。
+     *
+     * <p>**为什么不放在连招状态的 tickAction 里**：YMSA 连招状态会被 SlashBlade 的其他
+     * 超时/事件提前切走（实测只活 5~18 tick），而第三段要等到 VERDICT_TICK(42)。
+     * 时间轴改由服务端 tick 循环推进，用 {@code age >= X} 判阶段并去重，
+     * 既不依赖连招状态活多久，也不会因为某帧被跳过而永久错过某个阶段。</p>
+     */
+    private static final java.util.Map<java.util.UUID, long[]> TIMELINE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 施法开始时登记时间轴（幂等：同一次施法只登记一次，AIM/Shift 锁存也在这一刻定格）。 */
     public static void beginJudgment(net.minecraft.server.level.ServerPlayer player) {
+        if (TIMELINE.putIfAbsent(player.getUUID(),
+                new long[]{player.serverLevel().getGameTime(), 1}) != null) {
+            return;
+        }
         CLEANUP_LATCH.put(player.getUUID(), player.isShiftKeyDown());
         AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
                 player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
         broadcastPhase(player, 1);
+    }
+
+    /** 服务端每 tick 推进所有审判时间轴。 */
+    private static void tickTimeline(MinecraftServer server) {
+        if (TIMELINE.isEmpty()) return;
+        long now = server.overworld().getGameTime();
+        for (java.util.Map.Entry<java.util.UUID, long[]> entry : java.util.List.copyOf(TIMELINE.entrySet())) {
+            ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+            long[] state = entry.getValue();
+            if (player == null || !player.isAlive() || player.isSpectator()) {
+                TIMELINE.remove(entry.getKey());
+                continue;
+            }
+            long age = now - state[0];
+            if (state[1] < 2 && age >= STRIKE_TICK) {
+                state[1] = 2;
+                openRift(player);
+            }
+            if (state[1] < 3 && age >= VERDICT_TICK) {
+                state[1] = 3;
+                verdictTick(player);
+                doYmsaSlash(player);
+            }
+            if (state[1] < 4 && age >= SHEATH_TICK) {
+                state[1] = 4;
+                mods.flammpfeil.slashblade.util.AttackManager.playQuickSheathSoundAction(player);
+            }
+            if (age >= RECOVERY_FRAME) {
+                TIMELINE.remove(entry.getKey());
+            }
+        }
+    }
+
+    /** 当前是否已有登记中的审判时间轴。 */
+    public static boolean hasTimeline(java.util.UUID id) {
+        return TIMELINE.containsKey(id);
     }
 
     public static void openRift(net.minecraft.server.level.ServerPlayer player) {
@@ -1118,6 +1170,7 @@ public class Ymsa {
     public static void clearUnleashedArea(java.util.UUID id) {
         CLEANUP_LATCH.remove(id);
         AIM.remove(id);
+        TIMELINE.remove(id);
     }
     public static void finishChaosEncounter(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity boss) {
         if (boss instanceof net.minecraft.world.entity.LivingEntity living) living.setHealth(0.0F);
