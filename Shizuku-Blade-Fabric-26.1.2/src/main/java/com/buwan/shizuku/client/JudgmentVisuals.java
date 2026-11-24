@@ -2,6 +2,7 @@ package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.network.JudgmentImpactPacket;
 import com.buwan.shizuku.sa.Ymsa;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -23,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.joml.Matrix3x2fStack;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fStack;
 
 /**
  * 「审判」的客户端视觉。
@@ -40,7 +42,8 @@ import org.joml.Matrix4f;
  *       {@code JudgmentWorldPass} 画球前把该层深度拷回 main，保证球被落剑遮挡。</li>
  * </ul>
  *
- * <p>屏幕红染（{@link #shade}）与面板斩击预览（{@link #renderCut}）保持不变。</p>
+ * <p>屏幕红染（{@link #shade}）保持不变；面板斩击预览（{@link #renderCut}）按真实裂缝
+ * 配色与世界落剑姿态重制（GUI 跑不了 GLSL，用矩形/2D 精灵拼观感）。</p>
  *
  * <p>时间轴常量统一取 {@link com.buwan.shizuku.sa.Ymsa}（STRIKE_TICK / RIFT_CLOSED_TICK /
  * VERDICT_TICK / DOMAIN_RADIUS / SHEATH_TICK / END_TICK），数值与 1.21.1 完全一致，
@@ -229,7 +232,8 @@ public final class JudgmentVisuals {
                 continue;
             }
             // 域球：与 1.21.1 同序（每个活跃施法先画球，再画裂缝/落剑）
-            drawDomain(pose, active.center.subtract(camera), tick, opacity);
+            // ⚠️ 矩阵走全局 ModelViewStack（见 drawDomain），不进顶点
+            drawDomain(active.center.subtract(camera), tick, opacity);
             if (active.landing != null) {
                 // 落剑走 COLLECT_SUBMITS → submitSword（原版物品分层，见类注释）
                 continue;
@@ -274,82 +278,109 @@ public final class JudgmentVisuals {
         return Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.ENTITY);
     }
 
-    /** 写一个 ENTITY 格式顶点（Position + Color + UV0 + Overlay + Light + Normal）。 */
     /**
-     * 写一个 ENTITY 格式顶点。
+     * 写一个 ENTITY 格式顶点（Position + Color + UV0 + Overlay + Light + Normal）。
      *
      * <p>顶点色在这里不只是颜色：26.1 的 RenderType 给不了逐帧 uniform，原版的两个
      * {@code Atmosphere}/{@code Phase} 就编码进 {@code Color}(0..1 浮点) ——
      * 这是唯一语义明确、不会被归一化/截断搞坏的通道（Normal 是归一化字节，
      * UV1/UV2 实机上不透明度只出来 ~25%）。着色器里再 {@code * 64} 还原。</p>
+     *
+     * <p>⚠️ UV 必须是完整二维：rift 的 fsh 靠 {@code p=(uv*2-1)*vec2(1.78,1)} 展开
+     * 整个四边形，v 恒 0 会让 p.y 全为 -1、整张裂缝落进 discard 区
+     * （2026-11-24「世界内斩痕不可见」的根因）。</p>
      */
     private static void vertex(BufferBuilder buffer, Matrix4f m,
-                               float x, float y, float z, float u,
+                               float x, float y, float z, float u, float v,
                                float pr, float pg, float pb) {
-        buffer.addVertex(m, x, y, z)
-                .setColor(pr, pg, pb, 1.0F)
-                .setUv(u, 0.0F)
+        completeVertex(buffer.addVertex(m, x, y, z), u, v, pr, pg, pb);
+    }
+
+    /** 无矩阵版（域球用）：顶点保持单位球原始坐标 —— 见 {@link #drawDomain}。 */
+    private static void vertex(BufferBuilder buffer,
+                               float x, float y, float z, float u, float v,
+                               float pr, float pg, float pb) {
+        completeVertex(buffer.addVertex(x, y, z), u, v, pr, pg, pb);
+    }
+
+    private static void completeVertex(com.mojang.blaze3d.vertex.VertexConsumer out, float u, float v,
+                                       float pr, float pg, float pb) {
+        out.setColor(pr, pg, pb, 1.0F)
+                .setUv(u, v)
                 .setUv1(0, 0)
                 .setUv2(MAX_LIGHT, MAX_LIGHT)
                 .setNormal(0.0F, 1.0F, 0.0F);
     }
 
-    /** 域球：球面参数化与 1.20.1 的 sphereVertex 完全相同（16 纬 × 40 经）。 */
-    private static void drawDomain(PoseStack pose, Vec3 offset, float tick, float opacity) {
-        pose.pushPose();
-        pose.translate((float) offset.x, (float) offset.y, (float) offset.z);
-        pose.scale(Ymsa.DOMAIN_RADIUS, Ymsa.DOMAIN_RADIUS, Ymsa.DOMAIN_RADIUS);
-        Matrix4f m = pose.last().pose();
-
-        int rings = 16;
-        int segments = 40;
-        BufferBuilder buffer = beginTriangles();
-        for (int j = 0; j < rings; j++) {
-            for (int i = 0; i < segments; i++) {
-                // 四个角的 (经度比例 u, 纬度比例 v)
-                float u0 = i / (float) segments;
-                float u1 = (i + 1) / (float) segments;
-                float v0 = j / (float) rings;
-                float v1 = (j + 1) / (float) rings;
-                // 原版顶点顺序： (i,j) (i+1,j) (i+1,j+1) (i,j+1)
-                sphereTriangle(buffer, m, u0, v0, u1, v0, u1, v1, tick, opacity);
-                sphereTriangle(buffer, m, u0, v0, u1, v1, u0, v1, tick, opacity);
+    /**
+     * 域球：球面参数化与 1.20.1 完全相同（16 纬 × 40 经）。
+     *
+     * <p>⚠️ 顶点必须是<b>单位球原始坐标</b>（不烘任何矩阵）：着色器的噪声场
+     * {@code Position*4.2}、{@code latitude=Position.y}、熔岩折带公式全按单位球坐标
+     * 设计。1.20.1 的等价物 = {@code drawWithShader(globalMV*pose, proj, shader)} ——
+     * 矩阵在 draw 时才进 {@code ModelViewMat}。26.1 的等价做法 = 把平移/缩放推上全局
+     * {@code RenderSystem.getModelViewStack()}（{@code RenderType.draw} 取栈顶写进
+     * DynamicTransforms），球顶点按裸坐标上传。
+     * （旧写法把 pose 烘进顶点 ⇒ shader 拿到 ×128 的世界坐标 ⇒ 噪声/折带全毁
+     * = 2026-11-24「球域纹理不对：扭曲暗红带从天顶拉到地平线」的根因。）</p>
+     */
+    private static void drawDomain(Vec3 offset, float tick, float opacity) {
+        Matrix4fStack modelView = RenderSystem.getModelViewStack();
+        modelView.pushMatrix();
+        modelView.translate((float) offset.x, (float) offset.y, (float) offset.z);
+        modelView.scale(Ymsa.DOMAIN_RADIUS, Ymsa.DOMAIN_RADIUS, Ymsa.DOMAIN_RADIUS);
+        try {
+            int rings = 16;
+            int segments = 40;
+            BufferBuilder buffer = beginTriangles();
+            for (int j = 0; j < rings; j++) {
+                for (int i = 0; i < segments; i++) {
+                    // 四个角的 (经度比例 u, 纬度比例 v)
+                    float u0 = i / (float) segments;
+                    float u1 = (i + 1) / (float) segments;
+                    float v0 = j / (float) rings;
+                    float v1 = (j + 1) / (float) rings;
+                    // 原版顶点顺序： (i,j) (i+1,j) (i+1,j+1) (i,j+1)
+                    sphereTriangle(buffer, u0, v0, u1, v0, u1, v1, tick, opacity);
+                    sphereTriangle(buffer, u0, v0, u1, v1, u0, v1, tick, opacity);
+                }
             }
+            com.buwan.shizuku.client.shader.JudgmentShaders.domain().draw(buffer.buildOrThrow());
+        } finally {
+            modelView.popMatrix();
         }
-        com.buwan.shizuku.client.shader.JudgmentShaders.domain().draw(buffer.buildOrThrow());
-        pose.popPose();
     }
 
     /** 球面顶点：与原版一致，x=cos(lat)cos(lon), y=sin(lat), z=cos(lat)sin(lon)。 */
-    private static void sphereTriangle(BufferBuilder buffer, Matrix4f m,
-                                       float ua, float va, float ub, float vb, float uc, float vc,
-                                       float tick, float opacity) {
-        sphereVertex(buffer, m, ua, va, tick, opacity);
-        sphereVertex(buffer, m, ub, vb, tick, opacity);
-        sphereVertex(buffer, m, uc, vc, tick, opacity);
+    private static void sphereTriangle(BufferBuilder buffer,
+                                        float ua, float va, float ub, float vb, float uc, float vc,
+                                        float tick, float opacity) {
+        sphereVertex(buffer, ua, va, tick, opacity);
+        sphereVertex(buffer, ub, vb, tick, opacity);
+        sphereVertex(buffer, uc, vc, tick, opacity);
     }
 
-    private static void sphereVertex(BufferBuilder buffer, Matrix4f m, float u, float v,
+    private static void sphereVertex(BufferBuilder buffer, float u, float v,
                                      float tick, float opacity) {
         float longitude = u * Mth.TWO_PI;
         float latitude = (v - 0.5F) * Mth.PI;
         float radius = Mth.cos(latitude);
-        vertex(buffer, m, radius * Mth.cos(longitude), Mth.sin(latitude), radius * Mth.sin(longitude),
-                u, tick / 64.0F, opacity, 0.0F);
+        vertex(buffer, radius * Mth.cos(longitude), Mth.sin(latitude), radius * Mth.sin(longitude),
+                u, v, tick / 64.0F, opacity, 0.0F);
     }
 
-    /** 空间裂缝：单位四边形，UV 0..1；Phase = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)。 */
+    /** 空间裂缝：单位四边形，UV 0..1 完整展开；Phase = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)。 */
     private static void drawRift(Matrix4f m, float tick, float opacity) {
         BufferBuilder buffer = beginTriangles();
         float t = tick / 64.0F;
         float impact = Ymsa.STRIKE_TICK / 64.0F;
         float lock = Ymsa.RIFT_CLOSED_TICK / 64.0F;
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t, impact, lock);
-        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, t, impact, lock);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t, impact, lock);
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t, impact, lock);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t, impact, lock);
-        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, 1.0F, t, impact, lock);
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, 1.0F, t, impact, lock);
+        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, 1.0F, t, impact, lock);
         com.buwan.shizuku.client.shader.JudgmentShaders.rift().draw(buffer.buildOrThrow());
     }
 
@@ -393,9 +424,10 @@ public final class JudgmentVisuals {
     /**
      * 面板里的斩击预览（{@link com.buwan.shizuku.client.screen.JudgmentScreen} 的「视觉效果」页签调用）。
      *
-     * <p>26.1 阶段一简化：原来的「3D 裂缝四边形」→ 竖直红色渐变的裂痕；
-     * 原来的「3D 物品模型 + 透视矩阵」→ {@code GuiGraphicsExtractor#item} 画 GUI 物品，
-     * 用 pose 的 translate/rotate/scale 还原「从高处落下、斜插在地」的观感。
+     * <p>GUI 阶段跑不了 GLSL（26.1 的 GUI 是渲染状态提取 + 预制状态），所以预览用矩形/2D 物品
+     * <b>手工拼出与真实世界一致的观感</b>：裂缝 = 蓝白玻璃裂纹 + 夜空内芯 + 闭合金染（配色取自
+     * {@code judgment_rift.fsh}，见 {@link #renderRift}）；落剑 = 2D 钻石剑精灵，
+     * 剑尖朝下插地（与世界 ZP(-135°) 的净效果一致，见 {@link #renderFallingSword}）。
      * 任何一步失败都静默跳过（预览区最多是空的，绝不影响界面本身）。</p>
      */
     public static void renderCut(GuiGraphicsExtractor graphics, int x, int y, int width, int height, long age) {
@@ -412,26 +444,65 @@ public final class JudgmentVisuals {
         }
     }
 
-    /** 裂痕：由深红辉光 + 亮白核心两层竖直渐变组成，随相位淡入淡出。 */
+    /**
+     * 预览裂缝：按真实 {@code judgment_rift} 的观感手工拼（GUI 阶段跑不了 GLSL）。
+     * 配色逐项取自 fsh：夜空内芯（近黑深蓝 {@code vec3(0.013,0.012,0.063)+cloud}）、
+     * 苍蓝玻璃裂纹（{@code 0xADE8FF≈vec3(0.68,0.84,1.0)} 系）+ 白热核心、
+     * 青品红极光带、闭合前金染（fsh 的 {@code close} 混色 {@code vec3(1.0,0.81,0.53)}）
+     * 与闭合一瞬的暖金 latch 闪光（{@code vec3(1.0,0.88,0.59)}）。
+     * 旧的红色竖条占位于 2026-11-24 按用户反馈重制（真实裂缝本来就是蓝白玻璃，不是红色）。
+     */
     private static void renderRift(GuiGraphicsExtractor graphics, int x, int y, int width, int height, float tick) {
         float fadeIn = Mth.clamp((tick - Ymsa.STRIKE_TICK) / 3F, 0, 1);
         float fadeOut = Mth.clamp((Ymsa.RIFT_CLOSED_TICK - tick) / 3F, 0, 1);
         float alpha = fadeIn * fadeOut;
-        if (alpha <= 0.01F) {
+        if (alpha <= 0.01F || width < 10 || height < 10) {
             return;
         }
-        int cx = x + width / 2;
-        int top = y + 2;
-        int bottom = y + height - 2;
-        if (bottom <= top) {
-            return;
+        int midY = y + height / 2;
+        // 真实 fsh：close = smoothstep(23, lock, t)，金染随它混入
+        float close = Mth.clamp((tick - 23F) / (Ymsa.RIFT_CLOSED_TICK - 23F), 0, 1);
+        // 内芯：近黑深蓝的夜空带（fsh 的 night 基色）
+        int bandH = Math.max(8, height * 3 / 10);
+        graphics.fillGradient(x, midY - bandH / 2, x + width, midY + bandH / 2,
+                argb((int) (alpha * 170), 0x0C1238), argb((int) (alpha * 140), 0x04060F));
+        // 星点（固定伪随机位置，不随帧闪）：fsh 的 stars()
+        for (int i = 0; i < 12; i++) {
+            int sx = x + 3 + (width - 6) * (i * 37 % 89) / 89;
+            int sy = midY - bandH / 2 + 2 + (bandH - 5) * ((i * 53) % 97) / 97;
+            int starA = (int) (alpha * (i % 3 == 0 ? 210 : 120));
+            graphics.fill(sx, sy, sx + 1, sy + 1, argb(starA, i % 4 == 0 ? 0xBFE3FF : 0xFFFFFF));
         }
-        int glow = argb((int) (alpha * 120), 0xFF3344);
-        int glowFade = argb((int) (alpha * 45), 0x7A0F16);
-        int core = argb((int) (alpha * 235), 0xFFFFFF);
-        int coreFade = argb((int) (alpha * 150), 0xFF9AA8);
-        graphics.fillGradient(cx - 4, top, cx + 4, bottom, glow, glowFade);
-        graphics.fillGradient(cx - 1, top, cx + 1, bottom, core, coreFade);
+        // 极光带：青 → 品红（fsh 的 aurora lane）
+        graphics.fillGradient(x + width / 6, midY - bandH / 3, x + width * 5 / 6, midY - bandH / 4,
+                argb((int) (alpha * 52), 0x2ECCDD), argb((int) (alpha * 34), 0xEE64CC));
+        // 裂缝主体：锯齿状苍蓝缝 + 白热核心；闭合时金染（fsh：mix(苍蓝, 金, close)）
+        int glass = mixColor(0xADE8FF, 0xFFE08D, close);
+        int core = mixColor(0xFFFFFF, 0xFFE1B0, close);
+        int half = Math.max(2, bandH / 8);
+        int segs = 9;
+        for (int i = 0; i < segs; i++) {
+            int sx = x + width * i / segs;
+            int sw = width / segs + 1;
+            int jag = (((i * 61) % 7) - 3) * Math.max(1, bandH / 16);
+            int sy = midY + jag;
+            graphics.fill(sx, sy - half, sx + sw, sy + half, argb((int) (alpha * 120), glass));
+            graphics.fill(sx, sy - 1, sx + sw, sy + 1, argb((int) (alpha * 235), core));
+        }
+        // latch：闭合前一瞬的暖金亮线（fsh 的 latch 光）
+        float latch = 1 - Mth.clamp(Math.abs(tick - (Ymsa.RIFT_CLOSED_TICK - 0.5F)) / 2.2F, 0, 1);
+        if (latch > 0) {
+            graphics.fillGradient(x + width / 8, midY - 1, x + width * 7 / 8, midY + 1,
+                    argb((int) (alpha * latch * 240), 0xFFEDB2), argb((int) (alpha * latch * 240), 0xFFD27A));
+        }
+    }
+
+    /** 两个 RGB（0xRRGGBB）按 t 线性插值。 */
+    private static int mixColor(int from, int to, float t) {
+        int r = (int) Mth.lerp(t, (from >>> 16) & 0xFF, (to >>> 16) & 0xFF);
+        int g = (int) Mth.lerp(t, (from >>> 8) & 0xFF, (to >>> 8) & 0xFF);
+        int b = (int) Mth.lerp(t, from & 0xFF, to & 0xFF);
+        return (r << 16) | (g << 8) | b;
     }
 
     /** 落剑：GUI 物品 + pose 缩放/旋转（替代原来的 3D 静态物品渲染）。 */
@@ -455,7 +526,10 @@ public final class JudgmentVisuals {
         Matrix3x2fStack pose = graphics.pose();
         pose.pushMatrix();
         pose.translate(cx, cy);
-        pose.rotate((float) Math.toRadians(-45));
+        // 剑尖方向对齐世界：世界里 ZP(-135°) 的净效果 = 剑刃竖直、剑尖垂直朝下插地。
+        // 2D 精灵的剑尖朝右上 45°，这里转 135°（GUI 的 y 向下，正角 = 屏幕顺时针）
+        // 把剑尖对到正下方 —— 旧值 -45° 会让剑尖朝上/剑柄朝下砸（2026-11-24 实测反馈）。
+        pose.rotate((float) Math.toRadians(135));
         pose.scale(scale, scale);
         graphics.item(swordDisplay(), -8, -8);
         pose.popMatrix();
