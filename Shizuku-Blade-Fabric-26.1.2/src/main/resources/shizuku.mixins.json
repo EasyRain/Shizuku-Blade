@@ -44,7 +44,9 @@
     "JudgmentPlayerPoseMixin",
     "UnleashedInputMixin",
     "MouseHandlerMixin",
-    "FogRendererJudgmentMixin"
+    "FogRendererJudgmentMixin",
+    "AvatarRenderStatePoseMixin",
+    "AvatarRendererPoseMixin"
   ],
   "injectors": {
     "defaultRequire": 1
