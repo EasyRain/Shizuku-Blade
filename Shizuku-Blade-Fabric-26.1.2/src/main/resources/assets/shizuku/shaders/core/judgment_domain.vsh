@@ -18,7 +18,8 @@ out float vOpacity;
 // 忠实移植 1.20.1 的 judgment_domain.vsh。
 // 唯一改动：原版的 `uniform vec2 Atmosphere`（x=时间, y=不透明度）在 26.1 没有逐帧 uniform
 // 设置口（RenderType 上只能给常量），因此改由顶点属性 Normal 携带：
-//   Normal = (时间 [游戏刻], 不透明度, 0)
+//   UV1 = (时间 [游戏刻] × 100, 不透明度 × 10000)  ← 用 short 承载，精度 0.01
+//（当初想用 Normal，但 ENTITY 格式里 Normal 是归一化字节，只能表示 -1..1，会被截断）
 // 其余算法逐行照抄。
 
 float hash(vec3 p) {
@@ -37,7 +38,7 @@ float cloud(vec3 p) {
 }
 
 void main() {
-    vec2 Atmosphere = vec2(Normal.x, Normal.y);
+    vec2 Atmosphere = vec2(UV1.x / 100.0, UV1.y / 10000.0);
     vec3 p = Position * 4.2 + vec3(0, Atmosphere.x * 0.008, 0);
     cloudDensity = cloud(p) * 0.60 + cloud(p * 2.1) * 0.29 + cloud(p * 4.25) * 0.11;
     latitude = Position.y;

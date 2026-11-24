@@ -196,13 +196,16 @@ public final class JudgmentVisuals {
 
     /** 写一个 ENTITY 格式顶点（Position + Color + UV0 + Overlay + Light + Normal）。 */
     private static void vertex(BufferBuilder buffer, Matrix4f m,
-                               float x, float y, float z, float u, float nx, float ny, float nz) {
+                               float x, float y, float z, float u,
+                               int uv1x, int uv1y, int uv2x) {
         buffer.addVertex(m, x, y, z)
                 .setColor(1.0F, 1.0F, 1.0F, 1.0F)
                 .setUv(u, 0.0F)
-                .setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY)
-                .setLight(MAX_LIGHT)
-                .setNormal(nx, ny, nz);
+                // UV1 / UV2 是 short 属性：用它们承载原版的逐帧 uniform
+                // （Normal 在 ENTITY 格式里是归一化字节，只能表示 -1..1，会被截断）
+                .setUv1(uv1x, uv1y)
+                .setUv2(uv2x, 0)
+                .setNormal(0.0F, 1.0F, 0.0F);
     }
 
     /** 域球：球面参数化与 1.20.1 的 sphereVertex 完全相同（16 纬 × 40 经）。 */
@@ -246,18 +249,21 @@ public final class JudgmentVisuals {
         float latitude = (v - 0.5F) * Mth.PI;
         float radius = Mth.cos(latitude);
         vertex(buffer, m, radius * Mth.cos(longitude), Mth.sin(latitude), radius * Mth.sin(longitude),
-                u, tick, opacity, 0.0F);
+                u, Math.round(tick * 100.0F), Math.round(opacity * 10000.0F), 0);
     }
 
     /** 空间裂缝：单位四边形，UV 0..1；Phase = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)。 */
     private static void drawRift(Matrix4f m, float tick, float opacity) {
         BufferBuilder buffer = beginTriangles();
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
-        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
-        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, tick, (float) Ymsa.STRIKE_TICK, (float) Ymsa.RIFT_CLOSED_TICK);
+        int t100 = Math.round(tick * 100.0F);
+        int impact100 = Ymsa.STRIKE_TICK * 100;
+        int lock100 = Ymsa.RIFT_CLOSED_TICK * 100;
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t100, impact100, lock100);
+        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, t100, impact100, lock100);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t100, impact100, lock100);
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t100, impact100, lock100);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t100, impact100, lock100);
+        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, t100, impact100, lock100);
         com.buwan.shizuku.client.shader.JudgmentShaders.rift().draw(buffer.buildOrThrow());
     }
 
