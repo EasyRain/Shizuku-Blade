@@ -46,6 +46,10 @@ public class ShizukuFabricClient implements ClientModInitializer {
             ClientTickEvent.Post event = new ClientTickEvent.Post();
             GalaxyFieldRenderer.onClientTick(event);
             TimeStopRenderer.getInstance().onClientTick(event);
+            // ⚠️ 必须有：驱动 TimeStopShaderManager.updateStrength()（currentStrength 的渐变）。
+            // 漏掉它 currentStrength 恒为 0 ⇒ renderOverlay 里 `strength < 0.001F` 直接跳过，
+            // 时停的黄色全屏滤镜与雾色弱染都不会出现（1.21.1/1.20.1 端一直有这行，26.1.2 移植时漏了）。
+            com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().tick();
             VoidPrisonRenderer.getInstance().onClientTick(event);
             YmsaChargeHandler.onClientTick(event);
             FieldActivateInput.tick(client);
