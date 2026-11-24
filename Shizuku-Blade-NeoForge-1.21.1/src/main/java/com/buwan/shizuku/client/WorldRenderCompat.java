@@ -5,31 +5,30 @@ import net.minecraft.client.Minecraft;
 import org.lwjgl.opengl.GL11;
 
 /**
- * NeoForge 1.21.1 世界几何绘制的状态修正。
+ * 在 NeoForge 1.21.1 上绘制世界几何（球体 / 圆盘）前的状态修正。
  *
- * <p><b>问题</b>：NeoForge 的 {@code RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS} 与
- * Forge / Fabric 的同名阶段<b>语义不同</b> —— 它不是从
- * {@code LevelRenderer.renderLevel} 里派发的，而是由
- * {@code ClientHooks.dispatchRenderStage(RenderType, ...)} 经
- * {@code Stage.fromRenderType(renderType)} 在
- * {@code LevelRenderer.renderSectionLayer(RenderType.translucent())} <b>内部</b>、
- * 该 RenderType 的 {@code clearRenderState()} <b>之前</b>回调的。</p>
+ * <p><b>为什么需要它</b>：时停球与囚笼球曾出现「没有遮挡（透墙可见）」，而同一阶段的
+ * 星河领域圆盘一直正常 —— 后者是三者中唯一用<b>自定义 RenderType</b> 绘制的
+ * （{@code CosmicShaders.COSMIC_RENDER_TYPE} 显式 {@code setDepthTestState(LEQUAL_DEPTH_TEST)}），
+ * 两个球则用裸 {@code Tesselator} + {@code RenderSystem.setShader} + {@code BufferUploader.drawWithShader}，
+ * 完全依赖调用点的<b>环境 GL 状态</b>。
+ * 26.1.2 端免疫也是同理（走 {@code RenderTypes.debugQuads().draw(...)}，状态由 RenderType 自带）。
+ * ⇒ 结论：<b>问题在于「依赖环境状态」本身</b>，而不是某个固定的状态值。</p>
  *
- * <p>而 {@code RenderType.translucent()} 的输出状态 {@code TRANSLUCENT_TARGET} 在
- * Fabulous 画质（{@code Minecraft.useShaderTransparency()}）下会把绘制目标绑到
- * {@code LevelRenderer} 的 {@code translucentTarget}；这个 FBO 的深度只是一次性的
- * {@code copyDepthFrom(main)} 拷贝，在里面画世界几何会丢掉场景深度
- * ⇒ 球体/圆盘不再被方块遮挡。NeoForge 自己的 javadoc 也警告过该阶段：
- * <i>"although this is called within a fabulous graphics target, it does not function
- * properly in many cases"</i>。</p>
+ * <p>环境状态在这个位置确实不可靠：周围的深度状态既受各 {@code RenderType} 的
+ * {@code setup/clearRenderState()} 影响（{@code NO_DEPTH_TEST} 的 setup/clear 都是空操作、
+ * 不还原；{@code DepthTestStateShard.clearState} 还会主动 {@code disableDepthTest()}），
+ * 也受其它 mod 在同一阶段注册的 handler 影响。</p>
  *
- * <p><b>为什么别的端没这个问题</b>：作者原版（Forge 1.20.1）与 Fabric 端
- * （{@code WorldRenderEvents.AFTER_TRANSLUCENT}）都在 {@code renderSectionLayer}
- * <b>返回之后</b>、主 framebuffer 已绑回时才派发同类阶段 —— 那时候主目标上就是场景深度。</p>
- *
- * <p><b>本方法做了什么</b>：把目标显式绑回主 framebuffer，并显式开启 LEQUAL 深度测试
- * （不依赖环境里残留的状态）。非 Fabulous 画质下这两步都是幂等的，
- * 因此可以无条件调用。</p>
+ * <p><b>关于 fabulous</b>：NeoForge 的 {@code AFTER_TRANSLUCENT_BLOCKS} 由
+ * {@code ClientHooks.dispatchRenderStage(RenderType, ...)} → {@code Stage.fromRenderType(renderType)}
+ * 在 {@code LevelRenderer.renderSectionLayer(RenderType.translucent())} <b>内部</b>派发；
+ * 而 {@code RenderType.translucent()} 的输出状态 {@code TRANSLUCENT_TARGET} 在
+ * {@code Minecraft.useShaderTransparency()}（要求 {@code graphicsMode >= FABULOUS}）下会把目标
+ * 绑到 {@code LevelRenderer.translucentTarget}。这不是本次现象的原因（实测画质是高品质/Fancy），
+ * 但属于同一位置的真实陷阱 —— NeoForge 的 javadoc 也警告该阶段
+ * <i>"although this is called within a fabulous graphics target, it does not function properly
+ * in many cases"</i>，故这里一并把目标显式绑回主 framebuffer 作防御。</p>
  */
 final class WorldRenderCompat {
 
