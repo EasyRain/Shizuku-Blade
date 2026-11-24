@@ -65,8 +65,9 @@ public final class JudgmentPostEffect {
             }
             activeChain = null;
         }
-        double[] state = JudgmentVisuals.domainState();
-        if (state == null) {
+        java.util.List<double[]> domains = JudgmentVisuals.domainStates();
+        double[] rift = JudgmentVisuals.riftState();
+        if (domains.isEmpty() && rift == null) {
             return;
         }
         if (builder == lastBuilder) {
@@ -83,15 +84,37 @@ public final class JudgmentPostEffect {
             Matrix4f invView = new Matrix4f(camera.viewRotationMatrix).invert();
             Vec3 camPos = camera.pos;
 
-            // ⚠️ 顺序与 fsh 的 JudgmentConfig 块一致（std140 顺序布局）；
-            // 不用 vec3（std140 对齐易错），统一 vec4 传递。
-            List<UniformValue> block = List.of(
-                    uval("U_CameraPosition", "vec4", floats((float) camPos.x, (float) camPos.y, (float) camPos.z, 1.0F)),
-                    uval("U_DomainCenter", "vec4", floats((float) state[0], (float) state[1], (float) state[2], (float) state[3])),
-                    uval("U_Params", "vec4", floats((float) state[4], (float) state[5], 0.0F, 0.0F)),
-                    uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)),
-                    uval("U_InverseProjectionMatrix", "matrix4x4", rowMajor(invProj)),
-                    uval("U_InverseViewMatrix", "matrix4x4", rowMajor(invView)));
+            // ⚠️ 顺序必须与 fsh 的 JudgmentConfig 块逐项一致（std140 顺序布局）
+            java.util.List<UniformValue> block = new java.util.ArrayList<>();
+            block.add(uval("U_CameraPosition", "vec4", floats((float) camPos.x, (float) camPos.y, (float) camPos.z, 1.0F)));
+            for (int i = 0; i < 4; i++) {
+                double[] d = i < domains.size() ? domains.get(i) : null;
+                block.add(uval("U_Domain" + i, "vec4", d == null
+                        ? floats(0.0F, 0.0F, 0.0F, 0.0F)
+                        : floats((float) d[0], (float) d[1], (float) d[2], (float) d[3])));
+            }
+            for (int i = 0; i < 4; i++) {
+                double[] d = i < domains.size() ? domains.get(i) : null;
+                block.add(uval("U_DomainParam" + i, "vec4", d == null
+                        ? floats(0.0F, 0.0F, 0.0F, 0.0F)
+                        : floats((float) d[4], (float) d[5], 0.0F, 1.0F)));
+            }
+            boolean hasRift = rift != null;
+            block.add(uval("U_RiftCenter", "vec4", hasRift
+                    ? floats((float) rift[0], (float) rift[1], (float) rift[2], 0.0F)
+                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+            block.add(uval("U_RiftRight", "vec4", hasRift
+                    ? floats((float) rift[3], (float) rift[4], (float) rift[5], 0.0F)
+                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+            block.add(uval("U_RiftUp", "vec4", hasRift
+                    ? floats((float) rift[6], (float) rift[7], (float) rift[8], 0.0F)
+                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+            block.add(uval("U_RiftParam", "vec4", hasRift
+                    ? floats((float) rift[9], (float) rift[10], (float) rift[11], 1.0F)
+                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+            block.add(uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)));
+            block.add(uval("U_InverseProjectionMatrix", "matrix4x4", rowMajor(invProj)));
+            block.add(uval("U_InverseViewMatrix", "matrix4x4", rowMajor(invView)));
 
             ShaderManager shaderManager = Minecraft.getInstance().getShaderManager();
             PostChain chain = PostChain.load(buildConfig(block),
@@ -104,8 +127,8 @@ public final class JudgmentPostEffect {
             activeChain = chain;
             if (!logged) {
                 logged = true;
-                LOGGER.info("[judgfx] judgment domain post chain active center=({},{},{}) r={} t={} a={}",
-                        state[0], state[1], state[2], state[3], state[4], state[5]);
+                LOGGER.info("[judgfx] judgment post chain active domains={} rift={}",
+                        domains.size(), rift != null);
             }
         } catch (Exception e) {
             LOGGER.error("[judgfx] failed to build judgment post chain", e);

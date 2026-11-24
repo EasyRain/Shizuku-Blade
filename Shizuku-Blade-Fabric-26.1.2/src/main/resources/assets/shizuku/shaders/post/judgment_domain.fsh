@@ -15,9 +15,21 @@ uniform sampler2D MainColSampler;
 uniform sampler2D MainDepthSampler;
 
 layout(std140) uniform JudgmentConfig {
-    vec4 U_CameraPosition;   // xyz = 相机世界坐标
-    vec4 U_DomainCenter;     // xyz = 域中心世界坐标, w = 半径
-    vec4 U_Params;           // x = 施法经过 tick, y = 不透明度
+    vec4 U_CameraPosition;    // xyz = 相机世界坐标
+    // 最多 4 个同时存在的域球（多人时可能有多人同时放）
+    vec4 U_Domain0;           // xyz = 中心, w = 半径
+    vec4 U_Domain1;
+    vec4 U_Domain2;
+    vec4 U_Domain3;
+    vec4 U_DomainParam0;      // x = 施法经过 tick, y = 不透明度（w=0 表示无此域球）
+    vec4 U_DomainParam1;
+    vec4 U_DomainParam2;
+    vec4 U_DomainParam3;
+    // 空间裂缝：以 right/up 张成的四边形（世界空间）
+    vec4 U_RiftCenter;        // xyz = 中心
+    vec4 U_RiftRight;         // xyz = 右向量（已含尺寸）
+    vec4 U_RiftUp;            // xyz = 上向量（已含尺寸）
+    vec4 U_RiftParam;         // x = tick, y = impact, z = lock, w = 1 表示存在
     vec2 ScreenSize;
     mat4 U_InverseProjectionMatrix;
     mat4 U_InverseViewMatrix;

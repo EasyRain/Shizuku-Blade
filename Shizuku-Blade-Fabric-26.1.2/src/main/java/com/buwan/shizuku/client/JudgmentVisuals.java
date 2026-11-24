@@ -130,9 +130,62 @@ public final class JudgmentVisuals {
     }
 
     /**
-     * 供 {@link JudgmentPostEffect} 取当前域球参数：{cx, cy, cz, radius, tick, opacity}，
-     * 没有活跃施法时返回 {@code null}。
+     * 供 {@link JudgmentPostEffect} 取当前所有活跃域球（最多 4 个，多人时可能同时存在）。
+     * 每项 {cx, cy, cz, radius, tick, opacity}；没有活跃施法时返回空数组。
      */
+    public static java.util.List<double[]> domainStates() {
+        java.util.List<double[]> out = new java.util.ArrayList<>();
+        if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
+            return out;
+        }
+        long now = currentLevel.getGameTime();
+        for (Cast cast : casts.values()) {
+            float tick = now - cast.localStart;
+            float opacity = strength(cast, tick);
+            if (opacity > 0.001F) {
+                out.add(new double[]{cast.center.x, cast.center.y, cast.center.z,
+                        Ymsa.DOMAIN_RADIUS, tick, opacity});
+            }
+        }
+        out.sort((a, b) -> Double.compare(b[5], a[5]));
+        return out.size() > 4 ? out.subList(0, 4) : out;
+    }
+
+    /**
+     * 供 {@link JudgmentPostEffect} 取当前裂缝：{cx, cy, cz, rx, ry, rz, ux, uy, uz, tick, impact, lock}，
+     * 没有裂缝时返回 {@code null}。
+     */
+    public static double[] riftState() {
+        if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
+            return null;
+        }
+        long now = currentLevel.getGameTime();
+        for (Cast cast : casts.values()) {
+            if (cast.landing != null) {
+                continue;
+            }
+            if (cast.packet.phaseTick() < Ymsa.STRIKE_TICK) {
+                continue;
+            }
+            float tick = now - cast.localStart;
+            if (tick >= Ymsa.RIFT_CLOSED_TICK) {
+                continue;
+            }
+            Vec3 center = cast.packet.origin()
+                    .add(Vec3.directionFromRotation(cast.packet.pitch(), cast.packet.yaw()).scale(5));
+            // 与原版 pose 链一致：YP(-yaw) → XP(pitch) → scale(-5.8, 3.26, 1)
+            org.joml.Matrix4f rot = new org.joml.Matrix4f()
+                    .rotateY((float) Math.toRadians(-cast.packet.yaw()))
+                    .rotateX((float) Math.toRadians(cast.packet.pitch()));
+            org.joml.Vector3f right = new org.joml.Vector3f(1.0F, 0.0F, 0.0F).mulDirection(rot).mul(-5.8F);
+            org.joml.Vector3f up = new org.joml.Vector3f(0.0F, 1.0F, 0.0F).mulDirection(rot).mul(3.26F);
+            return new double[]{center.x, center.y, center.z,
+                    right.x, right.y, right.z, up.x, up.y, up.z,
+                    tick, Ymsa.STRIKE_TICK, Ymsa.RIFT_CLOSED_TICK};
+        }
+        return null;
+    }
+
     public static double[] domainState() {
         if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
             return null;
