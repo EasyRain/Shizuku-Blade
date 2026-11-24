@@ -84,7 +84,10 @@ public final class JudgmentShaders {
                 .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
                 .withColorTargetState(blend
                         ? new ColorTargetState(Optional.of(BlendFunction.TRANSLUCENT), ColorTargetState.WRITE_COLOR)
-                        : new ColorTargetState(Optional.empty(), ColorTargetState.WRITE_COLOR))
+                        // 无混合直写必须 WRITE_ALL：alpha 只能靠片元写入，WRITE_COLOR(=7)
+                        // 不写 alpha ⇒ 目标 alpha 恒为清屏值 0 ⇒ GUI blit 混 rgb*0 = 隐形
+                        //（judgworld5「斩痕直接看不见」的根因）。世界版无所谓：main 的 alpha 不上屏。
+                        : new ColorTargetState(Optional.empty(), ColorTargetState.WRITE_ALL))
                 .build();
         RenderSetup setup = RenderSetup.builder(pipeline)
                 // 着色器并不采样，但 RenderSetup 要求 Sampler0 有绑定（与 cosmic 一致用物品图集）
