@@ -42,5 +42,7 @@ public abstract class LevelRendererSynthwaveMixin {
                                                     Matrix4fc matrix, Operation<Void> original) {
         original.call(instance, builder, cameraRenderState, slice, matrix);
         SynthwaveShaderManager.addToFrame(builder, this.targets, cameraRenderState);
+        // 审判域球：同一条 PostChain 路（世界几何会被天空盖住，见 JudgmentPostEffect 注释）
+        com.buwan.shizuku.client.JudgmentPostEffect.addToFrame(builder, this.targets, cameraRenderState);
     }
 }

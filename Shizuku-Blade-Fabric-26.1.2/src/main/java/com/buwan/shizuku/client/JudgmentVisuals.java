@@ -129,6 +129,29 @@ public final class JudgmentVisuals {
         return ground.getType() == HitResult.Type.BLOCK ? ground.getLocation() : target.add(0, -1.6, 0);
     }
 
+    /**
+     * 供 {@link JudgmentPostEffect} 取当前域球参数：{cx, cy, cz, radius, tick, opacity}，
+     * 没有活跃施法时返回 {@code null}。
+     */
+    public static double[] domainState() {
+        if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
+            return null;
+        }
+        long now = currentLevel.getGameTime();
+        double[] best = null;
+        float bestOpacity = 0.0F;
+        for (Cast cast : casts.values()) {
+            float tick = now - cast.localStart;
+            float opacity = strength(cast, tick);
+            if (opacity > bestOpacity) {
+                bestOpacity = opacity;
+                best = new double[]{cast.center.x, cast.center.y, cast.center.z,
+                        Ymsa.DOMAIN_RADIUS, tick, opacity};
+            }
+        }
+        return best;
+    }
+
     public static void tick() {
         changeLevel(Minecraft.getInstance().level);
         if (currentLevel != null && !casts.isEmpty()) {
@@ -151,9 +174,6 @@ public final class JudgmentVisuals {
         if (DEBUG_LOGGED.add("render|" + casts.size())) {
             org.slf4j.LoggerFactory.getLogger("shizuku").info("[judgfx] renderWorld casts={}", casts.size());
         }
-        // 保底探针：用已验证能出像素的 debugQuads 在相机正前方画一个 2x2 白色四边形。
-        // 它若不可见 ⇒ 这条世界阶段路径在我们这里根本没被调用（与着色器无关）。
-        drawProbeQuad(pose, camera);
         for (Cast active : casts.values()) {
             JudgmentImpactPacket cast = active.packet;
             float tick = now - active.localStart + partialTick;
@@ -161,8 +181,7 @@ public final class JudgmentVisuals {
             if (opacity <= 0) {
                 continue;
             }
-            // 域球（原版：单位球面 + judgment_domain 着色器，缩放到 DOMAIN_RADIUS）
-            drawDomain(pose, active.center.subtract(camera), tick, opacity);
+            // 域球改由 `JudgmentPostEffect` 做全屏后处理（世界几何会被天空盖住）
             if (active.landing != null) {
                 // TODO 落剑：原版是钻石剑物品模型，26.1 的物品世界渲染需另接（见 PROJECT_MEMORY）
                 continue;
