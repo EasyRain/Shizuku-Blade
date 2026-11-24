@@ -50,6 +50,7 @@
   2. **落剑** = `JudgmentVisuals.submitSword` 经 Fabric `LevelRenderEvents.COLLECT_SUBMITS` 走**原版物品提交节点**（`ItemStackRenderState` + `ItemModelResolver#updateForTopItem` + `submit(pose, collector, FULL_BRIGHT, NO_OVERLAY, 0)`），画进 item_entity 分层、由合成链正确合成。
   3. **遮挡次序**：画球前把 item_entity 深度 `copyDepthFrom` 回 main（主通道在画物品层前已先把 main 深度拷进去，所以该层深度 = 地形+实体+物品）⇒ 域球用 LEQUAL 测试时被地形/实体/落剑正确遮挡 = 上游「剑先画写深度、球再测深度」的次序语义。
   4. 相机旋转**不要再推**：`renderLevel` 建帧图前已把 modelViewMatrix push 进全局 `RenderSystem.getModelViewStack()`，帧通道里只建 fresh `PoseStack`。
+  5. **面板预览裂缝**（`client/JudgmentRiftPreview.java`）：上游 1.20.1/1.21.1 是在 GUI 里**直接跑真着色器**（`renderCut` 用世界同一个 RIFT RenderType + `graphics.bufferSource()`，旧 GUI 允许任意 RenderType 混入）；26.1 的 GUI 改为渲染状态提取、没有自定义着色器通道 ⇒ 改为**世界帧通道里把裂缝四边形画进离屏 `TextureTarget`**（同一份 GLSL：模型栈推相机逆旋转 + 逆投影 NDC 四角铺满 + `JudgmentShaders.riftOffscreen()` 无混合直写），GUI 只 blit 颜色视图。三个已实测的坑：① 渲染目标 v=0 在底、GUI 贴图 v=0 在顶，blit 必须 v 翻转（v0=1,v1=0），否则垂直镜像；② 无混合直写的写掩码必须 `WRITE_ALL`（`WRITE_COLOR`=7 不含 alpha，目标 alpha 恒 0 = 预览隐形）；③ 离屏分辨率逐帧对齐预览区**物理**像素（rect × `getGuiScale()`，1:1 blit），固定分辨率上采样会发糊。
 - **已删除**：`client/JudgmentPostEffect.java` + `assets/shizuku/shaders/post/judgment_domain.fsh`（阶段一的全屏后处理域球，用户要求单/多人观感统一为世界几何后移除）。
 - **保持不变**：屏幕红染 `shade`（fillGradient）与面板斩击预览 `renderCut`。
 
