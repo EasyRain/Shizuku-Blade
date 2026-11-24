@@ -12,6 +12,7 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Util;
@@ -42,14 +43,19 @@ import org.joml.Vector4f;
  *       经 {@code JudgmentShaders.rift()} 画完弹栈恢复。</li>
  * </ol>
  *
+ * <p><b>分辨率 = 预览区物理像素</b>（GUI 像素 × 缩放，每帧登记、尺寸变化时原地重建）：
+ * blit 是 1:1、零重采样 —— 固定 512×288 上采样到 ~1000+ 物理像素的 LINEAR 拉伸正是
+ * judgworld6 实测「有点糊」的根因。fwidth 抗锯齿只影响裂缝边缘（有意为之），
+ * 内部噪声/星点在 1:1 下与世界观感一致。</p>
+ *
  * <p><b>v 翻转</b>：渲染目标按 GL 约定 v=0 在<b>底</b>，GUI 贴图按图像约定 v=0 在<b>顶</b>
  * ⇒ blit 时传 {@code v0=1, v1=0}。u 不翻。斜向裂缝因此从屏幕左下到右上
  * （= 世界里已实测验证的方向）。</p>
  */
 final class JudgmentRiftPreview {
-    /** 离屏分辨率：16:9 = fsh 的 p 空间 (1.78, 1) 宽高比；预览区拉伸显示（同 1.20.1 的单元四边形拉伸）。 */
-    private static final int TEX_W = 512;
-    private static final int TEX_H = 288;
+    /** 离屏分辨率上下限：下限防退化，上限防病态窗口（预览区物理像素通常 ≤2048）。 */
+    private static final int MIN_TEX = 64;
+    private static final int MAX_TEX = 2048;
     /** 新鲜窗口：GUI 在这个毫秒数内登记过 = 预览页签可见。 */
     private static final long FRESH_MS = 250L;
 
@@ -58,14 +64,20 @@ final class JudgmentRiftPreview {
     private static boolean failed;
     private static volatile float previewTick = -1.0F;
     private static volatile long lastNoteMs = Long.MIN_VALUE;
+    /** 预览区的物理像素尺寸（GUI 像素 × 缩放，GUI 侧每帧登记）⇒ 离屏 1:1 blit，零重采样。 */
+    private static volatile int wantW;
+    private static volatile int wantH;
 
     private JudgmentRiftPreview() {
     }
 
-    /** GUI 侧入口：登记预览 tick 并 blit 离屏结果（裂缝相位由调用方保证）。 */
+    /** GUI 侧入口：登记预览 tick 与目标物理尺寸，并 blit 离屏结果（裂缝相位由调用方保证）。 */
     static void render(GuiGraphicsExtractor graphics, int x, int y, int width, int height, float tick) {
         previewTick = tick;
         lastNoteMs = Util.getMillis();
+        int scale = Math.max(1, Minecraft.getInstance().getWindow().getGuiScale());
+        wantW = Math.min(MAX_TEX, Math.max(MIN_TEX, width * scale));
+        wantH = Math.min(MAX_TEX, Math.max(MIN_TEX, height * scale));
         if (tick < Ymsa.STRIKE_TICK || tick >= Ymsa.RIFT_CLOSED_TICK
                 || width <= 1 || height <= 1 || offscreen == null) {
             return;
@@ -103,7 +115,10 @@ final class JudgmentRiftPreview {
         }
         try {
             if (offscreen == null) {
-                offscreen = new TextureTarget("shizuku_rift_preview", TEX_W, TEX_H, true);
+                offscreen = new TextureTarget("shizuku_rift_preview", wantW, wantH, true);
+            } else if (offscreen.width != wantW || offscreen.height != wantH) {
+                // 预览区尺寸/缩放变了（窗口缩放、面板重开）⇒ 原地重建（渲染线程上合法）
+                offscreen.resize(wantW, wantH);
             }
             GpuTexture color = offscreen.getColorTexture();
             GpuTexture depth = offscreen.getDepthTexture();
