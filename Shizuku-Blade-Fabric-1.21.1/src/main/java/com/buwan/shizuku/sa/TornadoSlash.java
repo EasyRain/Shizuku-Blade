@@ -124,8 +124,8 @@ public class TornadoSlash {
             double z = data.center.z + Math.sin(angle) * radius;
             double y = data.center.y + height;
             level.sendParticles(ParticleTypes.CLOUD, x, y, z, 2, 0.1, 0.1, 0.1, 0.05);
-            level.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
-            level.sendParticles(ParticleTypes.SPIT, x, y, z, 3, 0.2, 0.2, 0.2, 0.02);
+            level.sendParticles(ParticleTypes.SWEEP_ATTACK, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.DRAGON_BREATH, x, y, z, 3, 0.2, 0.2, 0.2, 0.02);
         }
 
         for (int i = 0; i < 32; i++) {
@@ -139,7 +139,7 @@ public class TornadoSlash {
             double angle = Math.toRadians(data.rotationAngle * 2 + i * 36);
             double x = data.center.x + Math.cos(angle) * 0.5;
             double z = data.center.z + Math.sin(angle) * 0.5;
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, x, data.center.y + 8.0, z, 2, 0.1, 0.1, 0.1, 0.05);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, data.center.y + 8.0, z, 2, 0.1, 0.1, 0.1, 0.05);
         }
     }
 

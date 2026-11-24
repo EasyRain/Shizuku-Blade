@@ -109,7 +109,7 @@ public class VoidPrison {
             double x = data.center.x + Math.cos(angle) * distance;
             double z = data.center.z + Math.sin(angle) * distance;
             double y = data.center.y + Math.random() * 4.0;
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, x, y, z, 5, 0.2, 0.2, 0.2, 0.3);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 5, 0.2, 0.2, 0.2, 0.3);
         }
 
         for (int i = 0; i < 50; i++) {
@@ -118,7 +118,7 @@ public class VoidPrison {
             double x = data.center.x + Math.cos(angle) * distance;
             double z = data.center.z + Math.sin(angle) * distance;
             double y = data.center.y + Math.random() * 3.0;
-            level.sendParticles(ParticleTypes.SMOKE, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.LAVA, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
         }
 
         for (EntitySlashEffect wall : data.walls) {
@@ -134,7 +134,7 @@ public class VoidPrison {
             double x = center.x + Math.cos(angle) * PRISON_RADIUS;
             double z = center.z + Math.sin(angle) * PRISON_RADIUS;
             double y = center.y + Math.random() * 4.0;
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, x, y, z, 1, 0.0, 0.0, 0.0, 0.05);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 1, 0.0, 0.0, 0.0, 0.05);
         }
     }
 
@@ -143,7 +143,7 @@ public class VoidPrison {
             double angle = (Math.PI * 2) * (double) i / (double) WALL_COUNT;
             double x = center.x + Math.cos(angle) * PRISON_RADIUS;
             double z = center.z + Math.sin(angle) * PRISON_RADIUS;
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, x, center.y + 0.5, z, 1, 0.0, 0.5, 0.0, 0.02);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, center.y + 0.5, z, 1, 0.0, 0.5, 0.0, 0.02);
         }
     }
 

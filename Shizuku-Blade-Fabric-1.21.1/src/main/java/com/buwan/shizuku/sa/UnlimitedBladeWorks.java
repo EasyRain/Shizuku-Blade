@@ -120,7 +120,7 @@ public class UnlimitedBladeWorks {
             sword.setPierce((byte) 1);
             sword.shoot(0.0, -1.5, 0.0, 3.0F, 0.0F);
             level.addFreshEntity(sword);
-            level.sendParticles(ParticleTypes.GLOW, swordPos.x, swordPos.y, swordPos.z, 5, 0.1, 0.5, 0.1, 0.02);
+            level.sendParticles(ParticleTypes.FLAME, swordPos.x, swordPos.y, swordPos.z, 5, 0.1, 0.5, 0.1, 0.02);
         }
     }
 
@@ -129,13 +129,13 @@ public class UnlimitedBladeWorks {
             double angle = (Math.PI * 2) * (double) i / 20.0;
             double x = center.x + Math.cos(angle) * 2.0;
             double z = center.z + Math.sin(angle) * 2.0;
-            level.sendParticles(ParticleTypes.GLOW, x, center.y + 0.1, z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.FLAME, x, center.y + 0.1, z, 1, 0.0, 0.0, 0.0, 0.0);
         }
     }
 
     private static void createSwordAppearEffect(ServerLevel level, Vec3 pos) {
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 5, 0.3, 0.3, 0.3, 0.1);
-        level.sendParticles(ParticleTypes.POOF, pos.x, pos.y, pos.z, 3, 0.2, 0.2, 0.2, 0.05);
+        level.sendParticles(ParticleTypes.ENCHANTED_HIT, pos.x, pos.y, pos.z, 5, 0.3, 0.3, 0.3, 0.1);
+        level.sendParticles(ParticleTypes.CRIT, pos.x, pos.y, pos.z, 3, 0.2, 0.2, 0.2, 0.05);
     }
 
     public static void clearPlayerState(UUID playerUUID) {

@@ -45,14 +45,14 @@ public class CosmicCrossSlash {
             double x = pos.x + Math.cos(angle) * radius;
             double z = pos.z + Math.sin(angle) * radius;
             double y = pos.y + 1.0 + Math.sin(angle * 4.0) * 0.5;
-            level.sendParticles(ParticleTypes.ENCHANT, x, y, z, 1, 0.0, 0.0, 0.0, 0.02);
-            level.sendParticles(ParticleTypes.ENCHANTED_HIT, x, y, z, 2, 0.1, 0.1, 0.1, 0.5);
+            level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, 0.0, 0.0, 0.0, 0.02);
+            level.sendParticles(ParticleTypes.ENCHANT, x, y, z, 2, 0.1, 0.1, 0.1, 0.5);
         }
 
         for (int i = 0; i < 20; i++) {
             double distance = (double) i * 0.3;
             Vec3 particlePos = pos.add(lookAngle.scale(distance)).add(0.0, 1.0, 0.0);
-            level.sendParticles(ParticleTypes.SONIC_BOOM, particlePos.x, particlePos.y, particlePos.z, 1, 0.2, 0.2, 0.2, 0.02);
+            level.sendParticles(ParticleTypes.GLOW, particlePos.x, particlePos.y, particlePos.z, 1, 0.2, 0.2, 0.2, 0.02);
         }
     }
 
@@ -65,8 +65,8 @@ public class CosmicCrossSlash {
                 double x = center.x + Math.cos(angle) * distance;
                 double z = center.z + Math.sin(angle) * distance;
                 double y = center.y + 1.0;
-                level.sendParticles(ParticleTypes.ENCHANT, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
-                level.sendParticles(ParticleTypes.LARGE_SMOKE, x, y, z, 1, 0.0, 0.0, 0.0, 0.02);
+                level.sendParticles(ParticleTypes.END_ROD, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y, z, 1, 0.0, 0.0, 0.0, 0.02);
             }
         }
     }
@@ -75,11 +75,11 @@ public class CosmicCrossSlash {
         for (int i = -5; i <= 5; i++) {
             double offset = (double) i * 0.5;
             Vec3 pos1 = center.add(offset, 1.0 + (double) Math.abs(i) * 0.1, offset);
-            level.sendParticles(ParticleTypes.FLASH, pos1.x, pos1.y, pos1.z, 1, 0.0, 0.0, 0.0, 0.0);
-            level.sendParticles(ParticleTypes.ENCHANT, pos1.x, pos1.y, pos1.z, 3, 0.1, 0.1, 0.1, 0.05);
+            level.sendParticles(ParticleTypes.EXPLOSION, pos1.x, pos1.y, pos1.z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.END_ROD, pos1.x, pos1.y, pos1.z, 3, 0.1, 0.1, 0.1, 0.05);
             Vec3 pos2 = center.add(offset, 1.0 + (double) Math.abs(i) * 0.1, -offset);
-            level.sendParticles(ParticleTypes.FLASH, pos2.x, pos2.y, pos2.z, 1, 0.0, 0.0, 0.0, 0.0);
-            level.sendParticles(ParticleTypes.ENCHANT, pos2.x, pos2.y, pos2.z, 3, 0.1, 0.1, 0.1, 0.05);
+            level.sendParticles(ParticleTypes.EXPLOSION, pos2.x, pos2.y, pos2.z, 1, 0.0, 0.0, 0.0, 0.0);
+            level.sendParticles(ParticleTypes.END_ROD, pos2.x, pos2.y, pos2.z, 3, 0.1, 0.1, 0.1, 0.05);
         }
 
         level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, center.x, center.y + 1.0, center.z, 1, 0.0, 0.0, 0.0, 0.0);
@@ -89,7 +89,7 @@ public class CosmicCrossSlash {
             double radius = 2.0;
             double x = center.x + Math.cos(angle) * radius;
             double z = center.z + Math.sin(angle) * radius;
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, x, center.y + 1.0, z, 3, 0.1, 0.3, 0.1, 0.1);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, center.y + 1.0, z, 3, 0.1, 0.3, 0.1, 0.1);
         }
     }
 }
