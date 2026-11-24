@@ -61,6 +61,9 @@ public final class GalaxyFieldRenderer {
 
             if (!ShaderPackCompat.isShaderPackActive()) {
                 if (!activeZones.isEmpty()) {
+                    // 同理：圆盘走自己的 RenderType，但它的输出状态是默认的 MAIN_TARGET
+                    // （空的 setup/clear，不绑任何 framebuffer）⇒ 仍需显式绑回主目标
+                    WorldRenderCompat.bindMainTargetWithDepthTest();
                     if (CosmicShaders.COSMIC_SHADER != null) {
                         Minecraft mc = Minecraft.getInstance();
                         if (mc.level != null && mc.player != null) {

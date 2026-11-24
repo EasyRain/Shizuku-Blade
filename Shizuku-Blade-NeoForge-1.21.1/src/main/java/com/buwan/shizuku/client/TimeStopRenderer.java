@@ -38,6 +38,9 @@ public class TimeStopRenderer {
     public void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             if (!activeZones.isEmpty()) {
+                // 该阶段在 NeoForge 是在 fabulous 的 translucentTarget 里派发的，
+                // 必须显式绑回主 framebuffer 才能拿到场景深度（见 WorldRenderCompat）
+                WorldRenderCompat.bindMainTargetWithDepthTest();
                 Minecraft mc = Minecraft.getInstance();
                 Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
                 PoseStack poseStack = event.getPoseStack();

@@ -83,6 +83,22 @@
   - ⚠️ 客户端必须每 tick 调 `TimeStopScreenEffect.getInstance().tick()`（驱动 `updateStrength()`）；
     漏掉则 `currentStrength` 恒为 0，滤镜与雾色弱染全部不显示（26.1.2 曾漏，2026-11-24 补）。
 
+- **B8. NeoForge 1.21.1 的 `AFTER_TRANSLUCENT_BLOCKS` 与 Forge/Fabric **语义不同**，世界几何必须显式绑回主 framebuffer**
+  （`client/WorldRenderCompat.bindMainTargetWithDepthTest()`，时停球 / 囚笼球 / 星河领域三处调用）。
+  - 差异：NeoForge 用 `ClientHooks.dispatchRenderStage(RenderType, ...)` → `Stage.fromRenderType(renderType)`
+    在 `LevelRenderer.renderSectionLayer(RenderType.translucent())` **内部**、该 RenderType 的
+    `clearRenderState()` **之前**派发；而 `RenderType.translucent()` 的输出状态 `TRANSLUCENT_TARGET`
+    在 Fabulous 画质（`Minecraft.useShaderTransparency()`）下会把目标绑到 `LevelRenderer.translucentTarget`。
+    那个 FBO 的深度只是 `copyDepthFrom(main)` 的一次性拷贝 ⇒ 在其中画球会**丢掉场景深度、不再被方块遮挡**。
+  - 佐证：NeoForge 自己的 javadoc 就写着 *"although this is called within a fabulous graphics target,
+    it does not function properly in many cases"*。
+  - 对照：作者原版 Forge 1.20.1 与 Fabric 端（`WorldRenderEvents.AFTER_TRANSLUCENT`）都在
+    `renderSectionLayer` **返回之后**、主目标已绑回时才派发 ⇒ 没这个问题。
+  - 另一个坑：`RenderStateShard.MAIN_TARGET` 的 setup/clear **都是空操作**，所以「自定义 RenderType 用了默认
+    输出状态」并不等于「会绑回主目标」—— 星河领域的圆盘就因此同病。
+  - 修法：绘制前 `getMainRenderTarget().bindWrite(false)` + 显式 `enableDepthTest()`/`depthFunc(LEQUAL)`。
+    非 Fabulous 画质下两步都幂等，可无条件调用。
+
 ---
 
 ## C. 数据包 / 资源格式（1.21.1 硬性要求，原版更新后**每次都要重做**）
