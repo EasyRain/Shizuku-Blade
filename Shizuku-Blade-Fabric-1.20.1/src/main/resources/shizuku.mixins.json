@@ -38,7 +38,8 @@
     "ClientLevelAccessor",
     "EntityRenderDispatcherMixin",
     "JudgmentPlayerPoseMixin",
-    "UnleashedInputMixin"
+    "UnleashedInputMixin",
+    "FogColorMixin"
   ],
   "injectors": {
     "defaultRequire": 1

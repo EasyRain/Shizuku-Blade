@@ -188,6 +188,18 @@ public final class JudgmentVisuals {
         return Mth.clamp(tick / 5, 0, 1) * Mth.clamp((expiry(cast) - tick) / 5, 0, 1);
     }
 
+    /**
+     * 雾沉浸强度（0~1）：站在域球内时把雾色往暗红拉（= NeoForge 的
+     * {@code ViewportEvent.ComputeFogColor}，见 {@code mixin/FogColorMixin}）。
+     */
+    public static float fogImmersion(float partial) {
+        try {
+            return immersion(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition(), partial) * 0.94F;
+        } catch (Throwable t) {
+            return 0.0F;
+        }
+    }
+
     private static float immersion(Vec3 eye, float partial) {
         if (casts.isEmpty() || currentLevel == null || !SCREEN_EFFECT.get()) return 0;
         float amount = 0;
