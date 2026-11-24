@@ -43,7 +43,8 @@
     "AbstractContainerScreenTooltipMixin",
     "JudgmentPlayerPoseMixin",
     "UnleashedInputMixin",
-    "MouseHandlerMixin"
+    "MouseHandlerMixin",
+    "FogRendererJudgmentMixin"
   ],
   "injectors": {
     "defaultRequire": 1
