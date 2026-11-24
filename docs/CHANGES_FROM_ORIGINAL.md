@@ -64,9 +64,24 @@
 - **B2. 领域 / AoE 伤害源一律用 `magic()` 或 `indirectMagic(null, player)`，禁止 `fellOutOfWorld()`**（见 A2 的假人原因）。
 - **B3. 不移植上游 `agent\*` 与 `core\*` 的 ASM / java-agent 血量体系**：上游有 `agent/AgentBootstrap`、`AgentHealthTransformer`、`core/HealthLockManager`、`HealthModify`、`AllReturnPlugin` 等（ASM 改血量/返回值），1.21.1 不适用 → 本移植用公共 API 重写（`core/UltimateEntityRemover` 等）。**重移植时不要照搬这些类。**
 - **B4. 抹除（ymsa）体系不照搬上游 19 个 mixin**：改用事件 API —— `discard()` + `ServerChunkCache.removeEntity(entity)`；防重生 `EntityJoinLevelEvent`；tick 抑制 `EntityTickEvent.Pre`；掉落清理 `LivingDropsEvent`；周期净化 `ServerTickEvent.Post`；客户端 `ClientLevel.removeEntity(id, RemovalReason)`（public）+ `YmsaForceRemovePacket` + `NoopRenderer` 换渲染器。仅保留 1 个 mixin（`LivingEntityAccessor` 暴露 `DATA_HEALTH_ID`）。**细节见 `PORTING_GUIDE.md`。**
-- **B5. `PhantomSlashPacket` / `PhantomSlashInput` 是作者取消左键幻影斩后的遗留死代码，不注册**（不是漏注册，别"补"回去）。
+- **B5. `PhantomSlashPacket` / `PhantomSlashInput` 是作者取消左键幻影斩后的遗留死代码，不注册、不接线**（不是漏注册，别"补"回去）。
+  - 依据：作者 Forge 1.20.1 与 **3.7.0 反编译**里 `PhantomSlashInput` 都从未被引用、`PhantomSlashPacket` 都没注册
+    （`.ref/decompiled/own-mods/modrinth37`）；NeoForge 1.21.1 的 `PacketHandler` 里也留了同样的注释。
+  - ⚠️ 2026-11-24 **统一**：三个 Fabric 端此前自己接了这条线（`PhantomSlashPacket` 注册 + 接收器 +
+    `PhantomSlashInput.tick()`），与 B5 和作者原版不符，**已全部移除**（四个端现在一致）。
+  - ⚠️ 排查教训：做「缺失接线」审计时**参照必须是作者原版**，不能拿自家移植端当参照 ——
+    自家端自己就可能是错的（本次先拿 1.21.1 Fabric 当参照，误判 `PhantomSlashInput.tick()` 为"缺失"）。
 - **B6. 星河刀（mosmicblade）Tooltip 视觉 = 原版设计，必须照原版**：**全透明背景（不画底板）+ 纯白边框 + `ColorHelper.ShizukuBlade` 调色板流动渐变文字**（`client/tooltip/ShizukuTooltipRenderer.java` 的 `renderCosmicTooltipBackground` / `ColorHelper.ShizukuBlade`）。
   ⚠️ **迁移时曾搞错**（改成 Cosmic 调色板 + 加半透明底板），最后才纠正回原版 —— 重移植时**不要用 Cosmic 调色板、不要加半透明底板**。
+
+- **B7. 时停的屏幕滤镜 = 只画颜色层，不画暗角**（`client/TimeStopScreenEffect.java`）。
+  - 颜色层：原版挂 `RenderGuiOverlayEvent.Pre`，该事件**按 GUI 图层逐个触发**（Forge 注册了
+    `VanillaGuiOverlay` 全部 26 个且不过滤）⇒ 原版实际每帧叠加 26 次，满强度≈74%。我们按
+    累积等效公式 `a_eff = 1-(1-a)^N` 单次绘制，**N 取 13（原版一半）**，见 `OVERLAY_PASSES`。
+  - 暗角：**停用**（`VIGNETTE_ENABLED = false`，方法保留）。原版暗角实际也没生效（边缘累加≈99% 被颜色层盖住），
+    且我们单次绘制后水平渐变只能用阶梯色柱逼近、画得不规范 ⇒ 用户 2026-11-24 决定不用。
+  - ⚠️ 客户端必须每 tick 调 `TimeStopScreenEffect.getInstance().tick()`（驱动 `updateStrength()`）；
+    漏掉则 `currentStrength` 恒为 0，滤镜与雾色弱染全部不显示（26.1.2 曾漏，2026-11-24 补）。
 
 ---
 

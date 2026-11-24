@@ -48,7 +48,6 @@ public class ShizukuFabricClient implements ClientModInitializer {
             FieldActivateInput.tick(client);
             // ---- 3.8.0 审判：键位 / 幻影斩输入 / 视觉 / 时停屏幕特效 ----
             com.buwan.shizuku.client.JudgmentControls.tick();
-            com.buwan.shizuku.client.PhantomSlashInput.tick();
             com.buwan.shizuku.client.JudgmentVisuals.tick();
             com.buwan.shizuku.client.TimeStopScreenEffect.getInstance().tick();
             // SA 时间轴（客户端侧只管动画/粒子，与服务端各一份互不影响）

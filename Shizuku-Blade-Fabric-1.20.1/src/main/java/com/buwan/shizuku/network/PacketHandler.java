@@ -32,11 +32,8 @@ public class PacketHandler {
     /** 服务端接收（common init 调用）。 */
     public static void registerServer() {
         registerUnleashedInput();
-        ServerPlayNetworking.registerGlobalReceiver(PhantomSlashPacket.ID,
-                (srv, player, handler, buf, sender) -> {
-                    PhantomSlashPacket packet = PhantomSlashPacket.read(buf);
-                    srv.execute(() -> packet.handle(player));
-                });
+        // §B5：PhantomSlashPacket / PhantomSlashInput 是作者取消左键幻影斩后的遗留死代码，
+        // 原版（Forge 1.20.1）与 3.7.0 都从未注册/调用 ⇒ 这里保持一致，不注册、不接线。
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.ID,
                 (srv, player, handler, buf, sender) -> srv.execute(() -> {
                     boolean mosmic = CapabilitySlashBlade.BLADESTATE.maybeGet(player.getMainHandItem())

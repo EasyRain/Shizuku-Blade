@@ -42,6 +42,19 @@ public class TimeStopScreenEffect {
         return 1.0F - (float) Math.pow(1.0F - base, OVERLAY_PASSES);
     }
 
+
+    /**
+     * 暗角是否启用：<b>关</b>（用户 2026-11-24 决定，代码保留但不用）。
+     *
+     * <p>理由：① 原版的暗角其实也没生效 —— 它与颜色层同挂 {@code RenderGuiOverlayEvent.Pre}，
+     * 四条渐变四边形的边缘 alpha 累加 26 次≈99%、中心为 0，观感完全被颜色层盖住；
+     * ② 我们按等效 alpha 单次绘制后，它的水平渐变只能靠阶梯色柱逼近，画得不规范
+     * （26.1 端尤其明显）。</p>
+     *
+     * <p>想开回来把常量改成 {@code true} 即可（{@link #renderVignette} 原样保留）。</p>
+     */
+    private static final boolean VIGNETTE_ENABLED = false;
+
     public static TimeStopScreenEffect getInstance() {
         return INSTANCE;
     }
@@ -58,7 +71,9 @@ public class TimeStopScreenEffect {
                 int width = mc.getWindow().getGuiScaledWidth();
                 int height = mc.getWindow().getGuiScaledHeight();
                 this.renderColorOverlay(width, height, strength);
-                this.renderVignette(width, height, strength);
+                if (VIGNETTE_ENABLED) {
+                    this.renderVignette(width, height, strength);
+                }
             }
         }
     }

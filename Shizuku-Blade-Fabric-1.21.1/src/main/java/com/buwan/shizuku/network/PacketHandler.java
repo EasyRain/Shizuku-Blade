@@ -40,7 +40,8 @@ public class PacketHandler {
         PayloadTypeRegistry.playS2C().register(JudgmentPosePacket.TYPE, JudgmentPosePacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(UnleashedInputPacket.TYPE, UnleashedInputPacket.STREAM_CODEC);
-        PayloadTypeRegistry.playC2S().register(PhantomSlashPacket.TYPE, PhantomSlashPacket.STREAM_CODEC);
+        // §B5：PhantomSlashPacket / PhantomSlashInput 是作者取消左键幻影斩后的遗留死代码，
+        // 原版（Forge 1.20.1）与 3.7.0 都从未注册/调用 ⇒ 这里保持一致，不注册、不接线。
 
         // C2S：Shift+X 切换星河领域（服务端校验手持 mosmicblade）
         ServerPlayNetworking.registerGlobalReceiver(FieldActivatePacket.TYPE, (payload, context) ->
@@ -65,14 +66,6 @@ public class PacketHandler {
                     }
                 }));
 
-        // C2S：幻影斩（只有手持「星河」时服务端才放行）
-        ServerPlayNetworking.registerGlobalReceiver(PhantomSlashPacket.TYPE, (payload, context) ->
-                context.server().execute(() -> {
-                    ServerPlayer player = context.player();
-                    if (player != null) {
-                        payload.handle(player);
-                    }
-                }));
     }
 
     public static void sendToServer(CustomPacketPayload packet) {
