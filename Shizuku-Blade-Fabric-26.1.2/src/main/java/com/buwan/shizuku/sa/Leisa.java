@@ -1,6 +1,5 @@
 package com.buwan.shizuku.sa;
 
-import com.buwan.shizuku.util.DamageCalculator;
 import mods.flammpfeil.slashblade.slasharts.SakuraEnd;
 import mods.flammpfeil.slashblade.util.KnockBacks;
 import net.minecraft.core.BlockPos;
@@ -13,6 +12,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 public class Leisa {
+    /** 3.8.0 平衡：固定伤害倍率（替代集中力加成的浮动计算）。 */
+    private static final float DAMAGE_SCALE = 1.50F;
     private static final int PURPLE_COLOR = 10040319;
     private static final Identifier[] LEISA_SOUNDS = new Identifier[]{
             Identifier.fromNamespaceAndPath("shizuku", "leisa_sound1"),
@@ -23,7 +24,7 @@ public class Leisa {
     public static void doLeisaSlash(LivingEntity player) {
         if (!player.level().isClientSide()) {
             playLeisaSound(player);
-            float damage = DamageCalculator.calculateRefinedDamage(player, 1.0F);
+            float damage = DAMAGE_SCALE;
             SakuraEnd.doSlash(player, 0.0F, PURPLE_COLOR, new Vec3(0.0, 0.2, 0.0), true, true, damage * 0.8F, KnockBacks.cancel);
             SakuraEnd.doSlash(player, -45.0F, PURPLE_COLOR, new Vec3(0.0, 0.1, 0.0), true, true, damage, KnockBacks.cancel);
             SakuraEnd.doSlash(player, 45.0F, PURPLE_COLOR, new Vec3(0.0, 0.1, 0.0), true, true, damage, KnockBacks.cancel);

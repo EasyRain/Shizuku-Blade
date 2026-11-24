@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Shizukusa {
+    /** 3.8.0 平衡：固定伤害倍率（替代集中力加成的浮动计算）。 */
+    private static final float DAMAGE_SCALE = 1.20F;
     // 音效资源位置数组（直接使用注册名）
     private static final Identifier[] LEISA_SOUNDS = {
             shizuku.LEISA_SOUND1.getId(),
@@ -82,7 +84,7 @@ public class Shizukusa {
                 if (drive != null) {
                     drive.setSilent(true);
                     float refinedDamage = DamageCalculator.calculateRefinedDamage(playerIn, 1.0F);
-                    drive.setDamage(refinedDamage);
+                    drive.setDamage(refinedDamage * DAMAGE_SCALE);
                 }
             }
 
