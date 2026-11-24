@@ -67,7 +67,17 @@
   而提给作者的两次都在 **2026-11-22**、且是在**作者的 Forge 代码里重新实现**的：
   PR #3（`77380cb`）引入 `U_Fade` + 200ms 延迟 + 250ms 淡入，PR #6（`3889df1`）把它调成 200ms + 150ms。
   ⇒ **不是"我们的 PR 被改了"，而是同一个修复做了两遍、两处各自命名与取参数、之后没互相同步**。
-  （未统一，见 §E 的结论；要统一时以「上游已合并的那版」为准，即 `U_Fade` + 200ms 延迟 + 150ms 淡入。）
+  - **决定（2026-11-24）**：统一方向 = **以上游那份为准** ⇒ `U_FadeIn` → **`U_Fade`**、
+    `FADE_MS` `100` → **`150`**（延迟仍保持我们现有的显式 `FADE_DELAY_MS = 200`，行为等价）。
+    **但用户要求「不重新构建」**，代码改动**留到下次发版一起做**（差异只有 50ms 淡入手感，不值得单独出包）。
+  - ⏳ **下次发版前必做**（四端逐个改；**各端资源命名空间不一致，最容易漏**）：
+    | 端口 | 要改的文件 |
+    | --- | --- |
+    | NeoForge 1.21.1 | `client/SynthwaveShaderManager.java` + `assets/shizuku/shaders/core/synthwave.fsh` + `…/synthwave.json` |
+    | Fabric 1.21.1 | 同上 3 个 **+ `assets/minecraft/shaders/core/synthwave.{fsh,json}`**（同名额外的 minecraft 命名空间副本） |
+    | Fabric 1.20.1 | `SynthwaveShaderManager.java` + `assets/shizuku/shaders/core/synthwave.fsh` + `assets/minecraft/shaders/core/synthwave.{fsh,json}`（**该端没有 shizuku 命名空间的 .json**） |
+    | Fabric 26.1.2 | `SynthwaveShaderManager.java` + `assets/shizuku/shaders/core/synthwave.{fsh,json}` + **`assets/shizuku/shaders/post/synthwave.fsh`**（26.1 的后处理变体） |
+    改完必须确认 **uniform 名在 Java + 所有 .fsh/.json 里一致**，否则**静默失效**（不报错、只是不淡入）。
 
 ### A4. 26.1.2 审判三段的世界几何渲染挂点 ——【26.1 渲染架构强制偏离，重移植到 26.x 时必须保留】【上游状态：不适用（26.1 才有）】
 - **上游（1.20.1/1.21.1）**：域球 / 裂缝 / 落剑全部画在 `RenderLevelStageEvent.AFTER_ENTITIES`（单层 main 目标，先画的东西已在 main 的颜色+深度里）。
