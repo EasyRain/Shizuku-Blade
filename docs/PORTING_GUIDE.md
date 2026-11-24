@@ -1,5 +1,12 @@
 # Shizuku-Blade 3.4.0 → 1.21.1 移植指南（子代理必读）
 
+> **定位**：本文件是**迁移 / 编译修复实录** —— Forge 1.20.1 → NeoForge 1.21.1、Fabric 1.20.1 / 1.21.1 / 26.1.2，
+> 覆盖 3.4.0 → 3.8.0 的同步过程。
+> **有意偏离原版的行为改动、行为约定、已知限制、回馈上游的 PR 记录，都不在这里** ——
+> 见同目录 [`CHANGES_FROM_ORIGINAL.md`](CHANGES_FROM_ORIGINAL.md)。
+>
+> 下面「目标与目录」是最初（3.4.0 → NeoForge 1.21.1）时写的，路径信息仍然有效。
+
 ## 目标与目录
 - 反编译源码（1.20.1，Forge，SRG 混淆名）：`D:\DshWorkSpace\Minecraft\.ref\decompiled\own-mods\modrinth34\src\com\buwan\shizuku\`
 - 移植目标工程（NeoForge 21.1.228 / Minecraft 1.21.1 / Java 21 / **Mojang 映射名**）：`D:\DshWorkSpace\Minecraft\Shizuku-Blade\Shizuku-Blade-NeoForge-1.21.1\src\main\java\com\buwan\shizuku\`

@@ -8,15 +8,23 @@
 > - **机械 API 迁移**（Forge→NeoForge、SRG→Mojmap、编译/运行报错修复、19 mixin→事件重构、网络包 等）→ 见同目录 `PORTING_GUIDE.md`（= 迁移/运行修复实录）。
 > - **通用跨项目经验** → `D:\DshWorkSpace\Minecraft\WORKSPACE_MEMORY.md` 通用区（§11 Mixin、§15 资源目录/数据包、§20 渲染着色器、§21 光影、§16 反编译）。
 >
-> **上游基线（反编译源码，重移植时对照用）**：`.ref\decompiled\own-mods\modrinth34`(3.4.0) / `modrinth35`(3.5.0) / `modrinth36`(3.6.0) / `modrinth36fix2` / `modrinth37`(3.7.0，**当前基线**)。
-> 原版 jar 在 `minecraft\.minecraft\versions\1.20.1-Forge\mods\shizuku-blade-<版本>.jar`。
-> 本项目**非 git**，本文件仅本地留存。
+> **上游基线（重移植时对照用）**
+> - **已发布版本的反编译**：`.ref\decompiled\own-mods\modrinth34`(3.4.0) / `modrinth35`(3.5.0) / `modrinth36`(3.6.0) / `modrinth36fix2` / `modrinth37`(3.7.0)。
+> - **作者当前源码**（Forge 1.20.1，跟踪 `upstream/master`）：工作区内的 `Shizuku-Blade-Forge-1.20.1/`。
+>   该克隆**没配代理**，拉取前先 `git config http.https://github.com.proxy http://127.0.0.1:7890`。
+>   写作时基线提交 = **`52f65ad`**（= PR #7 合并后的 master）。
+> - 原版 jar 在 `minecraft\.minecraft\versions\1.20.1-Forge\mods\shizuku-blade-<版本>.jar`。
+>
+> **仓库**：本移植仓库 = `EasyRain/Shizuku-Blade`（分支 `main`，**本文件已入库**）；
+> 作者仓库 = `BBuWan22/Shizuku-Blade`（`master`）。我们回馈给上游的改动见 **§E**。
+>
+> **文档索引**：本文件（有意偏离清单）· `PORTING_GUIDE.md`（迁移/编译修复实录）· `RELEASE_v3.8.0.md`（发布说明）。
 
 ---
 
 ## A. 有意行为改动 / 新增功能（原版更新后必须保留）
 
-### A1. 光影（Iris / Oculus）兼容 ——【新增功能，原版没有】
+### A1. 光影（Iris / Oculus）兼容 ——【新增功能，原版没有】【上游状态：未回馈，本移植专有】
 原版 1.20.1 没有光影兼容逻辑；本移植新增，**重移植时上游不会带过来，必须重做**。
 
 - 新增类 **`client/ShaderPackCompat.java`**：`isShaderPackActive()` = `ModList.get().isLoaded("iris")||isLoaded("oculus")` + 反射 `net.irisshaders.iris.api.v0.IrisApi.getInstance().isShaderPackInUse()`（oculus 用 `OculusApi`）。不引硬依赖、Method 缓存、结果不缓存。
@@ -26,14 +34,14 @@
   - 星河领域 GUI 重绘要 `prepareCosmicRender(opacity, fixedView=false)` 沿用玩家视角，别被物品栏的固定视角逻辑影响。
 - 另：`client/ShizukuClientSetup.java` 为客户端注册入口（迁移期新增）。
 
-### A2. 假人（dummmmmmy）兼容：领域伤害源改 `magic()` ——【修复原版 bug】
+### A2. 假人（dummmmmmy）兼容：领域伤害源改 `magic()` ——【修复原版 bug】【上游状态：未回馈】（任何 PR 都没碰过 `sa/GalaxyField.java`）
 - **上游写法**（`modrinth37` `sa/GalaxyField.java:92`）：`target.hurt(target.damageSources().fellOutOfWorld(), damage)`
 - **我们的写法**（`sa/GalaxyField.java` `applyDamage`）：`target.hurt(target.damageSources().magic(), damage)`
 - **原因**：假人 mod 的 `hurt()` 对 `fellOutOfWorld` 来源**直接 `remove()`**（无伤害、无掉落）→ 领域开启后**假人原地消失**。
   `magic()` 同样无视护甲、不产生仇恨，且假人可正常吸收并显示伤害。
 - `sa/GalaxyArc.java` 用的 `indirectMagic(null, player)` **与上游一致**，属原版写法、无需改。
 
-### A3. 有名 SA 合成波特效加「淡入」 ——【修复上游「脚下持续闪烁」bug】
+### A3. 有名 SA 合成波特效加「淡入」 ——【修复上游「脚下持续闪烁」bug】【上游状态：**已回馈 —— PR #6 已合并**，但两边实现不同，见下】
 - **上游表现**：右键蓄力（有名 SA）开启合成波特效时**没有淡入**，一开就是满强度；玩家**快速连点右键**会让特效反复开关 → **在脚下持续闪烁**（上游 bug，原作者未修）。
 - **我们的做法**：给合成波加 `U_FadeIn` 淡入 —— 开启后**前 0.2s 完全透明**（`FADE_DELAY_MS=200`），随后 **0.1s 内淡入**（`FADE_MS=100`）→ 快速连点不可见、不再闪。
 - **改动落在 3 个文件，重移植时别只搬 Java 漏了 shader**：
@@ -42,7 +50,17 @@
   3. `assets/shizuku/shaders/core/synthwave.json`：uniform 列表加 `{"name":"U_FadeIn","type":"float","count":1,"values":[0.0]}`。
 - **触发逻辑没改**：`client/YmsaChargeHandler.java`（主手拔刀剑 + `player.isUsingItem()` + `getTicksUsingItem() > 0` + 该刀 SA = `SASlashArtRegistry.Ymsa`）**与上游逐行一致**，改的只是渲染淡入。
 
-### A4. 26.1.2 审判三段的世界几何渲染挂点 ——【26.1 渲染架构强制偏离，重移植到 26.x 时必须保留】
+- ⚠️ **同一功能、两边实现不同（同步上游时整套换，别混用）**
+
+  | | 延迟 | 淡入时长 | uniform 名 |
+  | --- | --- | --- | --- |
+  | **本移植四端** | `FADE_DELAY_MS = 200` | `FADE_MS = 100` | **`U_FadeIn`**（Java 设置处 + `synthwave.fsh` + `synthwave.json` 三处一致） |
+  | **上游（PR #6 合并后）** | 隐式（延迟期内 `fade` 保持 0） | `FADE_MS = 150` | **`U_Fade`** |
+
+  ⇒ 两边改的是同一处，但**常量与 uniform 名都不同**：同步上游那版时必须 Java + `.fsh` + `.json` **一起换**；
+  只换一半会**静默失效**（uniform 名不匹配不会报错，只是特效不淡入）。
+
+### A4. 26.1.2 审判三段的世界几何渲染挂点 ——【26.1 渲染架构强制偏离，重移植到 26.x 时必须保留】【上游状态：不适用（26.1 才有）】
 - **上游（1.20.1/1.21.1）**：域球 / 裂缝 / 落剑全部画在 `RenderLevelStageEvent.AFTER_ENTITIES`（单层 main 目标，先画的东西已在 main 的颜色+深度里）。
 - **26.1.2 的差异**：main pass 变成分层帧图 —— 实体/物品/粒子/云/天气各有独立 target，由 `minecraft:transparency` 合成链按**每像素深度排序**混合，且只把**颜色**写回 main（深度留在各层）。把几何画在层内（`AFTER_TRANSLUCENT_TERRAIN`/`END_MAIN`）会被卷进分层目标的预乘合成，观感是「被天空盖住、只剩 20~30% 不透明」。
 - **我们的做法（2026-11-24，删掉阶段一的全屏后处理方案后确立）**：
@@ -101,7 +119,7 @@
     | --- | --- | --- | --- | --- |
     | 1.20.1 Fabric | 0.5.13 | ❌ 无该 mixin（老架构） | 裸绘制 | ✅ 环境状态仍是原版的 |
     | 1.21.1 NeoForge | 0.8.13 | ✅ | 裸绘制 | ❌ 曾无遮挡 |
-    | 1.21.1 Fabric | 0.8.13 | ✅ | 裸绘制 | ⚠️ **机理相同，极可能同样有问题（待用户确认）** |
+    | 1.21.1 Fabric | 0.8.13 | ✅ | 裸绘制 | ✅ 用户实测**未复现**，但机理相同 ⇒ 已同样补上显式声明（`c2b650e`） |
     | 26.1.2 Fabric | 0.9.2 | ✅ | `RenderTypes.debugQuads().draw(...)` | ✅ 自己走 RenderType，免疫 |
   - 关键对照（用户实测）：**星河领域的圆盘一直正常** —— 它是三者中唯一用**自定义 RenderType**
     绘制的（`COSMIC_RENDER_TYPE` 显式 `setDepthTestState(LEQUAL_DEPTH_TEST)`）。
@@ -113,9 +131,9 @@
     `AFTER_TRANSLUCENT_BLOCKS` *"is called within a fabulous graphics target"*）。
   - **教训**：装了 Sodium/Iris 时，**原版 `RenderType` 的状态语义可能整个不成立**；
     世界阶段画任何东西都要自己声明状态。诊断这类问题必须去看 Sodium 的 mixin，而不是只读 vanilla 源码。
-  - 遗留待确认：**光影(Iris)开启时**该阶段的 framebuffer 由 Iris 管理，
-    `bindWrite(主目标)` 是否仍然合适需要实测；如有问题就把它改成「仅在无光影时执行」
-    （`ShaderPackCompat.isShaderPackActive()` 已可用）。
+  - ✅ **光影下已实测**（2026-11-24）：用户确认 NeoForge 端两个球在 shaderpack 开启时显示正常
+    ⇒ `bindWrite(主目标)` 在光影下也合适，**保持不动**。若日后光影下出现异常，再考虑改成
+    「仅在无光影时执行」（`ShaderPackCompat.isShaderPackActive()` 现成可用）。
 
 - **B9. 光影(Iris)下的自定义 RenderType / 管线：1.21.1 无解，26.1.2 可以注册。**
   - **1.21.1（Iris 1.8.14）：公开 API 做不到。** 反编译 `iris-neoforge-1.8.14` 的
@@ -173,8 +191,38 @@
 
 ---
 
+## E. 上游回馈记录（PR）
+
+我们把一部分修复回馈给了作者（`BBuWan22/Shizuku-Blade`）。**维护时照此表判断「这条改动上游有没有」**。
+
+> ⚠️ 这些 PR 都是提在**作者的 1.20.1 Forge 代码**上的（开发分支在对照工程 `Shizuku-Blade-Forge-1.20.1/` 里），
+> **不等于我们四个移植端已有同样实现** —— 「上游有了」与「我们端有了」要分开核对。
+> 作者 `master` 基线（写作时）= **`52f65ad`**。查询：
+> `gh pr list --repo BBuWan22/Shizuku-Blade --state all`（需 `GH_TOKEN` + `HTTPS_PROXY=http://127.0.0.1:7890`）。
+
+| PR | 状态 | 标题 | 改动文件（节选） | 与本清单的关系 |
+| --- | --- | --- | --- | --- |
+| [#2](https://github.com/BBuWan22/Shizuku-Blade/pull/2) | ✅ 已合并 | 还原 3.7.0 源码：从已发布 jar 反编译 + 中文注释 | 100 个文件（整车源码） | 工程性，无行为改动 |
+| [#3](https://github.com/BBuWan22/Shizuku-Blade/pull/3) | ✅ 已合并 | 修复：图标跟随视角闪烁 / 合成波触发 / 注入鲁棒性 / 线程安全 / JEI 与配方 id | `SynthwaveShaderManager` / `YmsaChargeHandler` / `CosmicBladeRenderer` / `DriveRendererMixin` / `EntityAbstractSummonedSwordMixin` / JEI | 与 **A3**、「召唤物兜底」重叠 |
+| [#4](https://github.com/BBuWan22/Shizuku-Blade/pull/4) | ✅ 已合并 | i18n：`en_us.json` 里 37 条中文补成英文 | `assets/shizuku/lang/en_us.json` | §C 资源/语言相关（见发布约定 §4） |
+| [#5](https://github.com/BBuWan22/Shizuku-Blade/pull/5) | ✅ 已合并 | 清理调试输出/死代码 + 游戏内配置页（含 Mods 列表「配置」按钮与可调喵石概率） | `client/screen/JudgmentScreen` / `CosmicShaders` / `core/*` 等 22 个 | 新增功能（上游独有，未移植回四端） |
+| [#6](https://github.com/BBuWan22/Shizuku-Blade/pull/6) | ✅ 已合并 | 合成波补 200ms 延迟，替掉「按住 10 tick 才出」的阈值 | `SynthwaveShaderManager` / `YmsaChargeHandler` | **A3**（两边实现不同，见 A3 的表） |
+| [#7](https://github.com/BBuWan22/Shizuku-Blade/pull/7) | ✅ 已合并 | 落剑朝向在施法瞬间锁定（不再跟着鼠标跑） | `network/JudgmentImpactPacket` / `sa/Ymsa` | 审判落剑（本清单 A4 是 26.1 渲染挂点，不同事） |
+| [#8](https://github.com/BBuWan22/Shizuku-Blade/pull/8) | 🕒 待合并 | #7 的朝向锁定没生效（工厂方法丢参数）+ 施法位置一起锁死 | 同上两个文件 | 同上；分支 `fix/judgment-locked-origin`(`671dd24`) |
+| [#9](https://github.com/BBuWan22/Shizuku-Blade/pull/9) | 🕒 待合并 | 模组 boss 走正常死亡 + 按 Shift 才抹除 + 假人点名收尾 | `sa/BossCompat`(新) / `sa/Ymsa` / `YmsaRenderKiller` / `mixin/LivingEntityAccessor` / `JudgmentImpactPacket` | 抹除（ymsa）体系；分支 `feat/judgment-normal-death`(`369999f`) |
+
+**结论（写作时）**：
+- **A1（光影兼容）/ A2（假人 magic）/ A4（26.1 审判挂点）/ B8（Sodium 深度状态）/ B9、B10** —— 任何 PR 都没碰过
+  （已核对 `sa/GalaxyField.java`、`client/ShaderPackCompat.java`、`client/WorldRenderCompat.java` 均不在任何 PR 里）
+  ⇒ **这些是上游没有的，重移植时必须自己重做**。
+- **A3 是唯一「上游已合并、但两边实现不同」的**（合流时对齐 PR #6）⇒ 见 A3 表。
+- #8 / #9 合并后，把对应条目改成 `【已回馈 PR #x】`，并回来更新本表的状态列。
+
+---
+
 ## 维护说明
 
 - 每次「同步上游新版本」或自行加改动后，**当轮追加到本清单**（写清：改了什么 / 哪个文件 / 为什么 / 上游原本怎么写）。
 - 追加前先确认它确实**偏离了上游**（拿 `.ref\decompiled\own-mods\modrinthXX` 对照）；纯 API 适配写进 `PORTING_GUIDE.md`，别混进来。
-- 本项目非 git，本文件是本地档案，不进任何仓库。
+- 本文件**已入库**（`EasyRain/Shizuku-Blade` 的 `docs/CHANGES_FROM_ORIGINAL.md`）；`PROJECT_MEMORY.md` 才是本地档案（已 gitignore，不进仓库）。
+- **回馈上游**：凡是我们先修好、又提给作者的改动，合并后要回来在对应条目上标 `【上游状态：已回馈 PR #x】`，并同步 §E 的 PR 表 —— 否则下次同步上游会重复劳动，或把上游早就有的东西当成「我们的偏离」。
