@@ -6,7 +6,7 @@ uniform sampler2D MainDepthSampler;
 uniform mat4 U_InverseProjectionMatrix;
 uniform mat4 U_InverseViewMatrix;
 uniform vec3 U_CameraPosition;
-uniform float U_FadeIn;
+uniform float U_Fade;
 
 in vec2 texCoord;
 out vec4 fragColor;
@@ -183,5 +183,5 @@ void main() {
 
     synthColor += scanColor;
 
-    fragColor = vec4(synthColor, alphaMask * U_FadeIn);
+    fragColor = vec4(synthColor, alphaMask * U_Fade);
 }

@@ -6,7 +6,7 @@ uniform sampler2D MainDepthSampler;
 uniform mat4 U_InverseProjectionMatrix;
 uniform mat4 U_InverseViewMatrix;
 uniform vec3 U_CameraPosition;
-uniform float U_FadeIn;
+uniform float U_Fade;
 
 in vec2 texCoord;
 out vec4 fragColor;
@@ -183,6 +183,6 @@ void main() {
 
     synthColor += scanColor;
 
-    // 1.21.1 专属淡入：快速连点右键时 U_FadeIn 停在极小值，特效几乎不可见，避免闪烁
-    fragColor = vec4(synthColor, alphaMask * U_FadeIn);
+    // 1.21.1 专属淡入：快速连点右键时 U_Fade 停在极小值，特效几乎不可见，避免闪烁
+    fragColor = vec4(synthColor, alphaMask * U_Fade);
 }

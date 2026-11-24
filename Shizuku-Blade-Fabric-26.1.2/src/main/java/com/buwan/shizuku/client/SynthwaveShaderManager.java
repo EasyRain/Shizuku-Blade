@@ -54,7 +54,7 @@ public final class SynthwaveShaderManager {
     /** 1.21.1 原版参数：时间流速×3；淡入延迟 200ms + 渐入 100ms（防快速连点闪烁）。 */
     private static final float SPEED_MULTIPLIER = 3.0F;
     private static final long FADE_DELAY_MS = 200L;
-    private static final long FADE_MS = 100L;
+    private static final long FADE_MS = 150L;
 
     private static boolean isSynthwaveEnabled;
     private static long animationStartTime;
@@ -99,7 +99,7 @@ public final class SynthwaveShaderManager {
             // ⚠️ 顺序必须与 fsh 的 SynthwaveConfig 块声明完全一致（std140 顺序布局）
             List<UniformValue> block = List.of(
                     uval("U_GameTime", "float", new JsonPrimitive(timeSeconds)),
-                    uval("U_FadeIn", "float", new JsonPrimitive(fade)),
+                    uval("U_Fade", "float", new JsonPrimitive(fade)),
                     uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)),
                     // ⚠️ 26.1 的 matrix4x4 uniform 按【行主序】解释（ExtraCodecs.MATRIX4F: setRowColumn(i>>2, i&3, v)），
                     // JOML get() 是列主序 → 必须转成行主序，否则矩阵被转置

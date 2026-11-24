@@ -15,7 +15,7 @@ uniform sampler2D MainDepthSampler;
 
 layout(std140) uniform SynthwaveConfig {
     float U_GameTime;
-    float U_FadeIn;
+    float U_Fade;
     vec2 ScreenSize;
     mat4 U_InverseProjectionMatrix;
     mat4 U_InverseViewMatrix;
@@ -211,8 +211,8 @@ void main() {
     synthColor += scanColor;
 
     // 26.1 post chain has no blending: the old SRC_ALPHA/ONE_MINUS_SRC_ALPHA
-    // overlay equals mix(scene.rgb, synthColor, alphaMask * U_FadeIn).
-    float alphaFinal = clamp(alphaMask * U_FadeIn, 0.0, 1.0);
+    // overlay equals mix(scene.rgb, synthColor, alphaMask * U_Fade).
+    float alphaFinal = clamp(alphaMask * U_Fade, 0.0, 1.0);
     vec4 sceneCol = texture(MainColSampler, texCoord);
     fragColor = vec4(mix(sceneCol.rgb, synthColor, alphaFinal), 1.0);
 }

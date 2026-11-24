@@ -29,7 +29,7 @@ public class SynthwaveShaderManager {
     /** 1.21.1 专属：特效开启后前 0.2 秒完全透明（快速连点右键不可见），随后 0.1 秒内淡入。
      *  原版无淡入，连续右键脚下会持续闪烁（上游 bug，原作者未修）。 */
     private static final long FADE_DELAY_MS = 200L;
-    private static final long FADE_MS = 100L;
+    private static final long FADE_MS = 150L;
 
     /** Fabric：懒创建合成波着色器（NeoForge 有 RegisterShadersEvent，Fabric 没有）。 */
     public static ShaderInstance ensureShader() {
@@ -119,10 +119,10 @@ public class SynthwaveShaderManager {
                         synthwave.getUniform("U_GameTime").set(timeSeconds);
                     }
 
-                    if (synthwave.getUniform("U_FadeIn") != null) {
+                    if (synthwave.getUniform("U_Fade") != null) {
                         long elapsed = System.currentTimeMillis() - animationStartTime;
                         float fade = (float) (elapsed - FADE_DELAY_MS) / (float) FADE_MS;
-                        synthwave.getUniform("U_FadeIn").set(Math.max(Math.min(fade, 1.0F), 0.0F));
+                        synthwave.getUniform("U_Fade").set(Math.max(Math.min(fade, 1.0F), 0.0F));
                     }
 
                     Tesselator tesselator = Tesselator.getInstance();
