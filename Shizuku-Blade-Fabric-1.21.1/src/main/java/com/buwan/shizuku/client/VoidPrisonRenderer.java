@@ -40,6 +40,9 @@ public class VoidPrisonRenderer {
     public void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             if (!activeZones.isEmpty()) {
+                // 该阶段的环境深度状态不可依赖（Sodium 的 @Overwrite 不执行 RenderType.setupRenderState，
+                // Fabric 的注入点也与原版语义不同）⇒ 显式声明，见 WorldRenderCompat
+                WorldRenderCompat.bindMainTargetWithDepthTest();
                 Minecraft mc = Minecraft.getInstance();
                 Vec3 cameraPos = mc.gameRenderer.getMainCamera().getPosition();
                 PoseStack poseStack = event.getPoseStack();
