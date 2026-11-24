@@ -112,7 +112,15 @@ public class ShizukuFabricClient implements ClientModInitializer {
             GalaxyFieldRenderer.onRenderLevel(event);
             TimeStopRenderer.getInstance().onRenderLevel(event);
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
-            // 审判世界内几何（域球 / 裂缝 / 落剑）：与上面三个走同一条已验证可用的世界阶段路径
+        });
+
+        // 审判世界内几何（域球 / 裂缝）：必须挂在**最后一帧阶段**。
+        // 实测挂在 AFTER_TRANSLUCENT_TERRAIN 时，天空层在这之后绘制，会盖住我们的几何
+        //（地平线以下实心、天空部分只剩 20~30% 不透明），故改到 END_MAIN。
+        LevelRenderEvents.END_MAIN.register(context -> {
+            if (context.poseStack() == null) {
+                return;
+            }
             com.buwan.shizuku.client.JudgmentVisuals.renderWorld(
                     context.poseStack(),
                     Minecraft.getInstance().gameRenderer.getMainCamera().position(),

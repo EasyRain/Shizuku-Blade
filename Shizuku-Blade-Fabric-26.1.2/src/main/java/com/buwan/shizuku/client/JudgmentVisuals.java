@@ -102,6 +102,8 @@ public final class JudgmentVisuals {
         }
     }
 
+    private static final java.util.Set<String> DEBUG_LOGGED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     public static void play(JudgmentImpactPacket cast) {
         changeLevel(Minecraft.getInstance().level);
         if (currentLevel != null) {
@@ -110,6 +112,11 @@ public final class JudgmentVisuals {
             Vec3 center = same ? previous.center : cast.origin();
             Vec3 landing = cast.phaseTick() == Ymsa.VERDICT_TICK ? swordLanding(cast) : null;
             casts.put(cast.caster(), new Cast(cast, center, currentLevel.getGameTime() - cast.phaseTick(), landing));
+            if (DEBUG_LOGGED.add("play|" + cast.phaseTick())) {
+                org.slf4j.LoggerFactory.getLogger("shizuku").info(
+                        "[judgfx] play phaseTick={} origin={} yaw={} casts={}",
+                        cast.phaseTick(), cast.origin(), cast.yaw(), casts.size());
+            }
         }
     }
 
@@ -141,6 +148,12 @@ public final class JudgmentVisuals {
             return;
         }
         long now = currentLevel.getGameTime();
+        if (DEBUG_LOGGED.add("render|" + casts.size())) {
+            org.slf4j.LoggerFactory.getLogger("shizuku").info("[judgfx] renderWorld casts={}", casts.size());
+        }
+        // 保底探针：用已验证能出像素的 debugQuads 在相机正前方画一个 2x2 白色四边形。
+        // 它若不可见 ⇒ 这条世界阶段路径在我们这里根本没被调用（与着色器无关）。
+        drawProbeQuad(pose, camera);
         for (Cast active : casts.values()) {
             JudgmentImpactPacket cast = active.packet;
             float tick = now - active.localStart + partialTick;
@@ -181,6 +194,31 @@ public final class JudgmentVisuals {
     //   rift  : Normal = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)
 
     private static final int MAX_LIGHT = 15728880;
+
+    /** 保底可见探针：相机正前方 2 格、2x2 的白色四边形（debugQuads，已验证可见的 RenderType）。 */
+    private static void drawProbeQuad(PoseStack pose, Vec3 camera) {
+        org.joml.Matrix4f rot = new org.joml.Matrix4f()
+                .rotateY((float) Math.toRadians(-camera.y))
+                .rotateX((float) Math.toRadians(camera.x));
+        org.joml.Vector3f fwd = new org.joml.Vector3f(0.0F, 0.0F, -1.0F).mulPosition(rot);
+        org.joml.Vector3f right = new org.joml.Vector3f(1.0F, 0.0F, 0.0F).mulDirection(rot);
+        org.joml.Vector3f up = new org.joml.Vector3f(0.0F, 1.0F, 0.0F).mulDirection(rot);
+        float dist = 2.0F;
+        float half = 1.0F;
+        org.joml.Vector3f c = new org.joml.Vector3f(fwd).mul(dist);
+        pose.pushPose();
+        Matrix4f m = pose.last().pose();
+        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+        float[][] corners = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+        for (float[] corner : corners) {
+            float x = c.x + right.x * corner[0] * half + up.x * corner[1] * half;
+            float y = c.y + right.y * corner[0] * half + up.y * corner[1] * half;
+            float z = c.z + right.z * corner[0] * half + up.z * corner[1] * half;
+            buffer.addVertex(m, x, y, z).setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        }
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+        pose.popPose();
+    }
 
     private static boolean screenEffect() {
         try {
