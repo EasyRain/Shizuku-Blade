@@ -1,5 +1,3 @@
-# Shizuku-Blade v3.8.0
-
 SlashBlade: Resharped 附属（宁宁 / Nekoha Shizuku 刀）的多平台移植。本 Release 收录四个平台的包。
 
 ## 下载
