@@ -114,17 +114,18 @@ public class ShizukuFabricClient implements ClientModInitializer {
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
         });
 
-        // 审判世界内几何（域球 / 裂缝）：必须挂在**最后一帧阶段**。
-        // 实测挂在 AFTER_TRANSLUCENT_TERRAIN 时，天空层在这之后绘制，会盖住我们的几何
-        //（地平线以下实心、天空部分只剩 20~30% 不透明），故改到 END_MAIN。
-        LevelRenderEvents.END_MAIN.register(context -> {
-            if (context.poseStack() == null) {
+        // 审判落剑：COLLECT_SUBMITS = 主通道物品提交节点的收集口（submitEntities 之前），
+        // 与原版物品实体同路 —— 画进 item_entity 分层，透明合成链按深度正确合成；
+        // JudgmentWorldPass 画域球前会把该层深度拷回 main（见其注释）。
+        LevelRenderEvents.COLLECT_SUBMITS.register(context -> {
+            if (context.poseStack() == null || context.submitNodeCollector() == null) {
                 return;
             }
-            com.buwan.shizuku.client.JudgmentVisuals.renderWorld(
+            com.buwan.shizuku.client.JudgmentVisuals.submitSword(
+                    context.submitNodeCollector(),
                     context.poseStack(),
                     Minecraft.getInstance().gameRenderer.getMainCamera().position(),
-                    0.0F);
+                    Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(false));
         });
 
         // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，26.1 用 AFTER_SOLID_FEATURES 近似

@@ -42,6 +42,17 @@
   3. `assets/shizuku/shaders/core/synthwave.json`：uniform 列表加 `{"name":"U_FadeIn","type":"float","count":1,"values":[0.0]}`。
 - **触发逻辑没改**：`client/YmsaChargeHandler.java`（主手拔刀剑 + `player.isUsingItem()` + `getTicksUsingItem() > 0` + 该刀 SA = `SASlashArtRegistry.Ymsa`）**与上游逐行一致**，改的只是渲染淡入。
 
+### A4. 26.1.2 审判三段的世界几何渲染挂点 ——【26.1 渲染架构强制偏离，重移植到 26.x 时必须保留】
+- **上游（1.20.1/1.21.1）**：域球 / 裂缝 / 落剑全部画在 `RenderLevelStageEvent.AFTER_ENTITIES`（单层 main 目标，先画的东西已在 main 的颜色+深度里）。
+- **26.1.2 的差异**：main pass 变成分层帧图 —— 实体/物品/粒子/云/天气各有独立 target，由 `minecraft:transparency` 合成链按**每像素深度排序**混合，且只把**颜色**写回 main（深度留在各层）。把几何画在层内（`AFTER_TRANSLUCENT_TERRAIN`/`END_MAIN`）会被卷进分层目标的预乘合成，观感是「被天空盖住、只剩 20~30% 不透明」。
+- **我们的做法（2026-11-24，删掉阶段一的全屏后处理方案后确立）**：
+  1. **域球 + 裂缝** = `client/JudgmentWorldPass.java`：在透明合成链**之后**开独立 FramePass（挂点 `mixin/LevelRendererSynthwaveMixin` 的 `addLateDebugPass` WrapOperation，在其**之前**声明），直写 main 的 color/depth override；几何（16×40 球面 / 单位四边形）与 `judgment_domain`/`judgment_rift` 着色器算法逐行照原版，每帧 uniform（Atmosphere/Phase）经顶点色携带（`shader/JudgmentShaders.java`）。
+  2. **落剑** = `JudgmentVisuals.submitSword` 经 Fabric `LevelRenderEvents.COLLECT_SUBMITS` 走**原版物品提交节点**（`ItemStackRenderState` + `ItemModelResolver#updateForTopItem` + `submit(pose, collector, FULL_BRIGHT, NO_OVERLAY, 0)`），画进 item_entity 分层、由合成链正确合成。
+  3. **遮挡次序**：画球前把 item_entity 深度 `copyDepthFrom` 回 main（主通道在画物品层前已先把 main 深度拷进去，所以该层深度 = 地形+实体+物品）⇒ 域球用 LEQUAL 测试时被地形/实体/落剑正确遮挡 = 上游「剑先画写深度、球再测深度」的次序语义。
+  4. 相机旋转**不要再推**：`renderLevel` 建帧图前已把 modelViewMatrix push 进全局 `RenderSystem.getModelViewStack()`，帧通道里只建 fresh `PoseStack`。
+- **已删除**：`client/JudgmentPostEffect.java` + `assets/shizuku/shaders/post/judgment_domain.fsh`（阶段一的全屏后处理域球，用户要求单/多人观感统一为世界几何后移除）。
+- **保持不变**：屏幕红染 `shade`（fillGradient）与面板斩击预览 `renderCut`。
+
 ---
 
 ## B. 迁移期确立的行为约定（重移植时核对，别改回去）

@@ -40,9 +40,11 @@ public abstract class LevelRendererSynthwaveMixin {
     private void shizuku$addSynthwaveAfterLateDebug(LevelRenderer instance, FrameGraphBuilder builder,
                                                     CameraRenderState cameraRenderState, GpuBufferSlice slice,
                                                     Matrix4fc matrix, Operation<Void> original) {
+        // 审判世界几何（域球+裂缝）：必须在 addLateDebugPass 声明之前加入帧图 ——
+        // 执行序 = 透明合成链 → 审判世界通道（copyDepthFrom itemEntity 后直写 main）→ late_debug → 合成波。
+        // （之前走 JudgmentPostEffect 全屏后处理，2026-11-24 改回原版世界几何方式，用户要求单多人观感统一。）
+        com.buwan.shizuku.client.JudgmentWorldPass.addToFrame(builder, this.targets, cameraRenderState, slice);
         original.call(instance, builder, cameraRenderState, slice, matrix);
         SynthwaveShaderManager.addToFrame(builder, this.targets, cameraRenderState);
-        // 审判域球：同一条 PostChain 路（世界几何会被天空盖住，见 JudgmentPostEffect 注释）
-        com.buwan.shizuku.client.JudgmentPostEffect.addToFrame(builder, this.targets, cameraRenderState);
     }
 }

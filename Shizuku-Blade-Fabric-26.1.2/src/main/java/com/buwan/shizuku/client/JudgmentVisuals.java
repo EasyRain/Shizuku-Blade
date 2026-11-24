@@ -27,17 +27,20 @@ import org.joml.Matrix4f;
 /**
  * 「审判」的客户端视觉。
  *
- * <p>26.1 阶段一简化（重要，改动全部集中在绘制层，逻辑语义未变）：</p>
+ * <p>26.1 三段世界几何（2026-11-24 重写，回到原版世界几何方式）：</p>
  * <ul>
- *   <li>1.20.1/1.21.1 的域球（自定义 {@code ShaderInstance} + 预上传球面 {@code VertexBuffer}）、
- *       空间裂缝（{@code judgment_rift} 着色器四边形）、世界里的落剑（{@code ItemRenderer#renderStatic}）
- *       全都依赖 26.1 已删除的 API（{@code ShaderInstance} / {@code RenderType} / {@code VertexBuffer} /
- *       {@code BufferUploader} / {@code Tesselator} 直绘）。现在 <b>世界内不再画任何审判几何</b>
- *       （{@link #renderWorld} 变成空实现），只保留「屏幕红染」与「面板里的斩击预览」两处视觉。</li>
- *   <li>屏幕红染/暗角由 {@code fillGradient} 承担（原来也是它，只是不再需要 shader 就绪才画）。</li>
- *   <li>面板预览（{@link #renderCut}）里：裂缝 → 竖直渐变的红色裂痕；落剑 → GUI 物品
- *       （{@code GuiGraphicsExtractor#item}）加旋转/缩放，等价于原来那柄「插进地里」的钻石剑。</li>
+ *   <li><b>域球</b>（墨焰球壳）+ <b>空间裂缝</b>：由 {@link JudgmentWorldPass} 在透明合成链
+ *       之后以独立帧通道直写 main（见该类注释：26.1 分层合成会把画在层内的世界几何卷进
+ *       预乘混合，观感「被天空盖住」；合成后直写 = 1.21.1 {@code AFTER_ENTITIES} 语义）；
+ *       几何生成（16 纬 × 40 经球面 / 单位四边形）与着色器算法逐行照抄 1.20.1 原版，
+ *       每帧 uniform（Atmosphere/Phase）经顶点色携带（见 {@code shader/JudgmentShaders}）。</li>
+ *   <li><b>落剑</b>：{@link #submitSword} 经 Fabric {@code COLLECT_SUBMITS} 挂进主通道的
+ *       物品提交节点（{@code ItemStackRenderState} + {@code ItemModelResolver}，与原版
+ *       物品实体同路），由透明合成链按深度与半透明地形正确合成；
+ *       {@code JudgmentWorldPass} 画球前把该层深度拷回 main，保证球被落剑遮挡。</li>
  * </ul>
+ *
+ * <p>屏幕红染（{@link #shade}）与面板斩击预览（{@link #renderCut}）保持不变。</p>
  *
  * <p>时间轴常量统一取 {@link com.buwan.shizuku.sa.Ymsa}（STRIKE_TICK / RIFT_CLOSED_TICK /
  * VERDICT_TICK / DOMAIN_RADIUS / SHEATH_TICK / END_TICK），数值与 1.21.1 完全一致，
@@ -70,6 +73,8 @@ public final class JudgmentVisuals {
     }
     /** 落剑判定时从目标点上方多少格往下打射线（与 1.21.1 一致）。 */
     private static final float DROP_HEIGHT = 25;
+    /** 落剑物品模型的显示缩放（1.20.1/1.21.1 原版 SWORD_SCALE）。 */
+    private static final float SWORD_SCALE = 20;
 
     private record Cast(JudgmentImpactPacket packet, Vec3 center, long localStart, Vec3 landing) {}
     private static final Map<UUID, Cast> casts = new HashMap<>();
@@ -130,79 +135,70 @@ public final class JudgmentVisuals {
     }
 
     /**
-     * 供 {@link JudgmentPostEffect} 取当前所有活跃域球（最多 4 个，多人时可能同时存在）。
-     * 每项 {cx, cy, cz, radius, tick, opacity}；没有活跃施法时返回空数组。
+     * {@link JudgmentWorldPass} 的建 pass 门闩：本帧是否有需要画的审判世界几何。
+     * 只做粗筛（活跃且未过期），细筛（opacity&gt;0 等）留在绘制循环里。
      */
-    public static java.util.List<double[]> domainStates() {
-        java.util.List<double[]> out = new java.util.ArrayList<>();
+    public static boolean hasWorldGeometry() {
         if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
-            return out;
+            return false;
         }
         long now = currentLevel.getGameTime();
         for (Cast cast : casts.values()) {
-            float tick = now - cast.localStart;
-            float opacity = strength(cast, tick);
-            if (opacity > 0.001F) {
-                out.add(new double[]{cast.center.x, cast.center.y, cast.center.z,
-                        Ymsa.DOMAIN_RADIUS, tick, opacity});
+            if (now - cast.localStart <= expiry(cast)) {
+                return true;
             }
         }
-        out.sort((a, b) -> Double.compare(b[5], a[5]));
-        return out.size() > 4 ? out.subList(0, 4) : out;
+        return false;
     }
 
     /**
-     * 供 {@link JudgmentPostEffect} 取当前裂缝：{cx, cy, cz, rx, ry, rz, ux, uy, uz, tick, impact, lock}，
-     * 没有裂缝时返回 {@code null}。
+     * 落剑的世界提交（26.1 原版路径：经 Fabric {@code COLLECT_SUBMITS} 挂进主通道的物品提交节点）。
+     *
+     * <p>1.20.1/1.21.1 用 {@code ItemRenderer#renderStatic(DIAMOND_SWORD, NONE, FULL_BRIGHT,
+     * NO_OVERLAY, pose, buffers, level, 0)}；26.1 的等价物 = {@code ItemStackRenderState} +
+     * {@code ItemModelResolver#updateForTopItem} + {@code submit(pose, collector, ...)}
+     * （与原版 {@code ScreenEffectRenderer} 同构，owner 传 null）。物品画进 item_entity 分层，
+     * 由透明合成链按每像素深度与半透明地形正确合成；{@code JudgmentWorldPass} 画球前把该层
+     * 深度拷回 main，保证球被落剑正确遮挡（= 1.21.1 「剑先画写深度」的次序语义）。</p>
+     *
+     * <p>pose 链与 1.21.1 逐项一致：translate(landing-camera) → YP(-yaw) →
+     * translate(0, SWORD_SCALE*0.57 + DROP_HEIGHT*(1-p²), 0) → ZP(-135) → scale(SWORD_SCALE)，
+     * p = clamp((tick-VERDICT)/(SHEATH-VERDICT))。</p>
      */
-    public static double[] riftState() {
-        if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
-            return null;
+    public static void submitSword(net.minecraft.client.renderer.SubmitNodeCollector collector,
+                                   PoseStack pose, Vec3 camera, float partialTick) {
+        if (collector == null || pose == null || casts.isEmpty()
+                || currentLevel == null || !screenEffect()) {
+            return;
         }
         long now = currentLevel.getGameTime();
-        for (Cast cast : casts.values()) {
-            if (cast.landing != null) {
+        for (Cast active : casts.values()) {
+            if (active.landing == null) {
+                continue; // 未到判决阶段（无落剑）
+            }
+            float tick = now - active.localStart + partialTick;
+            if (strength(active, tick) <= 0) {
                 continue;
             }
-            if (cast.packet.phaseTick() < Ymsa.STRIKE_TICK) {
-                continue;
-            }
-            float tick = now - cast.localStart;
-            if (tick >= Ymsa.RIFT_CLOSED_TICK) {
-                continue;
-            }
-            Vec3 center = cast.packet.origin()
-                    .add(Vec3.directionFromRotation(cast.packet.pitch(), cast.packet.yaw()).scale(5));
-            // 与原版 pose 链一致：YP(-yaw) → XP(pitch) → scale(-5.8, 3.26, 1)
-            org.joml.Matrix4f rot = new org.joml.Matrix4f()
-                    .rotateY((float) Math.toRadians(-cast.packet.yaw()))
-                    .rotateX((float) Math.toRadians(cast.packet.pitch()));
-            org.joml.Vector3f right = new org.joml.Vector3f(1.0F, 0.0F, 0.0F).mulDirection(rot).mul(-5.8F);
-            org.joml.Vector3f up = new org.joml.Vector3f(0.0F, 1.0F, 0.0F).mulDirection(rot).mul(3.26F);
-            return new double[]{center.x, center.y, center.z,
-                    right.x, right.y, right.z, up.x, up.y, up.z,
-                    tick, Ymsa.STRIKE_TICK, Ymsa.RIFT_CLOSED_TICK};
+            net.minecraft.client.renderer.item.ItemStackRenderState state =
+                    new net.minecraft.client.renderer.item.ItemStackRenderState();
+            Minecraft.getInstance().getItemModelResolver().updateForTopItem(
+                    state, swordDisplay(), net.minecraft.world.item.ItemDisplayContext.NONE,
+                    currentLevel, null, 0);
+            pose.pushPose();
+            pose.translate(active.landing.x - camera.x, active.landing.y - camera.y,
+                    active.landing.z - camera.z);
+            pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-active.packet.yaw()));
+            // 原版下落插值：二次缓动，落定后剑尖微陷（SWORD_SCALE*0.57 的 0.57 偏置）
+            float progress = Mth.clamp((tick - Ymsa.VERDICT_TICK)
+                    / (float) (Ymsa.SHEATH_TICK - Ymsa.VERDICT_TICK), 0, 1);
+            pose.translate(0, SWORD_SCALE * 0.57F + DROP_HEIGHT * (1 - progress * progress), 0);
+            pose.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-135));
+            pose.scale(SWORD_SCALE, SWORD_SCALE, SWORD_SCALE);
+            state.submit(pose, collector, MAX_LIGHT,
+                    net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0);
+            pose.popPose();
         }
-        return null;
-    }
-
-    public static double[] domainState() {
-        if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
-            return null;
-        }
-        long now = currentLevel.getGameTime();
-        double[] best = null;
-        float bestOpacity = 0.0F;
-        for (Cast cast : casts.values()) {
-            float tick = now - cast.localStart;
-            float opacity = strength(cast, tick);
-            if (opacity > bestOpacity) {
-                bestOpacity = opacity;
-                best = new double[]{cast.center.x, cast.center.y, cast.center.z,
-                        Ymsa.DOMAIN_RADIUS, tick, opacity};
-            }
-        }
-        return best;
     }
 
     public static void tick() {
@@ -214,19 +210,17 @@ public final class JudgmentVisuals {
     }
 
     /**
-     * 世界内绘制入口（26.1 阶段一简化：空实现）。
+     * 世界内绘制入口（域球 + 空间裂缝）。
      *
-     * <p>原来在这里画域球、裂缝、落剑；这些全部依赖 26.1 已移除的几何/着色器 API。
-     * 保留签名与空实现，是为了让调用点（以及未来可能的重写）不用改结构 —— 少画不会崩。</p>
+     * <p>调用方 {@link JudgmentWorldPass}（透明合成链之后的独立帧通道，直写 main）：
+     * pose = fresh PoseStack（全局 ModelViewMat 已含相机旋转），坐标一律
+     * 「世界坐标 - camera」。落剑不经这里 —— 见 {@link #submitSword}。</p>
      */
     public static void renderWorld(PoseStack pose, Vec3 camera, float partialTick) {
         if (casts.isEmpty() || currentLevel == null || !screenEffect()) {
             return;
         }
         long now = currentLevel.getGameTime();
-        if (DEBUG_LOGGED.add("render|" + casts.size())) {
-            org.slf4j.LoggerFactory.getLogger("shizuku").info("[judgfx] renderWorld casts={}", casts.size());
-        }
         for (Cast active : casts.values()) {
             JudgmentImpactPacket cast = active.packet;
             float tick = now - active.localStart + partialTick;
@@ -234,9 +228,10 @@ public final class JudgmentVisuals {
             if (opacity <= 0) {
                 continue;
             }
-            // 域球改由 `JudgmentPostEffect` 做全屏后处理（世界几何会被天空盖住）
+            // 域球：与 1.21.1 同序（每个活跃施法先画球，再画裂缝/落剑）
+            drawDomain(pose, active.center.subtract(camera), tick, opacity);
             if (active.landing != null) {
-                // TODO 落剑：原版是钻石剑物品模型，26.1 的物品世界渲染需另接（见 PROJECT_MEMORY）
+                // 落剑走 COLLECT_SUBMITS → submitSword（原版物品分层，见类注释）
                 continue;
             }
             if (cast.phaseTick() < Ymsa.STRIKE_TICK || tick >= Ymsa.RIFT_CLOSED_TICK) {
@@ -260,37 +255,12 @@ public final class JudgmentVisuals {
     // 原版结构：
     //   · 域球 = 单位球面网格（16 纬 × 40 经）+ `judgment_domain`，pose 缩放到 DOMAIN_RADIUS；
     //   · 裂缝 = 单位四边形 (-1,-1)..(1,1) + `judgment_rift`，pose 缩放 (-5.8, 3.26, 1)；
-    //   · 落剑 = 钻石剑物品模型（26.1 待接）。
-    // 26.1 的 RenderType 只能给常量 uniform，原版两个逐帧 uniform 改由顶点属性 Normal 携带：
-    //   domain: Normal = (tick, opacity, 0)
-    //   rift  : Normal = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)
+    //   · 落剑 = 钻石剑物品模型（COLLECT_SUBMITS → submitSword，原版物品分层路径）。
+    // 26.1 的 RenderType 只能给常量 uniform，原版两个逐帧 uniform 改由顶点属性 Color 携带：
+    //   domain: Color = (tick/64, opacity, 0)
+    //   rift  : Color = (tick/64, STRIKE_TICK/64, RIFT_CLOSED_TICK/64)
 
     private static final int MAX_LIGHT = 15728880;
-
-    /** 保底可见探针：相机正前方 2 格、2x2 的白色四边形（debugQuads，已验证可见的 RenderType）。 */
-    private static void drawProbeQuad(PoseStack pose, Vec3 camera) {
-        org.joml.Matrix4f rot = new org.joml.Matrix4f()
-                .rotateY((float) Math.toRadians(-camera.y))
-                .rotateX((float) Math.toRadians(camera.x));
-        org.joml.Vector3f fwd = new org.joml.Vector3f(0.0F, 0.0F, -1.0F).mulPosition(rot);
-        org.joml.Vector3f right = new org.joml.Vector3f(1.0F, 0.0F, 0.0F).mulDirection(rot);
-        org.joml.Vector3f up = new org.joml.Vector3f(0.0F, 1.0F, 0.0F).mulDirection(rot);
-        float dist = 2.0F;
-        float half = 1.0F;
-        org.joml.Vector3f c = new org.joml.Vector3f(fwd).mul(dist);
-        pose.pushPose();
-        Matrix4f m = pose.last().pose();
-        BufferBuilder buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
-        float[][] corners = {{-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
-        for (float[] corner : corners) {
-            float x = c.x + right.x * corner[0] * half + up.x * corner[1] * half;
-            float y = c.y + right.y * corner[0] * half + up.y * corner[1] * half;
-            float z = c.z + right.z * corner[0] * half + up.z * corner[1] * half;
-            buffer.addVertex(m, x, y, z).setColor(1.0F, 1.0F, 1.0F, 1.0F);
-        }
-        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
-        pose.popPose();
-    }
 
     private static boolean screenEffect() {
         try {
