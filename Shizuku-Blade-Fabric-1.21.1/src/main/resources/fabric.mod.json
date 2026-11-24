@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "shizuku",
   "version": "${version}",
-  "name": "shizukublade",
+  "name": "Shizuku",
   "description": "SlashBlade: Resharped addon - Nekoha Shizuku blades (Fabric port, 1.21.1)",
   "authors": [
     "buwan"
