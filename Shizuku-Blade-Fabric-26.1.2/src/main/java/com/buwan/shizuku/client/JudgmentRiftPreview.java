@@ -119,6 +119,9 @@ final class JudgmentRiftPreview {
             } else if (offscreen.width != wantW || offscreen.height != wantH) {
                 // 预览区尺寸/缩放变了（窗口缩放、面板重开）⇒ 原地重建（渲染线程上合法）
                 offscreen.resize(wantW, wantH);
+                // 尺寸变化时清掉失败标记：上一轮的失败可能只是 resize 竞态，
+                // 否则一次瞬态错误会让预览整个会话都看不到
+                failed = false;
             }
             GpuTexture color = offscreen.getColorTexture();
             GpuTexture depth = offscreen.getDepthTexture();

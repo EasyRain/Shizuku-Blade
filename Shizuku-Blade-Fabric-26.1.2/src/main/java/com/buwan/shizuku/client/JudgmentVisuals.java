@@ -110,8 +110,6 @@ public final class JudgmentVisuals {
         }
     }
 
-    private static final java.util.Set<String> DEBUG_LOGGED = java.util.concurrent.ConcurrentHashMap.newKeySet();
-
     public static void play(JudgmentImpactPacket cast) {
         changeLevel(Minecraft.getInstance().level);
         if (currentLevel != null) {
@@ -120,11 +118,6 @@ public final class JudgmentVisuals {
             Vec3 center = same ? previous.center : cast.origin();
             Vec3 landing = cast.phaseTick() == Ymsa.VERDICT_TICK ? swordLanding(cast) : null;
             casts.put(cast.caster(), new Cast(cast, center, currentLevel.getGameTime() - cast.phaseTick(), landing));
-            if (DEBUG_LOGGED.add("play|" + cast.phaseTick())) {
-                org.slf4j.LoggerFactory.getLogger("shizuku").info(
-                        "[judgfx] play phaseTick={} origin={} yaw={} casts={}",
-                        cast.phaseTick(), cast.origin(), cast.yaw(), casts.size());
-            }
         }
     }
 
