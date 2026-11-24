@@ -3,7 +3,8 @@
 [SlashBlade: Resharped](https://github.com/flammpfeil/SlashBlade-Refabricated)（拔刀剑）的附属 mod ——
 17 把刀 + 18 个 SA。原作者为 [buwan](https://github.com/BBuWan22/Shizuku-Blade)。
 
-**本仓库是它的非官方多平台移植**，把作者面向 Minecraft 1.20.1 / Forge 的源码移植到：
+**本仓库是经作者授权的多平台维护分支**（已获授权，负责下列版本；1.20.1 Forge 仍由原作者维护），
+把作者面向 Minecraft 1.20.1 / Forge 的源码维护到：
 
 | Minecraft | 加载器 | 说明 |
 | --- | --- | --- |
@@ -12,8 +13,8 @@
 | 1.20.1 | **Fabric** | |
 | 26.1.2 | **Fabric** | 26.1 渲染架构大改，见文档 A4 |
 
-> 角色 / 主刀名「**猫羽雫**」（ねこはしづく / Nekoha Shizuku，画师 甘城なつき）；
-> 1.20.1 Forge 版由原作者维护，本仓库**不发布**。
+> 角色 / 主刀名「**猫羽雫**」（ねこはしづく / Nekoha Shizuku，画师 甘城なつき）。
+> 本仓库只负责上面这几个版本；1.20.1 Forge 版仍由原作者维护，本仓库**不发布**。
 
 ## 下载
 
