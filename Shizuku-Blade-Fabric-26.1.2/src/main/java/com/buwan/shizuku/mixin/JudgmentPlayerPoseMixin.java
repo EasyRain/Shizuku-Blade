@@ -59,22 +59,9 @@ public abstract class JudgmentPlayerPoseMixin {
         offhand.xRot = Mth.lerp(weight, offhand.xRot, -0.69F - 0.27F * lift + 0.13F * insert);
         offhand.yRot = Mth.lerp(weight, offhand.yRot, side * (0.55F + 0.17F * insert));
         offhand.zRot = Mth.lerp(weight, offhand.zRot, side * 0.18F);
-        // 26.1 移除了 ModelPart#copyFrom，改为逐项复制姿态（外套/袖子/帽子跟随本体）
-        shizuku$copyPose(model.body, model.jacket);
-        shizuku$copyPose(model.leftArm, model.leftSleeve);
-        shizuku$copyPose(model.rightArm, model.rightSleeve);
-        shizuku$copyPose(model.head, model.hat);
-    }
-
-    /** 26.1：{@code ModelPart#copyFrom} 已删除，这里复制位置/旋转/缩放/可见性。 */
-    @Unique
-    private static void shizuku$copyPose(ModelPart from, ModelPart to) {
-        to.setPos(from.x, from.y, from.z);
-        to.setRotation(from.xRot, from.yRot, from.zRot);
-        to.xScale = from.xScale;
-        to.yScale = from.yScale;
-        to.zScale = from.zScale;
-        to.visible = from.visible;
+        // ⚠️ 26.1 的 PlayerModel 里 jacket / 左右袖 / 裤子 / 帽子是**手臂/腿/头的子节点**，
+        // 会随父节点自动变换；1.20.1 的 copyFrom 在这里是多余的，照搬会导致二次变换
+        //（实测：袖子飞到手臂外侧）。所以这里什么都不做 —— 只驱动父节点即可。
     }
 
     @Unique
