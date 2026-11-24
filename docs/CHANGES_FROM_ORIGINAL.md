@@ -117,6 +117,24 @@
     `bindWrite(主目标)` 是否仍然合适需要实测；如有问题就把它改成「仅在无光影时执行」
     （`ShaderPackCompat.isShaderPackActive()` 已可用）。
 
+- **B9. 光影(Iris)下的自定义 RenderType / 管线：1.21.1 无解，26.1.2 可以注册。**
+  - **1.21.1（Iris 1.8.14）：公开 API 做不到。** 反编译 `iris-neoforge-1.8.14` 的
+    `net.irisshaders.iris.api.v0.IrisApi`，只有
+    `isShaderPackInUse()` / `isRenderingShadowPass()` / `getConfig()` / `getSunPathRotation()` 等，
+    **没有**任何「把自定义 RenderType/管线注册给 Iris」的方法 ⇒ 自定义 `ShaderInstance` 的
+    RenderType 在世界阶段会被光影管线跳过 ⇒ 只能用 **GUI 阶段回退**（星河领域就是这么做的，
+    代价是屏幕帧缓冲无深度，代码注释已记）。
+  - **26.1.2（Iris 1.11.4）：可以。** 同一接口已新增
+    `assignPipeline(RenderPipeline, IrisProgram)` 与 `assignPipelineShadow(RenderPipeline, IrisShadowProgram)`
+    ⇒ 用 26.1 的 `RenderPipeline`（不是 RenderType）+ `IrisProgram` 注册后，自定义管线就能被光影
+    正常处理（参与光照/阴影/后处理）。需要把 iris 作为 `compileOnly` 依赖。**未做，等需要时再上。**
+  - **不依赖 Iris API 的替代方案**：改用**原版核心着色器**（Iris 认识的，如 `position_color`）
+    承载几何、把自定义效果换成顶点属性/纹理表达 ⇒ 光影下天然可见。
+    这正是时停球 / 囚笼球在光影下正常的原因（它们走 `GameRenderer.getPositionColorShader()`），
+    代价是失去自定义 shader 效果。
+  - 结论：**「自定义 shader + 自定义 RenderType」在 1.21.1 光影下不可能可见**（除非换成原版核心着色器）；
+    26.1.2 才有官方注册途径。
+
 ---
 
 ## C. 数据包 / 资源格式（1.21.1 硬性要求，原版更新后**每次都要重做**）
