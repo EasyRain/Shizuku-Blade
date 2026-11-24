@@ -2,7 +2,11 @@ package com.buwan.shizuku.client;
 
 import com.buwan.shizuku.network.JudgmentImpactPacket;
 import com.buwan.shizuku.sa.Ymsa;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -18,6 +22,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.joml.Matrix3x2fStack;
+import org.joml.Matrix4f;
 
 /**
  * 「审判」的客户端视觉。
@@ -132,7 +137,161 @@ public final class JudgmentVisuals {
      * 保留签名与空实现，是为了让调用点（以及未来可能的重写）不用改结构 —— 少画不会崩。</p>
      */
     public static void renderWorld(PoseStack pose, Vec3 camera, float partialTick) {
-        // 26.1 阶段一简化：世界内审判几何暂缺。
+        if (casts.isEmpty() || currentLevel == null) {
+            return;
+        }
+        long now = currentLevel.getGameTime();
+        for (Cast cast : casts.values()) {
+            float tick = now - cast.localStart + partialTick;
+            float opacity = strength(cast, tick);
+            if (opacity <= 0.001F) {
+                continue;
+            }
+            // 域球：原版是「站在球里」的暗红雾罩
+            drawDomainSphere(pose, cast.center.subtract(camera), opacity);
+            if (cast.landing != null) {
+                // 第三段：落剑光柱 + 地面冲击环
+                drawSwordBeam(pose, cast.landing.subtract(camera), tick, opacity);
+            } else if (cast.packet.phaseTick() >= Ymsa.STRIKE_TICK && tick < Ymsa.RIFT_CLOSED_TICK) {
+                // 第二段：空间裂缝（十字交叉的竖直发光面）
+                drawRift(pose, cast, camera, opacity);
+            }
+        }
+    }
+
+    // ---------------- 世界内几何 ----------------
+    //
+    // 26.1 只有一条**实测能出画面**的自绘路径：世界阶段 `Tesselator.begin(QUADS, POSITION_COLOR)`
+    // + `RenderTypes.debugQuads().draw(buffer.buildOrThrow())`（时停球 / 星河圆盘就是这条路）。
+    // 实体 renderer 里的 `SubmitNodeCollector.submitCustomGeometry()` 对本项目零像素，别再走。
+
+    /** 一次性画完一批四边形的工具：所有顶点都写进同一个 buffer，最后统一 draw。 */
+    private interface QuadSink {
+        void quad(Matrix4f m, float x0, float y0, float z0, float x1, float y1, float z1,
+                  float x2, float y2, float z2, float x3, float y3, float z3,
+                  float r, float g, float b, float a);
+    }
+
+    private static BufferBuilder beginQuads() {
+        return Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+    }
+
+    private static void endQuads(BufferBuilder buffer) {
+        net.minecraft.client.renderer.rendertype.RenderTypes.debugQuads().draw(buffer.buildOrThrow());
+    }
+
+    private static void quad(BufferBuilder buffer, Matrix4f m,
+                             float x0, float y0, float z0, float x1, float y1, float z1,
+                             float x2, float y2, float z2, float x3, float y3, float z3,
+                             float r, float g, float b, float a) {
+        buffer.addVertex(m, x0, y0, z0).setColor(r, g, b, a);
+        buffer.addVertex(m, x1, y1, z1).setColor(r, g, b, a);
+        buffer.addVertex(m, x2, y2, z2).setColor(r, g, b, a);
+        buffer.addVertex(m, x3, y3, z3).setColor(r, g, b, a);
+    }
+
+    /** 域球：低透明度的暗红球壳（顶点按纬度做一点渐变，避免死板）。 */
+    private static void drawDomainSphere(PoseStack pose, Vec3 offset, float opacity) {
+        pose.pushPose();
+        pose.translate((float) offset.x, (float) offset.y, (float) offset.z);
+        Matrix4f matrix = pose.last().pose();
+        float radius = Ymsa.DOMAIN_RADIUS;
+        int segments = 24;
+        int rings = 14;
+        float baseAlpha = opacity * 0.10F;
+        BufferBuilder buffer = beginQuads();
+        for (int i = 0; i < rings; i++) {
+            double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
+            double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
+            double y0 = Math.sin(lat0) * radius;
+            double y1 = Math.sin(lat1) * radius;
+            double r0 = Math.cos(lat0) * radius;
+            double r1 = Math.cos(lat1) * radius;
+            float edge = (float) (1.0 - Math.abs(Math.cos(lat0)));
+            float alpha = baseAlpha * (0.5F + edge * 0.5F);
+            for (int j = 0; j < segments; j++) {
+                double lng0 = (Math.PI * 2) * (double) j / (double) segments;
+                double lng1 = (Math.PI * 2) * (double) (j + 1) / (double) segments;
+                float x00 = (float) (Math.cos(lng0) * r0);
+                float z00 = (float) (Math.sin(lng0) * r0);
+                float x01 = (float) (Math.cos(lng1) * r0);
+                float z01 = (float) (Math.sin(lng1) * r0);
+                float x10 = (float) (Math.cos(lng0) * r1);
+                float z10 = (float) (Math.sin(lng0) * r1);
+                float x11 = (float) (Math.cos(lng1) * r1);
+                float z11 = (float) (Math.sin(lng1) * r1);
+                quad(buffer, matrix, x00, (float) y0, z00, x01, (float) y0, z01,
+                        x11, (float) y1, z11, x10, (float) y1, z10, 0.62F, 0.07F, 0.12F, alpha);
+            }
+        }
+        endQuads(buffer);
+        pose.popPose();
+    }
+
+    /** 空间裂缝：以落剑方向为正面的两个竖直发光面（十字交叉），随施法者朝向旋转。 */
+    private static void drawRift(PoseStack pose, Cast cast, Vec3 camera, float opacity) {
+        Vec3 center = cast.packet.origin().add(Vec3.directionFromRotation(0, cast.packet.yaw()).scale(5));
+        pose.pushPose();
+        pose.translate((float) (center.x - camera.x), (float) (center.y - camera.y), (float) (center.z - camera.z));
+        pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-cast.packet.yaw()));
+        Matrix4f m = pose.last().pose();
+        float w = 1.05F;
+        float h = 5.2F;
+        float a1 = opacity * 0.85F;
+        float a2 = opacity * 0.55F;
+        BufferBuilder buffer = beginQuads();
+        // 面向 Z 方向的裂面
+        quad(buffer, m, -w, -h, 0.0F, w, -h, 0.0F, w, h, 0.0F, -w, h, 0.0F, 1.0F, 0.93F, 0.96F, a1);
+        // 交叉 90° 的裂面
+        quad(buffer, m, 0.0F, -h, -w * 0.6F, 0.0F, -h, w * 0.6F, 0.0F, h, w * 0.6F, 0.0F, h, -w * 0.6F,
+                1.0F, 0.82F, 0.88F, a2);
+        endQuads(buffer);
+        pose.popPose();
+    }
+
+    /** 第三段落剑：竖直光柱（四个侧面）+ 地面冲击环。 */
+    private static void drawSwordBeam(PoseStack pose, Vec3 offset, float tick, float opacity) {
+        pose.pushPose();
+        pose.translate((float) offset.x, (float) offset.y, (float) offset.z);
+        Matrix4f m = pose.last().pose();
+        float beamRadius = 0.75F;
+        // 光柱从地面拔到 7 格高，落剑瞬间最亮
+        float height = 7.0F * Mth.clamp(tick / (float) Ymsa.END_TICK, 0.55F, 1.0F);
+        float alpha = opacity * 0.75F;
+        BufferBuilder buffer = beginQuads();
+        // 四个侧面（每面 2 个三角 → 用四边形）
+        float[][] sides = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (float[] side : sides) {
+            float nx = side[0] * beamRadius;
+            float nz = side[1] * beamRadius;
+            float ox = side[1] * beamRadius;
+            float oz = side[0] * beamRadius;
+            quad(buffer, m,
+                    nx - ox, 0.0F, nz - oz, nx + ox, 0.0F, nz + oz,
+                    nx + ox, height, nz + oz, nx - ox, height, nz - oz,
+                    1.0F, 0.95F, 0.98F, alpha);
+        }
+        // 地面冲击环（16 段四边形）
+        float inner = 1.2F;
+        float outer = 2.6F * Mth.clamp(tick / (float) Ymsa.END_TICK, 0.3F, 1.0F);
+        int seg = 16;
+        float ringAlpha = opacity * 0.65F;
+        for (int i = 0; i < seg; i++) {
+            double a0 = Math.PI * 2 * i / seg;
+            double a1 = Math.PI * 2 * (i + 1) / seg;
+            float x0 = (float) (Math.cos(a0) * inner);
+            float z0 = (float) (Math.sin(a0) * inner);
+            float x1 = (float) (Math.cos(a1) * inner);
+            float z1 = (float) (Math.sin(a1) * inner);
+            float x2 = (float) (Math.cos(a1) * outer);
+            float z2 = (float) (Math.sin(a1) * outer);
+            float x3 = (float) (Math.cos(a0) * outer);
+            float z3 = (float) (Math.sin(a0) * outer);
+            quad(buffer, m, x0, 0.02F, z0, x1, 0.02F, z1, x2, 0.02F, z2, x3, 0.02F, z3,
+                    1.0F, 0.55F, 0.6F, ringAlpha);
+        }
+        endQuads(buffer);
+        pose.popPose();
     }
 
     private static int expiry(Cast cast) {

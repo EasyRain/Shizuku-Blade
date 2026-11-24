@@ -112,6 +112,11 @@ public class ShizukuFabricClient implements ClientModInitializer {
             GalaxyFieldRenderer.onRenderLevel(event);
             TimeStopRenderer.getInstance().onRenderLevel(event);
             VoidPrisonRenderer.getInstance().onRenderLevel(event);
+            // 审判世界内几何（域球 / 裂缝 / 落剑）：与上面三个走同一条已验证可用的世界阶段路径
+            com.buwan.shizuku.client.JudgmentVisuals.renderWorld(
+                    context.poseStack(),
+                    Minecraft.getInstance().gameRenderer.getMainCamera().position(),
+                    0.0F);
         });
 
         // 合成波全屏后处理：对应 NeoForge 的 AFTER_CUTOUT_BLOCKS，26.1 用 AFTER_SOLID_FEATURES 近似
