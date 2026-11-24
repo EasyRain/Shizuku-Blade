@@ -1,9 +1,6 @@
 package com.buwan.shizuku.mixin;
 
 import com.buwan.shizuku.client.JudgmentPoseFlag;
-import com.buwan.shizuku.registry.SAComboRegistry;
-import com.buwan.shizuku.sa.Ymsa;
-import mods.flammpfeil.slashblade.capability.slashblade.CapabilitySlashBlade;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.util.Mth;
@@ -36,13 +33,12 @@ public abstract class AvatarRendererPoseMixin {
         }
         float time = -1.0F;
         if (entity != null) {
-            var blade = entity.getMainHandItem();
-            var bladeState = CapabilitySlashBlade.getBladeState(blade).orElse(null);
-            if (bladeState != null && SAComboRegistry.YMSA.getId().equals(bladeState.getComboSeq())) {
-                float elapsed = bladeState.getElapsedTime(entity) + Mth.frac(state.ageInTicks);
-                if (elapsed >= 0.0F && elapsed < Ymsa.END_TICK) {
-                    time = elapsed;
-                }
+            // 用「施法起始 gameTime」广播驱动的计时（见 JudgmentPoseClient）：
+            // 库的 comboSeq/lastActionTime 会被 2.0.5 的运行时同步器持续重写，
+            // 收刀段会因连招状态被换掉而让姿势瞬间消失（实测「收刀一下就回来」）。
+            float elapsed = com.buwan.shizuku.client.JudgmentPoseClient.progress(entity);
+            if (elapsed >= 0.0F) {
+                time = elapsed + Mth.frac(state.ageInTicks);
             }
         }
         flag.shizuku$setJudgmentPose(time, entity != null && entity.getMainArm() == HumanoidArm.RIGHT);

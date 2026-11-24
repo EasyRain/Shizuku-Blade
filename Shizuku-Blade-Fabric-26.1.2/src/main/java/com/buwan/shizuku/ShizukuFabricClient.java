@@ -57,6 +57,10 @@ public class ShizukuFabricClient implements ClientModInitializer {
         });
 
         // S2C：审判落剑（位置/朝向已由服务端锁定）
+        // S2C：审判持刀姿势起始时刻
+        ClientPlayNetworking.registerGlobalReceiver(com.buwan.shizuku.network.JudgmentPosePacket.TYPE,
+                (payload, context) -> context.client().execute(payload::handleClient));
+
         ClientPlayNetworking.registerGlobalReceiver(com.buwan.shizuku.network.JudgmentImpactPacket.TYPE,
                 (payload, context) -> context.client().execute(payload::handleClient));
 

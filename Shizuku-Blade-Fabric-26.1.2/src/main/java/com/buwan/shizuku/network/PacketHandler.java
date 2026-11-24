@@ -31,6 +31,7 @@ public class PacketHandler {
     }
 
     public static void register() {
+        PayloadTypeRegistry.clientboundPlay().register(JudgmentPosePacket.TYPE, JudgmentPosePacket.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TimeStopPacket.TYPE, TimeStopPacket.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TimeStopShaderPacket.TYPE, TimeStopShaderPacket.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VoidPrisonPacket.TYPE, VoidPrisonPacket.STREAM_CODEC);

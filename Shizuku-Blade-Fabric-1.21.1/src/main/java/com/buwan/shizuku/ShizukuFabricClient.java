@@ -60,6 +60,11 @@ public class ShizukuFabricClient implements ClientModInitializer {
         // 审判：键位注册（默认 V / Shift+V 等，可在原版控制里改）
         com.buwan.shizuku.client.JudgmentControls.register();
 
+        // S2C：审判持刀姿势起始时刻（库 2.0.5 会重写 lastActionTime，姿势计时改由本包驱动）
+        ClientPlayNetworking.registerGlobalReceiver(
+                com.buwan.shizuku.network.JudgmentPosePacket.TYPE,
+                (payload, context) -> context.client().execute(payload::handleClient));
+
         // S2C：审判落剑（位置/朝向已由服务端锁定）
         ClientPlayNetworking.registerGlobalReceiver(
                 com.buwan.shizuku.network.JudgmentImpactPacket.TYPE,

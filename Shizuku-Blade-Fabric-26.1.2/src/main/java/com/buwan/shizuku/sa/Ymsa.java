@@ -112,6 +112,12 @@ public class Ymsa {
                     AIM.put(player.getUUID(), new double[]{player.getYRot(), player.getXRot(),
                             player.getEyePosition().x, player.getEyePosition().y, player.getEyePosition().z});
                     UnleashedJudgment.notePhase(player, 1);
+                    // 持刀姿势：把「施法起始 gameTime」广播给附近客户端（只驱动姿势，不触发世界特效）。
+                    // 不走库的 comboSeq/getElapsedTime —— 2.0.5 会持续重写它们，收刀段姿势会瞬间消失。
+                    com.buwan.shizuku.network.PacketHandler.sendToNearby(
+                            new com.buwan.shizuku.network.JudgmentPosePacket(player.getUUID(),
+                                    player.level().getGameTime() - 1),
+                            player, DOMAIN_RADIUS * 2.5);
                 }
             },
             8, entity -> {

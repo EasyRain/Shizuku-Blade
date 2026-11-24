@@ -20,10 +20,13 @@ public abstract class JudgmentPlayerPoseMixin {
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("TAIL"), require = 0)
     private void shizuku$poseJudgment(LivingEntity player, float limbSwing, float limbAmount, float age, float yaw, float pitch, CallbackInfo ci) {
         CapabilitySlashBlade.getBladeState(player.getMainHandItem()).ifPresent(state -> {
-            if (!SAComboRegistry.YMSA.getId().equals(state.getComboSeq())) {
+            // 不依赖库的 comboSeq/getElapsedTime（2.0.5 运行时同步器会持续重写，收刀段姿势会瞬间消失），
+            // 改用施法起始 gameTime 广播驱动的计时（JudgmentPoseClient）。
+            float elapsed = com.buwan.shizuku.client.JudgmentPoseClient.progress(player);
+            if (elapsed < 0.0F) {
                 return;
             }
-            float time = state.getElapsedTime(player) + Mth.frac(age);
+            float time = elapsed + Mth.frac(age);
             if (time >= Ymsa.END_TICK) {
                 return;
             }

@@ -37,6 +37,7 @@ public class PacketHandler {
         PayloadTypeRegistry.playS2C().register(GalaxyFieldPacket.TYPE, GalaxyFieldPacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(YmsaForceRemovePacket.TYPE, YmsaForceRemovePacket.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(JudgmentImpactPacket.TYPE, JudgmentImpactPacket.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(JudgmentPosePacket.TYPE, JudgmentPosePacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(FieldActivatePacket.TYPE, FieldActivatePacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(UnleashedInputPacket.TYPE, UnleashedInputPacket.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(PhantomSlashPacket.TYPE, PhantomSlashPacket.STREAM_CODEC);
