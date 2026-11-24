@@ -83,26 +83,39 @@
   - ⚠️ 客户端必须每 tick 调 `TimeStopScreenEffect.getInstance().tick()`（驱动 `updateStrength()`）；
     漏掉则 `currentStrength` 恒为 0，滤镜与雾色弱染全部不显示（26.1.2 曾漏，2026-11-24 补）。
 
-- **B8. NeoForge 1.21.1 画世界几何前必须显式声明深度状态**（`client/WorldRenderCompat.bindMainTargetWithDepthTest()`；
-  时停球 / 囚笼球 / 星河领域三处调用）。**不要依赖该阶段的「环境 GL 状态」。**
-  - 现象：时停球 / 囚笼球在 NeoForge 端没有遮挡（透墙可见）；26.1.2 与作者原版正常。
-  - 关键对照（用户实测）：**星河领域的圆盘一直是正常的** —— 而它是三个里唯一用
-    **自定义 RenderType**（`CosmicShaders.COSMIC_RENDER_TYPE`，显式 `setDepthTestState(LEQUAL_DEPTH_TEST)`）
-    绘制的；两个球用的是**裸 `Tesselator` + `RenderSystem.setShader` + `BufferUploader.drawWithShader`**，
-    完全依赖调用点的环境状态 ⇒ **结论：问题在于「依赖环境状态」这件事本身**。
-    26.1.2 端之所以免疫，也是因为那边走 `RenderTypes.debugQuads().draw(...)`（RenderType 自带状态）。
+- **B8. Sodium 会 `@Overwrite` 掉 `LevelRenderer.renderSectionLayer` 且不再调用 `RenderType.setupRenderState()`
+  ⇒ 画世界几何前必须**自己显式声明深度状态**，不要继承环境状态。**
+  （`client/WorldRenderCompat.bindMainTargetWithDepthTest()`；时停球 / 囚笼球 / 星河领域三处调用。）
+  - 现象：NeoForge 端时停球 / 囚笼球没有遮挡（透墙可见）；26.1.2 与作者原版正常。
+  - **根因（已反编译 Sodium 0.8.13 证实）**：`sodium-common.mixins.json` 里的
+    `core.render.world.LevelRendererMixin.renderSectionLayer(...)` 带 **`@Overwrite`**，
+    方法体被换成：
+    `RenderDevice.enterManagedCode()` → `setupTerrain(...)` / `drawChunkLayer(...)` →
+    `exitManagedCode()` → `PlatformLevelRenderHooks.runChunkLayerEvents(type, ...)`。
+    - **原版的 `p_294513_.setupRenderState()` 没了** ⇒ `LEQUAL_DEPTH_TEST.setupState()`
+      （它会 `enableDepthTest()`）**不再执行**，我们继承到的是 Sodium 画完区块后的状态。
+    - NeoForge 的事件仍在派发：`runChunkLayerEvents` 在 `exitManagedCode()` **之后**调用，
+      NeoForge 平台实现用它把 RenderType 映射成 Stage 并 post 事件 —— 所以球照画，只是丢深度。
+  - **版本差异正好解释各端表现**：
+    | 端 | Sodium | 是否 overwrite `renderSectionLayer` | 球的画法 | 结果 |
+    | --- | --- | --- | --- | --- |
+    | 1.20.1 Fabric | 0.5.13 | ❌ 无该 mixin（老架构） | 裸绘制 | ✅ 环境状态仍是原版的 |
+    | 1.21.1 NeoForge | 0.8.13 | ✅ | 裸绘制 | ❌ 曾无遮挡 |
+    | 1.21.1 Fabric | 0.8.13 | ✅ | 裸绘制 | ⚠️ **机理相同，极可能同样有问题（待用户确认）** |
+    | 26.1.2 Fabric | 0.9.2 | ✅ | `RenderTypes.debugQuads().draw(...)` | ✅ 自己走 RenderType，免疫 |
+  - 关键对照（用户实测）：**星河领域的圆盘一直正常** —— 它是三者中唯一用**自定义 RenderType**
+    绘制的（`COSMIC_RENDER_TYPE` 显式 `setDepthTestState(LEQUAL_DEPTH_TEST)`）。
   - 修法：绘制前 `getMainRenderTarget().bindWrite(false)` + 显式 `RenderSystem.enableDepthTest()` /
-    `depthFunc(GL11.GL_LEQUAL)`。用户实测：**已恢复遮挡**。
-  - ⚠️ **我曾把根因误判为「fabulous 的 translucentTarget」并写进文档，已更正**：
-    那条路径需要 `Minecraft.useShaderTransparency()` 为真，而它要求
-    `graphicsMode >= GraphicsStatus.FABULOUS`（源码 `Minecraft.java:2311`）；用户是**高品质(Fancy)**，
-    不成立。`bindWrite(main)` 保留为对那个陷阱的防御（NeoForge 的 javadoc 确实警告
-    `AFTER_TRANSLUCENT_BLOCKS` *"is called within a fabulous graphics target"* 且
-    *"does not function properly in many cases"*，另见其 `Stage.fromRenderType` 派发方式）。
-  - **教训**：同名事件在不同 loader 上语义可能不同；**但更要紧的是别赌环境状态** ——
-    该阶段周围的深度状态会被 `RenderType` 的 setup/clear、其它 mod 的同类 handler 影响，
-    其中 `NO_DEPTH_TEST` 的 setup/clear **都是空操作**（不还原），`DepthTestStateShard.clearState`
-    还会**主动 `disableDepthTest()`**。显式声明才是稳的。
+    `depthFunc(GL11.GL_LEQUAL)`。**用户实测已恢复遮挡**（高品质与流畅画质均正常）。
+  - ⚠️ 我曾把根因误判为「fabulous 的 translucentTarget」并写进文档，**已更正**：该路径需要
+    `Minecraft.useShaderTransparency()`，而它要求 `graphicsMode >= FABULOUS`（`Minecraft.java:2311`），
+    用户是高品质(Fancy)，不成立。`bindWrite(main)` 保留为对该陷阱的防御（NeoForge 的 javadoc 亦警告
+    `AFTER_TRANSLUCENT_BLOCKS` *"is called within a fabulous graphics target"*）。
+  - **教训**：装了 Sodium/Iris 时，**原版 `RenderType` 的状态语义可能整个不成立**；
+    世界阶段画任何东西都要自己声明状态。诊断这类问题必须去看 Sodium 的 mixin，而不是只读 vanilla 源码。
+  - 遗留待确认：**光影(Iris)开启时**该阶段的 framebuffer 由 Iris 管理，
+    `bindWrite(主目标)` 是否仍然合适需要实测；如有问题就把它改成「仅在无光影时执行」
+    （`ShaderPackCompat.isShaderPackActive()` 已可用）。
 
 ---
 
