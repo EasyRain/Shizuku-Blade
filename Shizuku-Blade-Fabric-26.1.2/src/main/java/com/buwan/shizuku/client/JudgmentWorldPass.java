@@ -54,8 +54,9 @@ public final class JudgmentWorldPass {
         if (targets.main == null || camera.pos == null) {
             return;
         }
-        if (!JudgmentVisuals.hasWorldGeometry()) {
-            return; // 没有活跃施法就不建 pass（省一次 main 的读写声明）
+        boolean world = JudgmentVisuals.hasWorldGeometry();
+        if (!world && !JudgmentRiftPreview.isActive()) {
+            return; // 没有活跃施法、预览页签也不可见 ⇒ 不建 pass
         }
 
         FramePass pass = builder.addPass("shizuku_judgment_world");
@@ -70,26 +71,30 @@ public final class JudgmentWorldPass {
         pass.executes(() -> {
             RenderSystem.setShaderFog(fog);
             RenderTarget mainTarget = targets.main.get();
-            // 深度合并：main ← item_entity（地形 + 实心实体 + 物品层的深度）。
-            // 之后 renderWorld 里的 LEQUAL 测试即对全部近景几何生效。
-            if (itemEntity != null) {
-                mainTarget.copyDepthFrom(itemEntity.get());
+            if (world) {
+                // 深度合并：main ← item_entity（地形 + 实心实体 + 物品层的深度）。
+                // 之后 renderWorld 里的 LEQUAL 测试即对全部近景几何生效。
+                if (itemEntity != null) {
+                    mainTarget.copyDepthFrom(itemEntity.get());
+                }
+                // ⚠️ 相机旋转已在全局栈里：renderLevel 建帧图前 push 了 modelViewMatrix
+                //（LevelRenderer.java 481-483），帧图执行完才 pop；RenderType.draw 自动取
+                // RenderSystem.getModelViewMatrix()。这里【不能】再推一次，否则双重旋转。
+                RenderSystem.outputColorTextureOverride = mainTarget.getColorTextureView();
+                RenderSystem.outputDepthTextureOverride = mainTarget.getDepthTextureView();
+                try {
+                    float partialTick = Minecraft.getInstance().getDeltaTracker()
+                            .getGameTimeDeltaPartialTick(false);
+                    // 相机相对坐标系（与主通道一致）：fresh PoseStack（ModelViewMat 已含相机旋转），
+                    // 几何坐标一律传「世界坐标 - camera.pos」。
+                    JudgmentVisuals.renderWorld(new PoseStack(), camera.pos, partialTick);
+                } finally {
+                    RenderSystem.outputColorTextureOverride = null;
+                    RenderSystem.outputDepthTextureOverride = null;
+                }
             }
-            // ⚠️ 相机旋转已在全局栈里：renderLevel 建帧图前 push 了 modelViewMatrix
-            //（LevelRenderer.java 481-483），帧图执行完才 pop；RenderType.draw 自动取
-            // RenderSystem.getModelViewMatrix()。这里【不能】再推一次，否则双重旋转。
-            RenderSystem.outputColorTextureOverride = mainTarget.getColorTextureView();
-            RenderSystem.outputDepthTextureOverride = mainTarget.getDepthTextureView();
-            try {
-                float partialTick = Minecraft.getInstance().getDeltaTracker()
-                        .getGameTimeDeltaPartialTick(false);
-                // 相机相对坐标系（与主通道一致）：fresh PoseStack（ModelViewMat 已含相机旋转），
-                // 几何坐标一律传「世界坐标 - camera.pos」。
-                JudgmentVisuals.renderWorld(new PoseStack(), camera.pos, partialTick);
-            } finally {
-                RenderSystem.outputColorTextureOverride = null;
-                RenderSystem.outputDepthTextureOverride = null;
-            }
+            // 面板预览裂缝：用真 judgment_rift 着色器画进离屏目标（GUI 只 blit）
+            JudgmentRiftPreview.renderOffscreen(camera.projectionMatrix);
         });
     }
 }

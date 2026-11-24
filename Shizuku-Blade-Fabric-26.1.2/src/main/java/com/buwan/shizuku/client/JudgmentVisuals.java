@@ -425,8 +425,8 @@ public final class JudgmentVisuals {
      * 面板里的斩击预览（{@link com.buwan.shizuku.client.screen.JudgmentScreen} 的「视觉效果」页签调用）。
      *
      * <p>GUI 阶段跑不了 GLSL（26.1 的 GUI 是渲染状态提取 + 预制状态）：裂缝 =
-     * {@code judgment_rift.fsh} 的 CPU 逐行移植渲染成动态贴图再 blit
-     * （{@link JudgmentRiftPreview}，公式同世界版）；落剑 = 2D 钻石剑精灵，
+     * {@code JudgmentWorldPass} 里用真着色器画的<b>离屏目标</b>（{@link JudgmentRiftPreview}），
+     * GUI 直接 blit —— 世界怎么画预览就怎么画；落剑 = 2D 钻石剑精灵，
      * 剑尖朝下插地（与世界 ZP(-135°) 的净效果一致，见 {@link #renderFallingSword}）。
      * 任何一步失败都静默跳过（预览区最多是空的，绝不影响界面本身）。</p>
      */
@@ -445,10 +445,10 @@ public final class JudgmentVisuals {
     }
 
     /**
-     * 预览裂缝：把真实 {@code judgment_rift.fsh} 逐行移植到 CPU 渲染进动态贴图再 blit
-     * （见 {@link JudgmentRiftPreview}）。GUI 阶段跑不了 GLSL，但公式同一套 ⇒ 观感与
-     * 世界裂缝一致（蓝白玻璃裂纹 + 夜空内芯 + 闭合金染/latch），且随 tick 动画。
-     * 旧的红色竖条占位（阶段一）与矩形拼贴（judgworld2，被实测吐槽「方块色带」）已弃用。
+     * 预览裂缝：GUI 只登记 tick + blit；实际画面由 {@link JudgmentRiftPreview} 在世界帧通道里
+     * 用<b>真 judgment_rift 着色器</b>画进离屏目标（与世界裂缝同一份 GLSL，逐帧动画 + fwidth 抗锯齿）。
+     * 弃用史：红色竖条占位（阶段一）→ 矩形拼贴（judgworld2，「方块色带」）→
+     * CPU 逐行移植（judgworld3，方向反 + 马赛克 + 每帧 9~18ms）→ GPU 离屏（judgworld4）。
      */
     private static void renderRift(GuiGraphicsExtractor graphics, int x, int y, int width, int height, float tick) {
         JudgmentRiftPreview.render(graphics, x, y, width, height, tick);
