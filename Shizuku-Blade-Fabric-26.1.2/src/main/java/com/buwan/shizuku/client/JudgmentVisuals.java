@@ -424,9 +424,9 @@ public final class JudgmentVisuals {
     /**
      * 面板里的斩击预览（{@link com.buwan.shizuku.client.screen.JudgmentScreen} 的「视觉效果」页签调用）。
      *
-     * <p>GUI 阶段跑不了 GLSL（26.1 的 GUI 是渲染状态提取 + 预制状态），所以预览用矩形/2D 物品
-     * <b>手工拼出与真实世界一致的观感</b>：裂缝 = 蓝白玻璃裂纹 + 夜空内芯 + 闭合金染（配色取自
-     * {@code judgment_rift.fsh}，见 {@link #renderRift}）；落剑 = 2D 钻石剑精灵，
+     * <p>GUI 阶段跑不了 GLSL（26.1 的 GUI 是渲染状态提取 + 预制状态）：裂缝 =
+     * {@code judgment_rift.fsh} 的 CPU 逐行移植渲染成动态贴图再 blit
+     * （{@link JudgmentRiftPreview}，公式同世界版）；落剑 = 2D 钻石剑精灵，
      * 剑尖朝下插地（与世界 ZP(-135°) 的净效果一致，见 {@link #renderFallingSword}）。
      * 任何一步失败都静默跳过（预览区最多是空的，绝不影响界面本身）。</p>
      */
@@ -445,64 +445,13 @@ public final class JudgmentVisuals {
     }
 
     /**
-     * 预览裂缝：按真实 {@code judgment_rift} 的观感手工拼（GUI 阶段跑不了 GLSL）。
-     * 配色逐项取自 fsh：夜空内芯（近黑深蓝 {@code vec3(0.013,0.012,0.063)+cloud}）、
-     * 苍蓝玻璃裂纹（{@code 0xADE8FF≈vec3(0.68,0.84,1.0)} 系）+ 白热核心、
-     * 青品红极光带、闭合前金染（fsh 的 {@code close} 混色 {@code vec3(1.0,0.81,0.53)}）
-     * 与闭合一瞬的暖金 latch 闪光（{@code vec3(1.0,0.88,0.59)}）。
-     * 旧的红色竖条占位于 2026-11-24 按用户反馈重制（真实裂缝本来就是蓝白玻璃，不是红色）。
+     * 预览裂缝：把真实 {@code judgment_rift.fsh} 逐行移植到 CPU 渲染进动态贴图再 blit
+     * （见 {@link JudgmentRiftPreview}）。GUI 阶段跑不了 GLSL，但公式同一套 ⇒ 观感与
+     * 世界裂缝一致（蓝白玻璃裂纹 + 夜空内芯 + 闭合金染/latch），且随 tick 动画。
+     * 旧的红色竖条占位（阶段一）与矩形拼贴（judgworld2，被实测吐槽「方块色带」）已弃用。
      */
     private static void renderRift(GuiGraphicsExtractor graphics, int x, int y, int width, int height, float tick) {
-        float fadeIn = Mth.clamp((tick - Ymsa.STRIKE_TICK) / 3F, 0, 1);
-        float fadeOut = Mth.clamp((Ymsa.RIFT_CLOSED_TICK - tick) / 3F, 0, 1);
-        float alpha = fadeIn * fadeOut;
-        if (alpha <= 0.01F || width < 10 || height < 10) {
-            return;
-        }
-        int midY = y + height / 2;
-        // 真实 fsh：close = smoothstep(23, lock, t)，金染随它混入
-        float close = Mth.clamp((tick - 23F) / (Ymsa.RIFT_CLOSED_TICK - 23F), 0, 1);
-        // 内芯：近黑深蓝的夜空带（fsh 的 night 基色）
-        int bandH = Math.max(8, height * 3 / 10);
-        graphics.fillGradient(x, midY - bandH / 2, x + width, midY + bandH / 2,
-                argb((int) (alpha * 170), 0x0C1238), argb((int) (alpha * 140), 0x04060F));
-        // 星点（固定伪随机位置，不随帧闪）：fsh 的 stars()
-        for (int i = 0; i < 12; i++) {
-            int sx = x + 3 + (width - 6) * (i * 37 % 89) / 89;
-            int sy = midY - bandH / 2 + 2 + (bandH - 5) * ((i * 53) % 97) / 97;
-            int starA = (int) (alpha * (i % 3 == 0 ? 210 : 120));
-            graphics.fill(sx, sy, sx + 1, sy + 1, argb(starA, i % 4 == 0 ? 0xBFE3FF : 0xFFFFFF));
-        }
-        // 极光带：青 → 品红（fsh 的 aurora lane）
-        graphics.fillGradient(x + width / 6, midY - bandH / 3, x + width * 5 / 6, midY - bandH / 4,
-                argb((int) (alpha * 52), 0x2ECCDD), argb((int) (alpha * 34), 0xEE64CC));
-        // 裂缝主体：锯齿状苍蓝缝 + 白热核心；闭合时金染（fsh：mix(苍蓝, 金, close)）
-        int glass = mixColor(0xADE8FF, 0xFFE08D, close);
-        int core = mixColor(0xFFFFFF, 0xFFE1B0, close);
-        int half = Math.max(2, bandH / 8);
-        int segs = 9;
-        for (int i = 0; i < segs; i++) {
-            int sx = x + width * i / segs;
-            int sw = width / segs + 1;
-            int jag = (((i * 61) % 7) - 3) * Math.max(1, bandH / 16);
-            int sy = midY + jag;
-            graphics.fill(sx, sy - half, sx + sw, sy + half, argb((int) (alpha * 120), glass));
-            graphics.fill(sx, sy - 1, sx + sw, sy + 1, argb((int) (alpha * 235), core));
-        }
-        // latch：闭合前一瞬的暖金亮线（fsh 的 latch 光）
-        float latch = 1 - Mth.clamp(Math.abs(tick - (Ymsa.RIFT_CLOSED_TICK - 0.5F)) / 2.2F, 0, 1);
-        if (latch > 0) {
-            graphics.fillGradient(x + width / 8, midY - 1, x + width * 7 / 8, midY + 1,
-                    argb((int) (alpha * latch * 240), 0xFFEDB2), argb((int) (alpha * latch * 240), 0xFFD27A));
-        }
-    }
-
-    /** 两个 RGB（0xRRGGBB）按 t 线性插值。 */
-    private static int mixColor(int from, int to, float t) {
-        int r = (int) Mth.lerp(t, (from >>> 16) & 0xFF, (to >>> 16) & 0xFF);
-        int g = (int) Mth.lerp(t, (from >>> 8) & 0xFF, (to >>> 8) & 0xFF);
-        int b = (int) Mth.lerp(t, from & 0xFF, to & 0xFF);
-        return (r << 16) | (g << 8) | b;
+        JudgmentRiftPreview.render(graphics, x, y, width, height, tick);
     }
 
     /** 落剑：GUI 物品 + pose 缩放/旋转（替代原来的 3D 静态物品渲染）。 */
@@ -533,11 +482,5 @@ public final class JudgmentVisuals {
         pose.scale(scale, scale);
         graphics.item(swordDisplay(), -8, -8);
         pose.popMatrix();
-    }
-
-    /** ARGB 组装（alpha 夹到 0~255）。 */
-    private static int argb(int alpha, int rgb) {
-        int a = Math.max(0, Math.min(255, alpha));
-        return (a << 24) | (rgb & 0xFFFFFF);
     }
 }
