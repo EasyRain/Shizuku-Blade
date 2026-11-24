@@ -26,9 +26,10 @@ import org.joml.Vector4f;
  * <p>背景（2026-11-24 两轮实测反馈）：26.1 的 GUI 是渲染状态提取，跑不了自定义 GLSL。
  * 先试过矩形拼贴（「一条条方块色带」）、再试过 fsh 的 CPU 逐行移植（方向反 + 马赛克 +
  * 预览区尺寸下每帧 9~18ms 太贵）。最终方案 = <b>世界帧通道里把裂缝四边形额外画进一张
- * 离屏 {@link TextureTarget}</b>，GUI 预览直接 blit 它 —— 与世界里的裂缝是
- * <b>同一个 RenderType、同一份 GLSL、fwidth 抗锯齿、逐帧满速动画、零 CPU 逐像素开销</b>，
- * 即用户要的「世界怎么画预览就怎么画」。</p>
+ * 离屏 {@link TextureTarget}</b>，GUI 预览直接 blit 它 —— 与世界里的裂缝是<b>同一份 GLSL</b>
+ * （世界版 {@code rift()} 混合管线；离屏版 {@code riftOffscreen()} 无混合直写，
+ * 让 GUI blit 做唯一一次混合 = 与世界一致的合成链路）、fwidth 抗锯齿、逐帧满速动画、
+ * 零 CPU 逐像素开销，即用户要的「世界怎么画预览就怎么画」。</p>
  *
  * <p>流程：</p>
  * <ol>
@@ -130,7 +131,11 @@ final class JudgmentRiftPreview {
         }
     }
 
-    /** 铺满目标的裂缝四边形（两个三角形；uv 0..1；Color=(tick,STRIKE,LOCK)/64 同世界编码）。 */
+    /**
+     * 铺满目标的裂缝四边形（两个三角形；uv 0..1；Color=(tick,STRIKE,LOCK)/64 同世界编码）。
+     * 用<b>无混合</b>的离屏管线直写（fsh 输出直排 alpha；GUI blit 时才做唯一一次混合），
+     * 避免透明底上混合写导致 a² 预乘、GUI 再混合变 rgb·a³ 的发淡（见 JudgmentShaders 注释）。
+     */
     private static void drawQuad(Matrix4f invProj, float tick) {
         float t = tick / 64.0F;
         float impact = Ymsa.STRIKE_TICK / 64.0F;
@@ -143,7 +148,7 @@ final class JudgmentRiftPreview {
         vertex(buffer, invProj, -1.0F, -1.0F, 0.0F, 0.0F, 0.0F, t, impact, lock);
         vertex(buffer, invProj, 1.0F, 1.0F, 0.0F, 1.0F, 1.0F, t, impact, lock);
         vertex(buffer, invProj, -1.0F, 1.0F, 0.0F, 0.0F, 1.0F, t, impact, lock);
-        JudgmentShaders.rift().draw(buffer.buildOrThrow());
+        JudgmentShaders.riftOffscreen().draw(buffer.buildOrThrow());
     }
 
     /** 单顶点：NDC 角经逆投影得到视图空间坐标（ModelViewMat 已是恒等 ⇒ ProjMat*pos 还原回该 NDC 角）。 */

@@ -35,28 +35,46 @@ public final class JudgmentShaders {
 
     private static RenderType domainType;
     private static RenderType riftType;
+    private static RenderType riftOffscreenType;
 
     /** 墨焰球壳（域球）。 */
     public static RenderType domain() {
         if (domainType == null) {
-            domainType = build(DOMAIN_SHADER, "judgment_domain");
+            domainType = build(DOMAIN_SHADER, "judgment_domain", true);
         }
         return domainType;
     }
 
-    /** 玻璃裂缝（空间裂缝）。 */
+    /** 玻璃裂缝（空间裂缝）——世界版：srcalpha 混合叠进场景。 */
     public static RenderType rift() {
         if (riftType == null) {
-            riftType = build(RIFT_SHADER, "judgment_rift");
+            riftType = build(RIFT_SHADER, "judgment_rift", true);
         }
         return riftType;
     }
 
     /**
-     * 与 {@link CosmicShaders} 完全同构的管线构建（ENTITY 顶点格式 / TRIANGLES / 无剔除 /
-     * 不写深度 / alpha 混合）。原版这两个效果都是半透明叠加，所以用 {@link BlendFunction#TRANSLUCENT}。
+     * 玻璃裂缝——离屏预览版：同一份 GLSL，但<b>无混合</b>直写。
+     *
+     * <p>rift fsh 输出直排 alpha；离屏目标透明清零后用无混合直写 = 存储原始 (rgb, a)，
+     * GUI blit（{@code GUI_TEXTURED} 的 TRANSLUCENT）做<b>唯一一次</b>混合
+     * {@code rgb*a + bg*(1-a)} —— 与世界版在场景上的混合链路完全一致。
+     * 若沿用世界版的混合管线画进透明底，会存成预乘色+a²，GUI 再混合一次变成
+     * {@code rgb*a³}，整个预览发淡（2026-11-24 judgworld4 部署前修正）。</p>
      */
-    private static RenderType build(Identifier shader, String name) {
+    public static RenderType riftOffscreen() {
+        if (riftOffscreenType == null) {
+            riftOffscreenType = build(RIFT_SHADER, "judgment_rift_offscreen", false);
+        }
+        return riftOffscreenType;
+    }
+
+    /**
+     * 与 {@link CosmicShaders} 完全同构的管线构建（ENTITY 顶点格式 / TRIANGLES / 无剔除 /
+     * 不写深度 / 可关混合）。原版这两个效果都是半透明叠加，世界版用
+     * {@link BlendFunction#TRANSLUCENT}；离屏版关混合（见 {@link #riftOffscreen()}）。
+     */
+    private static RenderType build(Identifier shader, String name, boolean blend) {
         RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
                 .withLocation(shizuku.prefix("pipeline/" + name))
                 .withVertexShader(shader)
@@ -64,8 +82,9 @@ public final class JudgmentShaders {
                 .withCull(false)
                 .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.TRIANGLES)
                 .withDepthStencilState(new DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
-                .withColorTargetState(new ColorTargetState(Optional.of(BlendFunction.TRANSLUCENT),
-                        ColorTargetState.WRITE_COLOR))
+                .withColorTargetState(blend
+                        ? new ColorTargetState(Optional.of(BlendFunction.TRANSLUCENT), ColorTargetState.WRITE_COLOR)
+                        : new ColorTargetState(Optional.empty(), ColorTargetState.WRITE_COLOR))
                 .build();
         RenderSetup setup = RenderSetup.builder(pipeline)
                 // 着色器并不采样，但 RenderSetup 要求 Sampler0 有绑定（与 cosmic 一致用物品图集）
