@@ -4,6 +4,10 @@
 
 uniform sampler2D Sampler0;
 
+#ifndef ATMOSPHERE_ALPHA
+#define ATMOSPHERE_ALPHA 1.0
+#endif
+
 in float cloudDensity;
 in float latitude;
 in float longitude;
@@ -21,5 +25,7 @@ void main() {
     float ember = exp(-28.0 * fold) * smoothstep(0.28, 0.76, n);
     vec3 ink = mix(vec3(0.025, 0.004, 0.025), vec3(0.27, 0.012, 0.058), n);
     ink += flame * vec3(0.41, 0.018, 0.055) + ember * vec3(0.41, 0.08, 0.055);
-    fragColor = vec4(ink, vOpacity * (0.84 + 0.13 * n));
+    // 原版是 vOpacity * (0.84 + 0.13n) ≈ 0.9；实机观感偏透，这里先给到 1.0 做对照
+    // （`ATMOSPHERE_ALPHA` 是留给观感调节的旋钮：0.9 = 原版，1.0 = 完全不透明）
+    fragColor = vec4(ink, clamp(vOpacity * (0.84 + 0.13 * n) * ATMOSPHERE_ALPHA, 0.0, 1.0));
 }

@@ -195,16 +195,22 @@ public final class JudgmentVisuals {
     }
 
     /** 写一个 ENTITY 格式顶点（Position + Color + UV0 + Overlay + Light + Normal）。 */
+    /**
+     * 写一个 ENTITY 格式顶点。
+     *
+     * <p>顶点色在这里不只是颜色：26.1 的 RenderType 给不了逐帧 uniform，原版的两个
+     * {@code Atmosphere}/{@code Phase} 就编码进 {@code Color}(0..1 浮点) ——
+     * 这是唯一语义明确、不会被归一化/截断搞坏的通道（Normal 是归一化字节，
+     * UV1/UV2 实机上不透明度只出来 ~25%）。着色器里再 {@code * 64} 还原。</p>
+     */
     private static void vertex(BufferBuilder buffer, Matrix4f m,
                                float x, float y, float z, float u,
-                               int uv1x, int uv1y, int uv2x) {
+                               float pr, float pg, float pb) {
         buffer.addVertex(m, x, y, z)
-                .setColor(1.0F, 1.0F, 1.0F, 1.0F)
+                .setColor(pr, pg, pb, 1.0F)
                 .setUv(u, 0.0F)
-                // UV1 / UV2 是 short 属性：用它们承载原版的逐帧 uniform
-                // （Normal 在 ENTITY 格式里是归一化字节，只能表示 -1..1，会被截断）
-                .setUv1(uv1x, uv1y)
-                .setUv2(uv2x, 0)
+                .setUv1(0, 0)
+                .setUv2(MAX_LIGHT, MAX_LIGHT)
                 .setNormal(0.0F, 1.0F, 0.0F);
     }
 
@@ -249,21 +255,21 @@ public final class JudgmentVisuals {
         float latitude = (v - 0.5F) * Mth.PI;
         float radius = Mth.cos(latitude);
         vertex(buffer, m, radius * Mth.cos(longitude), Mth.sin(latitude), radius * Mth.sin(longitude),
-                u, Math.round(tick * 100.0F), Math.round(opacity * 10000.0F), 0);
+                u, tick / 64.0F, opacity, 0.0F);
     }
 
     /** 空间裂缝：单位四边形，UV 0..1；Phase = (tick, STRIKE_TICK, RIFT_CLOSED_TICK)。 */
     private static void drawRift(Matrix4f m, float tick, float opacity) {
         BufferBuilder buffer = beginTriangles();
-        int t100 = Math.round(tick * 100.0F);
-        int impact100 = Ymsa.STRIKE_TICK * 100;
-        int lock100 = Ymsa.RIFT_CLOSED_TICK * 100;
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t100, impact100, lock100);
-        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, t100, impact100, lock100);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t100, impact100, lock100);
-        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t100, impact100, lock100);
-        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t100, impact100, lock100);
-        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, t100, impact100, lock100);
+        float t = tick / 64.0F;
+        float impact = Ymsa.STRIKE_TICK / 64.0F;
+        float lock = Ymsa.RIFT_CLOSED_TICK / 64.0F;
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, -1.0F, 0.0F, 1.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t, impact, lock);
+        vertex(buffer, m, -1.0F, -1.0F, 0.0F, 0.0F, t, impact, lock);
+        vertex(buffer, m, 1.0F, 1.0F, 0.0F, 1.0F, t, impact, lock);
+        vertex(buffer, m, -1.0F, 1.0F, 0.0F, 0.0F, t, impact, lock);
         com.buwan.shizuku.client.shader.JudgmentShaders.rift().draw(buffer.buildOrThrow());
     }
 
