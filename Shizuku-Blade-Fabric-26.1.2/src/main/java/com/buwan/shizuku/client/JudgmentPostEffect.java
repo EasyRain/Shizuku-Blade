@@ -86,14 +86,25 @@ public final class JudgmentPostEffect {
 
             // ⚠️ 顺序必须与 fsh 的 JudgmentConfig 块逐项一致（std140 顺序布局）
             java.util.List<UniformValue> block = new java.util.ArrayList<>();
+            // ⚠️ 前 6 项顺序必须与 fsh 的 v1 前缀一致（见 fsh 注释）
+            double[] mainDomain = domains.isEmpty() ? null : domains.get(0);
             block.add(uval("U_CameraPosition", "vec4", floats((float) camPos.x, (float) camPos.y, (float) camPos.z, 1.0F)));
-            for (int i = 0; i < 4; i++) {
+            block.add(uval("U_DomainCenter", "vec4", mainDomain == null
+                    ? floats(0.0F, 0.0F, 0.0F, 0.0F)
+                    : floats((float) mainDomain[0], (float) mainDomain[1], (float) mainDomain[2], (float) mainDomain[3])));
+            block.add(uval("U_Params", "vec4", mainDomain == null
+                    ? floats(0.0F, 0.0F, 0.0F, 0.0F)
+                    : floats((float) mainDomain[4], (float) mainDomain[5], 0.0F, 0.0F)));
+            block.add(uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)));
+            block.add(uval("U_InverseProjectionMatrix", "matrix4x4", rowMajor(invProj)));
+            block.add(uval("U_InverseViewMatrix", "matrix4x4", rowMajor(invView)));
+            for (int i = 1; i < 4; i++) {
                 double[] d = i < domains.size() ? domains.get(i) : null;
                 block.add(uval("U_Domain" + i, "vec4", d == null
                         ? floats(0.0F, 0.0F, 0.0F, 0.0F)
                         : floats((float) d[0], (float) d[1], (float) d[2], (float) d[3])));
             }
-            for (int i = 0; i < 4; i++) {
+            for (int i = 1; i < 4; i++) {
                 double[] d = i < domains.size() ? domains.get(i) : null;
                 block.add(uval("U_DomainParam" + i, "vec4", d == null
                         ? floats(0.0F, 0.0F, 0.0F, 0.0F)
@@ -101,20 +112,13 @@ public final class JudgmentPostEffect {
             }
             boolean hasRift = rift != null;
             block.add(uval("U_RiftCenter", "vec4", hasRift
-                    ? floats((float) rift[0], (float) rift[1], (float) rift[2], 0.0F)
-                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+                    ? floats((float) rift[0], (float) rift[1], (float) rift[2], 0.0F) : floats(0, 0, 0, 0)));
             block.add(uval("U_RiftRight", "vec4", hasRift
-                    ? floats((float) rift[3], (float) rift[4], (float) rift[5], 0.0F)
-                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+                    ? floats((float) rift[3], (float) rift[4], (float) rift[5], 0.0F) : floats(0, 0, 0, 0)));
             block.add(uval("U_RiftUp", "vec4", hasRift
-                    ? floats((float) rift[6], (float) rift[7], (float) rift[8], 0.0F)
-                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
+                    ? floats((float) rift[6], (float) rift[7], (float) rift[8], 0.0F) : floats(0, 0, 0, 0)));
             block.add(uval("U_RiftParam", "vec4", hasRift
-                    ? floats((float) rift[9], (float) rift[10], (float) rift[11], 1.0F)
-                    : floats(0.0F, 0.0F, 0.0F, 0.0F)));
-            block.add(uval("ScreenSize", "vec2", floats(mainTarget.width, mainTarget.height)));
-            block.add(uval("U_InverseProjectionMatrix", "matrix4x4", rowMajor(invProj)));
-            block.add(uval("U_InverseViewMatrix", "matrix4x4", rowMajor(invView)));
+                    ? floats((float) rift[9], (float) rift[10], (float) rift[11], 1.0F) : floats(0, 0, 0, 0)));
 
             ShaderManager shaderManager = Minecraft.getInstance().getShaderManager();
             PostChain chain = PostChain.load(buildConfig(block),
