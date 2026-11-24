@@ -1026,6 +1026,17 @@ public class Ymsa {
         handleServerTickEnd(event.getServer());
     }
 
+    /**
+     * 服务端停机时清空 SA 静态状态（对齐 Forge 的 {@code ServerMaintenanceMixin}）。
+     *
+     * <p>本端口的同款 mixin 文件存在但未注册（改用事件），这里补上等价清理，
+     * 避免单机切换存档时把「重生追踪 / 类型压制 / 抹除队列」带进新世界。</p>
+     */
+    @SubscribeEvent
+    public static void onServerStopped(net.neoforged.neoforge.event.server.ServerStoppedEvent event) {
+        clearAllSAState();
+    }
+
     @SubscribeEvent
     public static void onEntityJoin(EntityJoinLevelEvent event) {
         if (shouldCancelJoin(event.getEntity())) {

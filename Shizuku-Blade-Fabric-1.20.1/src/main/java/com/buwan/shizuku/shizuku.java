@@ -132,6 +132,10 @@ public class shizuku {
         PacketHandler.registerServer();
         ServerLifecycleEvents.SERVER_STARTED.register(PacketHandler::setServer);
         ServerLifecycleEvents.SERVER_STOPPING.register(s -> PacketHandler.setServer(null));
+        // 与 Forge 的 ServerMaintenanceMixin 对齐：停机时清空 SA 静态状态
+        //（重生追踪 / 类型压制 / 抹除队列 / 待补刀 等），否则单机换存档会把这些状态带过去。
+        ServerLifecycleEvents.SERVER_STOPPED.register(s ->
+                com.buwan.shizuku.sa.Ymsa.clearAllSAState());
 
         // SE 事件（Refabricated 用 Fabric Event：HIT / UPDATE）
         SlashBladeEvent.HIT.register(Jingxin::onHitEntity);
