@@ -198,7 +198,7 @@ public final class JudgmentVisuals {
         float radius = Ymsa.DOMAIN_RADIUS;
         int segments = 24;
         int rings = 14;
-        float baseAlpha = opacity * 0.10F;
+        float baseAlpha = opacity * 0.06F;
         BufferBuilder buffer = beginQuads();
         for (int i = 0; i < rings; i++) {
             double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
@@ -225,7 +225,63 @@ public final class JudgmentVisuals {
             }
         }
         endQuads(buffer);
+        // 经纬线框：让球面有「包裹感/深度」，否则整屏就是一片均匀红雾
+        drawSphereGrid(pose, radius, 0.85F, 0.18F, 0.22F, opacity * 0.35F);
         pose.popPose();
+    }
+
+    /** 经纬线框球（照抄 TimeStopRenderer#drawGrid：26.1 的 linesTranslucent 管线，带半透明混合）。 */
+    private static void drawSphereGrid(PoseStack poseStack, float radius, float r, float g, float b, float alpha) {
+        BufferBuilder buffer = Tesselator.getInstance().begin(
+                VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL_LINE_WIDTH);
+        PoseStack.Pose pose = poseStack.last();
+        float lineWidth = 1.5F;
+
+        // 纬线：只画三条（-45°/0°/+45°），否则 128 半径的球会糊成一片
+        double[] latitudes = {-Math.PI / 4, 0.0, Math.PI / 4};
+        int segments = 48;
+        for (double lat : latitudes) {
+            double y = Math.sin(lat) * radius;
+            double ringRadius = Math.cos(lat) * radius;
+            for (int i = 0; i < segments; i++) {
+                double a0 = (Math.PI * 2) * (double) i / (double) segments;
+                double a1 = (Math.PI * 2) * (double) (i + 1) / (double) segments;
+                line(buffer, pose, lineWidth,
+                        Math.cos(a0) * ringRadius, y, Math.sin(a0) * ringRadius,
+                        Math.cos(a1) * ringRadius, y, Math.sin(a1) * ringRadius,
+                        r, g, b, alpha);
+            }
+        }
+
+        // 经线：8 条，alpha 减半
+        int meridians = 8;
+        int rings = 24;
+        for (int m = 0; m < meridians; m++) {
+            double lng = (Math.PI * 2) * (double) m / (double) meridians;
+            double cl = Math.cos(lng) * radius;
+            double sl = Math.sin(lng) * radius;
+            for (int i = 0; i < rings; i++) {
+                double lat0 = Math.PI * (-0.5 + (double) i / (double) rings);
+                double lat1 = Math.PI * (-0.5 + (double) (i + 1) / (double) rings);
+                line(buffer, pose, lineWidth,
+                        cl * Math.cos(lat0), Math.sin(lat0) * radius, sl * Math.cos(lat0),
+                        cl * Math.cos(lat1), Math.sin(lat1) * radius, sl * Math.cos(lat1),
+                        r, g, b, alpha * 0.5F);
+            }
+        }
+        net.minecraft.client.renderer.rendertype.RenderTypes.linesTranslucent().draw(buffer.buildOrThrow());
+    }
+
+    /** 画一条线段（两端点共用同一个归一化方向作 Normal，与上游 ShapeRenderer 一致）。 */
+    private static void line(BufferBuilder buffer, PoseStack.Pose pose, float lineWidth,
+                             double x0, double y0, double z0, double x1, double y1, double z1,
+                             float r, float g, float b, float a) {
+        org.joml.Vector3f dir = new org.joml.Vector3f(
+                (float) (x1 - x0), (float) (y1 - y0), (float) (z1 - z0)).normalize();
+        buffer.addVertex(pose, (float) x0, (float) y0, (float) z0)
+                .setColor(r, g, b, a).setNormal(pose, dir).setLineWidth(lineWidth);
+        buffer.addVertex(pose, (float) x1, (float) y1, (float) z1)
+                .setColor(r, g, b, a).setNormal(pose, dir).setLineWidth(lineWidth);
     }
 
     /** 空间裂缝：以落剑方向为正面的两个竖直发光面（十字交叉），随施法者朝向旋转。 */
@@ -235,16 +291,16 @@ public final class JudgmentVisuals {
         pose.translate((float) (center.x - camera.x), (float) (center.y - camera.y), (float) (center.z - camera.z));
         pose.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-cast.packet.yaw()));
         Matrix4f m = pose.last().pose();
-        float w = 1.05F;
+        float w = 0.8F;
         float h = 5.2F;
-        float a1 = opacity * 0.85F;
-        float a2 = opacity * 0.55F;
+        float a1 = opacity * 0.55F;
+        float a2 = opacity * 0.35F;
         BufferBuilder buffer = beginQuads();
         // 面向 Z 方向的裂面
-        quad(buffer, m, -w, -h, 0.0F, w, -h, 0.0F, w, h, 0.0F, -w, h, 0.0F, 1.0F, 0.93F, 0.96F, a1);
+        quad(buffer, m, -w, -h, 0.0F, w, -h, 0.0F, w, h, 0.0F, -w, h, 0.0F, 0.95F, 0.16F, 0.24F, a1);
         // 交叉 90° 的裂面
         quad(buffer, m, 0.0F, -h, -w * 0.6F, 0.0F, -h, w * 0.6F, 0.0F, h, w * 0.6F, 0.0F, h, -w * 0.6F,
-                1.0F, 0.82F, 0.88F, a2);
+                1.0F, 0.35F, 0.42F, a2);
         endQuads(buffer);
         pose.popPose();
     }
@@ -254,10 +310,10 @@ public final class JudgmentVisuals {
         pose.pushPose();
         pose.translate((float) offset.x, (float) offset.y, (float) offset.z);
         Matrix4f m = pose.last().pose();
-        float beamRadius = 0.75F;
+        float beamRadius = 0.38F;
         // 光柱从地面拔到 7 格高，落剑瞬间最亮
         float height = 7.0F * Mth.clamp(tick / (float) Ymsa.END_TICK, 0.55F, 1.0F);
-        float alpha = opacity * 0.75F;
+        float alpha = opacity * 0.32F;
         BufferBuilder buffer = beginQuads();
         // 四个侧面（每面 2 个三角 → 用四边形）
         float[][] sides = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -269,13 +325,13 @@ public final class JudgmentVisuals {
             quad(buffer, m,
                     nx - ox, 0.0F, nz - oz, nx + ox, 0.0F, nz + oz,
                     nx + ox, height, nz + oz, nx - ox, height, nz - oz,
-                    1.0F, 0.95F, 0.98F, alpha);
+                    1.0F, 0.72F, 0.78F, alpha);
         }
         // 地面冲击环（16 段四边形）
         float inner = 1.2F;
         float outer = 2.6F * Mth.clamp(tick / (float) Ymsa.END_TICK, 0.3F, 1.0F);
         int seg = 16;
-        float ringAlpha = opacity * 0.65F;
+        float ringAlpha = opacity * 0.28F;
         for (int i = 0; i < seg; i++) {
             double a0 = Math.PI * 2 * i / seg;
             double a1 = Math.PI * 2 * (i + 1) / seg;
@@ -288,7 +344,7 @@ public final class JudgmentVisuals {
             float x3 = (float) (Math.cos(a0) * outer);
             float z3 = (float) (Math.sin(a0) * outer);
             quad(buffer, m, x0, 0.02F, z0, x1, 0.02F, z1, x2, 0.02F, z2, x3, 0.02F, z3,
-                    1.0F, 0.55F, 0.6F, ringAlpha);
+                    0.95F, 0.22F, 0.3F, ringAlpha);
         }
         endQuads(buffer);
         pose.popPose();
